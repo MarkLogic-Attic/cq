@@ -1,4 +1,4 @@
-// Copyright (c)2004 Mark Logic Corporation
+// Copyright (c) 2004-2005 Mark Logic Corporation. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,30 +16,49 @@
 // affiliated with the Apache Software Foundation. 
 
 body {
-  background-color: white;
   color: black;
+  background-color: white;
   font-family: sans-serif;
-  font-size: 14;
+  font-size: small;
 }
 
 td {
-  font-family: sans-serif;
-  font-size: 14;
   vertical-align: top;
 }
 
 textarea {
-  font-size: 14;
+  font-family: mono-space;
+  font-size: small;
+}
+
+table {
+	width: 100%;
 }
 
 .head1 {
-  font-family: sans-serif;
-  font-size: 20;
-  background-color: #AADDFF;
+  background-color: #FFCC33;
+  font-size: medium;
   font-weight: bold;
 }
 
 .input1 {
   font-family: sans-serif;
-  font-size: 14;
+  font-size: small;
 }
+
+.bufferlabel {
+  overflow: hidden;
+  text-overflow: clip;
+  height: 1.5em;
+  line-height: 1.5;
+}
+
+.bufferlabelactive {
+  overflow: hidden;
+  text-overflow: clip;
+  line-height: 1.5;
+  height: 3em;
+  background-color: #FFCC33;
+}
+
+// end cq.css

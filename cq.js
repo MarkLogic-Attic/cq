@@ -28,18 +28,19 @@
 // TODO to support incremental autosave
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
-var g_cq_query_frame = "cq_queryFrame";
-var g_cq_result_frame = "cq_resultFrame";
-var g_cq_query_input = "queryInput";
+var g_cq_frameset_id = "cq_frameset";
+var g_cq_query_frame_id = "cq_queryFrame";
+var g_cq_result_frame_id = "cq_resultFrame";
+var g_cq_query_input = "/cq:query";
 var g_cq_uri = "cqUri";
 var g_cq_import_export_id = "cq_import_export";
-var g_cq_query_form = "cq_form";
+var g_cq_query_form_id = "cq_form";
 var g_cq_autosave_id = "cq_autosave";
 var g_cq_bufferlist_id = "cq_bufferlist";
 var g_cq_buffers_id = "cq_buffers";
 var g_cq_buffer_basename = "cq_buffer";
-var g_cq_database_list = "/cq:database";
-var g_cq_query_mime_type = "cq_mimeType";
+var g_cq_database_list_id = "/cq:database";
+var g_cq_query_mime_type = "/cq:mime-type";
 var g_cq_query_action = "cq-eval.xqy";
 
 // GLOBAL VARIABLES
@@ -48,6 +49,47 @@ var g_cq_buffers = 10;
 var g_cq_next_id = 0;
 var g_cq_autosave_incremental = false;
 var g_cq_timeout = 750;
+
+var DEBUG = false;
+
+function debug(message) {
+    if (! DEBUG)
+        return;
+
+    var id = "__debugNode";
+    var debugNode = document.getElementById(id);
+    if (debugNode == null) {
+        var debugNode = document.createElement("div");
+        var bodyNode = document.body;
+        if (bodyNode == null) {
+            bodyNode = document.createElement("body");
+            document.appendChild(body);
+        }
+        bodyNode.appendChild(debugNode);
+    }
+
+    var newNode = document.createElement("pre");
+    // we want the pre to wrap: this is hard until CSS3
+    // but we'll hack it for now.
+    // don't use a class: be as self-contained as possible.
+    newNode.setAttribute("style",
+                         "white-space: -moz-pre-wrap;"
+                         + "word-wrap: break-word;"
+                         + "white-space: -pre-wrap;"
+                         + "white-space: -o-pre-wrap;"
+                         + "white-space: pre-wrap;"
+                         );
+    newNode.appendChild(document.createTextNode(message));
+    debugNode.appendChild(newNode);
+    // just in case debugNode was present but hidden
+    debugNode.style.display = "block";
+}
+
+function removeChildNodes(node) {
+    while (node.hasChildNodes()) {
+        node.removeChild(node.firstChild);
+    }
+}
 
 function setCookie(name, value, days) {
     if (name == null)
@@ -108,37 +150,46 @@ function Is () {
 
 var is = new Is();
 
-function getResultFrame() {
-    // if the result frame is an iframe, get it from the current document
-    //document.getElementById(g_cq_result_frame);
-    // if the result frame is in a frameset, get it from the parent document
-    var theFrame =
-        parent.document.getElementById(g_cq_result_frame);
-    return theFrame;
+function getFrameset() {
+    // get it from the parent document
+    return parent.document.getElementById(g_cq_frameset_id);
+}
+
+function getQueryFrame() {
+    // get it from the parent document
+    return parent.document.getElementById(g_cq_query_frame_id);
 } // getResultFrame
 
-function resizeResultFrame() {
-    var theFrame = getResultFrame();
-    var theBody     =       null;
-    // try to set the iframe height to match the available space
-    if (is.ie) {
-        theBody = theFrame.document.body;
-        theFrame.style.height =
-            theBody.scrollHeight + (theBody.offsetHeight - theBody.clientHeight);
-    } else {
-        //alert("old frame = " + theFrame.height);
-        // XXX how does gecko handle this?
-        // XXX handle both XML and XHTML content...
-        // seems to be stored in "Anonymous Content", which isn't in the DOM
-        //theOutputDoc = theOutput.contentDocument;
-        //var theList = theOutputDoc.getElementsByTagName(g_cq_buffer_basename);
-        //theBody = theFrame.contentDocument.getElementById("top");
-        //alert("body len = " + theBody);
-        //theFrame.height =
-        //theBody.scrollHeight + (theBody.offsetHeight - theBody.clientHeight);
-        //alert("new = " + theFrame.style.height);
-    } // is ie
-} // resizeResultFrame
+function getResultFrame() {
+    // get it from the parent document
+    return parent.document.getElementById(g_cq_result_frame_id);
+} // getResultFrame
+
+function resizeFrameset() {
+    var frameset = getFrameset();
+    if (frameset == null) {
+        debug("resizeFrameset: null frameset");
+        return;
+    }
+    // set the result-frame height to fill the available space
+    // pick a reasonable default value
+    var rows = 500;
+    // figure out where some well-known element ended up
+    // in this case we'll use the total height of the query form
+    // this might be called from the queryframe or from the parent frameset
+    var visible = document.getElementById(g_cq_query_form_id);
+    if (visible == null) {
+        // hackish
+        var documentNode = window.frames[0].window.document;
+        visible = documentNode.getElementById(g_cq_query_form_id);
+    }
+    debug("resizeFrameset: visible " + visible
+          + ", " + visible.offsetTop + ", " + visible.offsetHeight);
+    // add a smidgen for fudge-factor:
+    // 15px is enough for gecko, but IE6 wants 20px
+    rows = 20 + visible.offsetTop + visible.offsetHeight;
+    frameset.rows = rows + ",*";
+} // resizeFrameset
 
 function getBufferId(n) {
     if ( (! n) && (n != 0) )
@@ -181,59 +232,56 @@ function normalize(s) {
 
 function getLabel(n) {
     // get the label text for a buffer:
-    var theNode = document.createElement('span');
-    theNode.setAttribute('class', 'code1');
+    var theNode = document.createElement('div');
     var theNum = null;
+    var linkAction = "javascript:refreshBufferList(" + n + ")";
     if (g_cq_buffer_current != n) {
         // provide a link to load the buffer
         theNum = document.createElement('a');
-        theNum.setAttribute('href', "javascript:refreshBufferList(" + n + ")");
-        theNum.appendChild(document.createTextNode("" + (1+n) + "."));
+        theNum.setAttribute('href', linkAction);
     } else {
-        // show the current index in bold
-        //alert("getLabel: " + n + ", " + g_cq_buffer_current);
+        // show the current index in bold, with no link
+        debug("getLabel: " + n + ", " + g_cq_buffer_current);
         theNum = document.createElement('b');
-        theNum.appendChild(document.createTextNode("" + (1+n) + "."));
     }
+    theNum.appendChild(document.createTextNode("" + (1+n) + "."));
     theNode.appendChild(theNum);
-    // write the first 30 chars of the buffer to the label
-    theNode.appendChild(document.createTextNode
-                        (" " + normalize(getBuffer(n).value).substring(0, 29)));
+    var theLabel = normalize(getBuffer(n).value);
+    // let the overflow css handle text that's too long
+    // put the space here, so it won't be inside the link
+    theNode.appendChild(document.createTextNode(" " + theLabel));
+
+    // highlight the current buffer
+    var className = 'bufferlabel';
+    if (g_cq_buffer_current == n) {
+        className = 'bufferlabelactive';
+    }
+    // IE6 doesn't like setAttribute here, but gecko accepts it
+    theNode.className = className;
+
+    // TODO mouseover for fully formatted text contents as tooltip
+    // doing it this way is too ugly
+    //theNode.setAttribute("onmouseover", 'this.style.height = "auto";');
+    //theNode.setAttribute("onmouseout", 'this.style.height = "";');
+
+    // make the whole thing active
+    theNode.setAttribute('onclick', linkAction);
+
     return theNode;
 } // getLabel
 
-function writeBufferLabel(n) {
-    // labels are stored in a table, one per row
-    var theTable = document.getElementById(g_cq_bufferlist_id);
-    // make sure the table has a tbody
-    if (theTable.childNodes.length < 1) {
-        // create an explicit tbody for the DOM (Mozilla needs this)
-        theTable.appendChild(document.createElement('tbody'));
-    }
-    if (theTable) {
-        var theTableBody = theTable.firstChild;
-        var theRow = theTable.rows[n];
-        if (! theRow) {
-            //alert("writeBufferLabel: appending at " + n);
-            theRow = document.createElement('tr');
-            theTableBody.appendChild(theRow);
-        }
-        //alert("writeBufferLabel("+n+"): was=" + theCell);
-        while (theRow.hasChildNodes()) {
-            theRow.removeChild(theRow.firstChild);
-        }
-        var theCell = document.createElement('td');
-        while (theCell.hasChildNodes()) {
-            theCell.removeChild(theCell.firstChild);
-        }
-        theRow.appendChild(theCell);
-        // highlight the
-        if (g_cq_buffer_current == n) {
-            theCell.setAttribute('bgcolor', '#aaddff'); // gecko
-            theCell.style.background = '#aaddff'; // ie
-        }
-        theCell.appendChild(getLabel(n));
-    } // if theTable
+function writeBufferLabel(parentNode, n) {
+    if (! parentNode)
+        return null;
+
+    // parentNode is a table
+    var rowNode = document.createElement('tr');
+    var cellNode = document.createElement('td');
+    // set the text contents to label the new cell
+    cellNode.appendChild(getLabel(n));
+
+    rowNode.appendChild(cellNode);
+    parentNode.appendChild(rowNode);
 } // writeBufferLabel
 
 function refreshBufferList(n) {
@@ -241,23 +289,29 @@ function refreshBufferList(n) {
     // show labels for each buffer
     var theBuffer = null;
     var theParent = document.getElementById(g_cq_buffers_id);
+    // labels are stored in divs in a table cell
+    var labelsNode = document.getElementById(g_cq_bufferlist_id);
+    removeChildNodes(labelsNode);
+    // create an explicit tbody for the DOM (Mozilla needs this)
+    var tableBody = document.createElement('tbody');
+    labelsNode.appendChild(tableBody);
+
     // 0 will return false, will set to 0: ok
     if (! n)
         n = 0;
     g_cq_buffer_current = n;
-    //alert("refreshBufferList: " + g_cq_buffer_current);
+    debug("refreshBufferList: " + g_cq_buffer_current);
     for (var i = 0; i < g_cq_buffers; i++) {
-        //alert("refreshBufferList: i = " + i + " of " + g_cq_buffers);
+        debug("refreshBufferList: i = " + i + " of " + g_cq_buffers);
         theBuffer = getBuffer(i);
         // not there? skip it
         if (theBuffer) {
-          //alert("refreshBufferList: i = " + i + " fontFamily = " + theBuffer.style.fontFamily);
-          writeBufferLabel(i);
+          writeBufferLabel(tableBody, i);
           hide(theBuffer);
         }
     } // for buffers
     // show the current buffer only
-    //alert("refreshBufferList: show " + g_cq_buffer_current);
+    debug("refreshBufferList: show " + g_cq_buffer_current);
     show(getBuffer());
     focusQueryInput();
 } // refreshBufferList
@@ -266,7 +320,7 @@ function parseQuery(key) {
     var theIdx = location.href.indexOf('?');
     if (theIdx > -1) {
         var theQuery = location.href.substring(theIdx+1);
-        //alert("parseQuery: " + key + ' from ' + theQuery);
+        debug("parseQuery: " + key + ' from ' + theQuery);
         theIdx = theQuery.indexOf(key);
         if (theIdx > -1) {
             // parse past the key and the '='
@@ -280,30 +334,33 @@ function parseQuery(key) {
             if (theIdx > -1) {
                 theValue = theValue.substring(0, theIdx);
             }
-            //alert("parseQuery: " + key + ' = ' + theValue);
+            debug("parseQuery: " + key + ' = ' + theValue);
             return unescape(theValue);
         } // if theIdx
     } // if theQuery
 } // parseQuery
 
 function cqOnLoad() {
-    //alert("cqOnLoad");
+    debug("cqOnLoad: begin");
 
     // register for key-presses
     document.onkeyup = handleKey;
 
     // focusing on the form doesn't seem to be necessary
-    //var x = document.getElementById(g_cq_query_form);
+    //var x = document.getElementById(g_cq_query_form_id);
     // display the buffer list, exposing buffer 0
 
     // recover current db from session cookie
-    var currDatabase = getCookie(g_cq_database_list);
+    var currDatabase = getCookie(g_cq_database_list_id);
     if (currDatabase != null) {
-        //alert("cqOnLoad: currDatabase = " + currDatabase);
-        document.getElementById(g_cq_database_list).value = currDatabase;
+        debug("cqOnLoad: currDatabase = " + currDatabase);
+        document.getElementById(g_cq_database_list_id).value = currDatabase;
     }
 
     refreshBufferList(0);
+
+    resizeFrameset();
+
 } // cqOnLoad
 
 // keycode support:
@@ -314,8 +371,7 @@ function handleKey(e) {
       e = window.event;
     var keyInfo = String.fromCharCode(e.keyCode) + '\n';
     var theCode = e['keyCode'];
-    var theForm = document.getElementById(g_cq_query_form);
-    //alert("key=" + theCode + " shift=" + e['shiftKey'] + " alt=" + e['altKey'] + " ctrl=" + e['ctrlKey']);
+    var theForm = document.getElementById(g_cq_query_form_id);
     // treat ctrl-alt-s (83) and ctrl-alt-o (79) as save, load
     if (e['shiftKey'] && e['ctrlKey'] && theCode == 83) {
         // save the buffers to the database
@@ -360,16 +416,16 @@ function submitForm(theForm, theInput, theMimeType) {
     refreshBufferList(g_cq_buffer_current);
 
     // copy the selected database to the session cookie
-    var currDatabase = document.getElementById(g_cq_database_list).value;
-    //alert("submitForm: currDatabase = " + currDatabase);
-    setCookie(g_cq_database_list, currDatabase, 30);
+    var currDatabase = document.getElementById(g_cq_database_list_id).value;
+    debug("submitForm: currDatabase = " + currDatabase);
+    setCookie(g_cq_database_list_id, currDatabase, 30);
 
     // copy current buffer to hidden element
     document.getElementById(g_cq_query_input).value = theInput;
-    //alert("submitForm: "+document.getElementById(g_cq_query_input).value);
+    debug("submitForm: "+document.getElementById(g_cq_query_input).value);
     // set the mime type
     if (theMimeType != null) {
-        //alert("submitForm: mimeType = " + theMimeType);
+        debug("submitForm: mimeType = " + theMimeType);
         document.getElementById(g_cq_query_mime_type).value = theMimeType;
     }
     // post the form
@@ -397,31 +453,31 @@ function cqExport(theForm) {
             + ', "exported ' + theUri + '"';
         // set the current database to null,
         // so we save to the default db
-        theDatabase = document.getElementById(g_cq_database_list);
+        theDatabase = document.getElementById(g_cq_database_list_id);
         oldDatabase = theDatabase.value;
         theDatabase.value = null;
         submitForm(theForm, theQuery, "text/html");
         // TODO restore the user's chosen db
-        //alert("cqExport: preserving selected database " + oldDatabase);
+        debug("cqExport: preserving selected database " + oldDatabase);
         theDatabase.value = oldDatabase;
     } // if theUri
 } // cqExport
 
-// XXX seems to be buggy, still
+// TODO seems to be buggy, still
 function cqAutoSave(n) {
     // use incremental updates if autosave form element is set
     // and the incremental flag is true (has already been exported)
     var theFlag = document.getElementById(g_cq_autosave_id);
-    //alert("cqAutoSave: " + theFlag.checked);
+    debug("cqAutoSave: " + theFlag.checked);
     if (theFlag.checked) {
         if (! g_cq_autosave_incremental) {
             // this session hasn't been exported, as far as we know:
             // export it, then mark it ok for incremental
-            cqExport(document.getElementById(g_cq_query_form));
+            cqExport(document.getElementById(g_cq_query_form_id));
             g_cq_autosave_incremental = true;
         } else {
-            //alert("cqAutoSave: incremental");
-            var theForm = document.getElementById(g_cq_query_form);
+            debug("cqAutoSave: incremental");
+            var theForm = document.getElementById(g_cq_query_form_id);
             var theUri = document.getElementById(g_cq_uri).value;
             if (theForm && theUri) {
                 // default to current buffer
@@ -438,7 +494,7 @@ function cqAutoSave(n) {
                     + escape(getBuffer(n).value)
                     + '</' + g_cq_buffer_basename + '>'
                     + '), "updated"';
-                //alert("cqAutoSave: " + theQuery);
+                debug("cqAutoSave: " + theQuery);
                 submitForm(theForm, theQuery, "text/html");
             } // theForm and theUri
         } // if incremental
@@ -447,40 +503,37 @@ function cqAutoSave(n) {
 
 // Submit XML Query
 function submitXML(theForm) {
-    //alert("submitXML");
+    debug("submitXML");
     if (theForm) {
         //cqAutoSave();
         submitForm(theForm, getBuffer().value, "text/xml");
-        //resizeResultFrame();
     }
 } // submitXML
 
 // Submit HTML Query
 function submitHTML(theForm) {
-    //alert("submitHTML");
+    debug("submitHTML");
     if (theForm) {
         //cqAutoSave();
         submitForm(theForm, getBuffer().value, "text/html");
-        //resizeResultFrame();
     }
 } // submitHTML
 
 // Submit Text Query
 function submitText(theForm) {
-    //alert("submitText");
+    debug("submitText");
     if (theForm) {
         //cqAutoSave();
         submitForm(theForm, getBuffer().value, "text/plain");
-        //resizeResultFrame();
     }
 } // submitText
 
 // display a confirmation message
 function finishImport() {
-    //alert('finishImport');
+    debug('finishImport');
     var theOutput = getResultFrame();
     var theOutputDoc = null;
-    //alert("theOutput = " + theOutput);
+    debug("theOutput = " + theOutput);
     if (theOutput) {
         if (is.ie) {
             theOutputDoc = theOutput.contentWindow.document;
@@ -500,11 +553,11 @@ function finishImport() {
                 theTimeout = setTimeout('finishImport();', g_cq_timeout);
             clearTimeout(theTimeout);
 
-            //alert("theList = " + theList + ", length = " + theList.length);
+            debug("theList = " + theList + ", length = " + theList.length);
             var theValue = null;
             for (var i = 0; i < theList.length; i++) {
                 theValue = unescape( (theList[i]).firstChild.nodeValue );
-                //alert("i = " + i + ", " + theValue);
+                debug("i = " + i + ", " + theValue);
                 getBuffer(i).value = theValue;
             } // for theList
 
@@ -513,7 +566,7 @@ function finishImport() {
             //clearTimeout(theTimeout);
             var theUri = document.getElementById(g_cq_uri).value;
             var theQuery = '<p>' + theUri + ' imported</p>';
-            submitForm(document.getElementById(g_cq_query_form),
+            submitForm(document.getElementById(g_cq_query_form_id),
                        theQuery, "text/html");
         } // if theOutputDoc
     } // if theOutput
@@ -527,10 +580,10 @@ function cqImport(theForm) {
 
     var theQuery = "doc('" + theUri + "')";
     var theOutput = getResultFrame();
-    //alert("cqImport: " + theQuery);
+    debug("cqImport: " + theQuery);
     // set the current database to null,
     // so we save to the default db
-    theDatabase = document.getElementById(g_cq_database_list);
+    theDatabase = document.getElementById(g_cq_database_list_id);
     oldDatabase = theDatabase.value;
     theDatabase.value = null;
     submitForm(theForm, theQuery, "text/xml");
@@ -540,7 +593,7 @@ function cqImport(theForm) {
 } // cqImport
 
 function cqListBuffers() {
-    var theForm = document.getElementById(g_cq_query_form);
+    var theForm = document.getElementById(g_cq_query_form_id);
     var theQuery = "for $i in input() return (document-uri($i), <br/>)";
     submitForm(theForm, theQuery, "text/html");
 } // cqListBuffers

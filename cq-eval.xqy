@@ -1,7 +1,7 @@
 (:
- : Client Query Application
+ : cq-eval.xqy
  :
- : Copyright (c)2002-2005 Mark Logic Corporation
+ : Copyright (c)2002-2005 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -17,10 +17,38 @@
  :
  : The use of the Apache License does not indicate that this project is
  : affiliated with the Apache Software Foundation.
+ :
+ : arguments:
+ :   cq:query: the query to evaluate
+ :   cq:mime-type: the mime type with which to return results
+ :   cq:database: the database under which to evaluate the query
  :)
 
-define variable $g-mime-type {
-  xdmp:get-request-field("cq_mimeType", "text/xml")
+define variable $g-query as xs:string {
+  xdmp:get-request-field("/cq:query", "")
+}
+
+define variable $g-db as xs:unsignedLong {
+  xs:unsignedLong(xdmp:get-request-field(
+    "/cq:database", string(xdmp:database())
+  ))
+}
+
+define variable $g-mime-type as xs:string {
+  xdmp:get-request-field("/cq:mime-type", "text/plain")
+}
+
+define variable $g-debug as xs:boolean { false() }
+
+define variable $g-nbsp as xs:string { codepoints-to-string(160) }
+define variable $g-nl { fn:codepoints-to-string((10)) }
+
+define function debug($s as item()*) as empty() {
+  if ($g-debug)
+  then xdmp:log(
+    string-join(("DEBUG:", translate(xdmp:quote($s), $g-nl, " ")), " ")
+  )
+  else ()
 }
 
 define function display-xml($x) {
@@ -42,6 +70,7 @@ define function display-xml($x) {
 }
 
 define function display-html($x) as element() {
+  (: TODO ditch the html document wrapper :)
 <html xmlns="http://www.w3.org/1999/xhtml">
   <body bgcolor="white">
     <table>
@@ -98,14 +127,18 @@ define function error-html($ex as element()) as element() {
 
 try {
   xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8")),
-  let $db :=
-    xs:unsignedLong(xdmp:get-request-field(
-      "/cq:database", string(xdmp:database())
-    ))
-  (: let $dummy := xdmp:set-session-field("/cq:current-database", string($db)) :)
-  let $x := xdmp:eval-in(
-    xdmp:get-request-field("queryInput", ""), $db
-  )
+(:
+  debug((xdmp:get-request-method())),
+  debug((
+    "NAMES:",
+    for $n at $x in xdmp:get-request-field-names()
+    return (string($x), $n, xdmp:get-request-field($n))
+  )),
+  debug(("BODY:", xdmp:get-request-body())),
+  debug(("BEGIN:", $g-query, $g-db, $g-mime-type)),
+:)
+  (:let $s := xdmp:set-session-field("/cq:current-database", string($g-db)):)
+  let $x := xdmp:eval-in($g-query, $g-db)
   return (
     if ($g-mime-type = "text/xml")
     then display-xml($x)

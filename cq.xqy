@@ -1,7 +1,7 @@
 (:
  : Client Query Application
  :
- : Copyright (c)2002, 2003, 2004 Mark Logic Corporation
+ : Copyright (c) 2002-2005 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -27,8 +27,10 @@
   "for", xdmp:platform(),
   "on", xdmp:get-request-header("Host")
     }</title>
+    <script language="JavaScript" type="text/javascript" src="cq.js">
+    </script>
   </head>
-  <frameset rows="500,*">
+  <frameset id="cq_frameset" rows="*,*" onresize="resizeFrameset()">
     <frame src="cq-query.xqy" name="cq_queryFrame" id="cq_queryFrame"/>
     <frame src="cq-result.html" name="cq_resultFrame" id="cq_resultFrame"/>
   <noframes>

@@ -76,10 +76,10 @@ define function get-db-selector() as element() {
     <script language="JavaScript" type="text/javascript" src="cq.js">
     </script>
   </head>
-  <body bgcolor="white" onload="cqOnLoad(this)">
+  <body onload="cqOnLoad(this)">
     <form action="cq-eval.xqy" method="post"
       id="cq_form" name="cq_form" target="cq_resultFrame">
-      <table width="100%" summary="" cellpadding="3" cellspacing="3">
+      <table summary="query form" cellpadding="3" cellspacing="3">
         <tr width="100%">
           <td  class="head1">XQuery Source</td>
           <td  class="head1">Buffers</td>
@@ -87,7 +87,7 @@ define function get-db-selector() as element() {
         <tr>
           <td id="cq_import_export" nowrap="nowrap" >
             <a href="javascript:cqListBuffers()">list all</a>
-            | save query buffers as
+            | save buffers as
             <input type="text" id="cqUri"
               value="{$g-worksheet-name}"/>
             &nbsp;&nbsp;
@@ -98,7 +98,7 @@ define function get-db-selector() as element() {
              onclick="cqImport(this.form);" value="Open [ctrl-shift-o]"/>
             <br/>
           </td>
-          <td >
+          <td>
             ALT-1 to ALT-9 =&gt; buffers 1-9; ALT-0 =&gt; 10
           </td>
        </tr>
@@ -115,7 +115,7 @@ define function get-db-selector() as element() {
 {
   let $default_buffer := string-join(
     ("(: buffer ID :)",
-     'default element namespace="http://www.w3.org/1999/xhtml"',
+     'default element namespace = "http://www.w3.org/1999/xhtml"',
      xdmp:quote(<p>hello world</p>)
     ), $g-nl
   )
@@ -137,7 +137,7 @@ define function get-db-selector() as element() {
     replace($default_buffer, "ID", string(1 + $id))
   }
 }
-              <input id="queryInput" name="queryInput" type="hidden"/>
+              <input id="/cq:query" name="/cq:query" type="hidden"/>
             </span>
             <span style="text-align: right">
             eval in: { get-db-selector() }
@@ -153,14 +153,13 @@ define function get-db-selector() as element() {
               <input type="button" class="input1"
                onclick="submitText(this.form);"
                value="TEXT [ctrl-shift-enter]"/>
-              <input type="hidden" name="cq_mimeType" id="cq_mimeType"
+              <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
                value="text/xml"/>
             </span>
           </td>
           <td>
-            <table summary="buffer list" id="cq_bufferlist"
-             border="1" width="100%"></table>
-          </td>
+          <table summary="buffer list" id="cq_bufferlist" border="1"/>
+           </td>
         </tr>
       </table>
     </form>

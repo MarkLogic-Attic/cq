@@ -348,7 +348,7 @@ function cqExport(theForm) {
         theDatabase.value = null;
         submitForm(theForm, theQuery, "text/html");
         // TODO restore the user's chosen db
-        alert("cqExport: preserving selected database " + oldDatabase);
+        //alert("cqExport: preserving selected database " + oldDatabase);
         theDatabase.value = oldDatabase;
     } // if theUri
 } // cqExport

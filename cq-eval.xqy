@@ -105,16 +105,15 @@ define function error-html($ex as element()) as element() {
 }
 
 define function error-text($ex as element()) as xs:string {
-  let $nl := codepoints-to-string((12))
+  let $nl := codepoints-to-string((10))
   return string-join((
     if (exists($ex//err:format-string/text()))
     then $ex//err:format-string/text()
     else $ex//err:code/text(),
     " at line ", ($ex//err:line)[1]/text(),
-    $nl,
     if (count($ex/err:stack/err:frame) gt 1)
     then (
-      "Stack trace:", $nl,
+      $nl, "Stack trace:", $nl,
       for $f in $ex/err:stack/err:frame
       return (
         if (empty($f/err:operation))
@@ -122,10 +121,9 @@ define function error-text($ex as element()) as xs:string {
         else $f/err:operation/text(),
         " at ", $f/err:uri/text(),
         " line ", $f/err:line/text(), $nl
-      )
+      ), $nl
     )
-    else (),
-    $nl
+    else ()
     (:,xdmp:quote($ex/err:stack):)
   ), "")
 }

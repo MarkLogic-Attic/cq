@@ -1,0 +1,32 @@
+// cq.css
+
+body {
+  background-color: white;
+  color: black;
+  font-family: sans-serif;
+  font-size: 14;
+}
+
+td {
+  font-family: sans-serif;
+  font-size: 14;
+  vertical-align: top;
+}
+
+textarea {
+  font-size: 14;
+}
+
+.head1 {
+  font-family: sans-serif;
+  font-size: 20;
+  background-color: #AADDFF;
+  font-weight: bold;
+}
+
+.input1 {
+  font-family: sans-serif;
+  font-size: 14;
+}
+
+// cq.css

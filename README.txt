@@ -1,5 +1,5 @@
 CQ is a web-based query executing form useful for writing ad hoc queries
-without using .xqy files.  XQ has JavaScript hooks that make it practically an
+without using .xqy files.  CQ has JavaScript hooks that make it practically an
 IDE.  You can view the results as XHTML, XML, or plain text output.  CQ is
 designed for use with Content Interaction Server HTTP Server applications,
 using Internet Explorer 5.5+ or most other modern browsers.

@@ -16,7 +16,7 @@
  : limitations under the License.
  :
  : The use of the Apache License does not indicate that this project is
- : affiliated with the Apache Software Foundation. 
+ : affiliated with the Apache Software Foundation.
  :)
 
 define variable $g-mime-type {
@@ -133,13 +133,20 @@ define function error-text($ex as element()) as xs:string {
 xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8")),
 
 try {
-  let $x := xdmp:eval(xdmp:get-request-field("queryInput"))
-  return
+  let $db := xs:unsignedLong(xdmp:get-request-field(
+      "/cq:database", string(xdmp:database())
+  ))
+  let $dummy := xdmp:set-session-field("/cq:current-database", string($db))
+  let $x := xdmp:eval-in(
+    xdmp:get-request-field("queryInput", ""), $db
+  )
+  return (
     if ($g-mime-type = "text/xml")
     then display-xml($x)
     else if ($g-mime-type = "text/html")
     then display-html($x)
     else display-text($x)
+  )
 } catch ($ex) {
   if ($g-mime-type = "text/xml")
   then error-xml($ex)

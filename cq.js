@@ -13,11 +13,11 @@
 // limitations under the License.
 //
 // The use of the Apache License does not indicate that this project is
-// affiliated with the Apache Software Foundation. 
+// affiliated with the Apache Software Foundation.
+//
+// Copyright (c) 2003, 2004 Mark Logic Corporation. All rights reserved.
 //
 //////////////////////////////////////////////////////////////////////
-//
-// cq.js: provides buffer management, stored entirely in the DOM
 //
 // REFERENCES:
 //   * good cross-browser info at
@@ -26,22 +26,21 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-// XXX mark incremental false on change to uri
-// XXX to support incremental autosave
-// XXX fix import flakiness for mozilla browsers
+// TODO mark incremental false on change to uri
+// TODO to support incremental autosave
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 var g_cq_query_frame = "cq_queryFrame";
 var g_cq_result_frame = "cq_resultFrame";
 var g_cq_query_input = "queryInput";
 var g_cq_uri = "cqUri";
-var g_cq_import_link_id = "cq_import_link";
 var g_cq_import_export_id = "cq_import_export";
 var g_cq_query_form = "cq_form";
 var g_cq_autosave_id = "cq_autosave";
 var g_cq_bufferlist_id = "cq_bufferlist";
 var g_cq_buffers_id = "cq_buffers";
 var g_cq_buffer_basename = "cq_buffer";
+var g_cq_database_list = "/cq:database";
 var g_cq_query_mime_type = "cq_mimeType";
 var g_cq_query_action = "cq-eval.xqy";
 
@@ -212,17 +211,12 @@ function refreshBufferList(n) {
     for (var i = 0; i < g_cq_buffers; i++) {
         //alert("refreshBufferList: i = " + i + " of " + g_cq_buffers);
         theBuffer = getBuffer(i);
-        if (! theBuffer) {
-            // not there? so create it
-            theBuffer = getBuffer().cloneNode(true);
-            theBuffer.id = getBufferId(i);
-            theBuffer.value = (getBuffer().value).replace
-                ("buffer " + (1+g_cq_buffer_current), "buffer " + (1+i));
-            theParent.appendChild(theBuffer);
+        // not there? skip it
+        if (theBuffer) {
+          //alert("refreshBufferList: i = " + i + " fontFamily = " + theBuffer.style.fontFamily);
+          writeBufferLabel(i);
+          hide(theBuffer);
         }
-        //alert("refreshBufferList: i = " + i + " fontFamily = " + theBuffer.style.fontFamily);
-        writeBufferLabel(i);
-        hide(theBuffer);
     } // for buffers
     // show the current buffer only
     //alert("refreshBufferList: show " + g_cq_buffer_current);
@@ -254,39 +248,8 @@ function parseQuery(key) {
     } // if theQuery
 } // parseQuery
 
-function cqImportLink() {
-    theUri = document.getElementById(g_cq_uri);
-    //alert("cqImportLink: " + theUri.value);
-    if (theUri && theUri.value) {
-        //alert("cqImportLink: " + theUri.value);
-        var theNode = document.getElementById(g_cq_import_link_id);
-        if (! theNode) {
-            theNode = document.createElement('a');
-            theNode.setAttribute('id', g_cq_import_link_id);
-            var theParent = document.getElementById(g_cq_import_export_id);
-            theParent.appendChild(theNode);
-            theNode.appendChild(document.createTextNode("autoimport link"));
-        } // if theNode
-        theNode.setAttribute('href',
-                             // base URL
-                             location.href.substring
-                             (0, location.href.indexOf('?'))
-                             // add uri for autoimport
-                             + '?uri=' + escape(theUri.value) );
-        //alert("cqImportLink: " + theNode.href);
-    } // if theUri
-} // cqImportLink
-
 function cqOnLoad() {
     //alert("cqOnLoad");
-
-    // handle any autoimport URIs
-    var theUri = parseQuery("uri");
-    if (theUri) {
-        var theInput = document.getElementById(g_cq_uri);
-        theInput.value = theUri;
-        cqImport(document.getElementById(g_cq_query_form));
-    } // if theUri
 
     // register for key-presses
     document.onkeyup = handleKey;
@@ -300,7 +263,7 @@ function cqOnLoad() {
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
 //   alt-1 to alt-0 exposes the corresponding buffer (really 0-9)
 function handleKey(e) {
-    if (!e) 
+    if (!e)
       e = window.event;
     var keyInfo = String.fromCharCode(e.keyCode) + '\n';
     var theCode = e['keyCode'];
@@ -368,18 +331,26 @@ function cqExport(theForm) {
     // the simplest way is to create temporary form elements, and submit them
     var theUri = document.getElementById(g_cq_uri).value;
     if (theUri) {
-        //cqImportLink();
         var theQuery =
             'xdmp:document-insert("' + theUri + '",'
             + '<' + g_cq_buffers_id + ' id="' + g_cq_buffers_id + '">';
         for (var i = 0; i < g_cq_buffers; i++) {
             theQuery += '<' + g_cq_buffer_basename + '>'
-                + escape(getBuffer(i).value) + '</' + g_cq_buffer_basename + '>'
+                + escape(getBuffer(i).value)
+                + '</' + g_cq_buffer_basename + '>'
                 + "\n";
         } // for buffers
         theQuery += '</' + g_cq_buffers_id + '>)'
             + ', "exported ' + theUri + '"';
+        // set the current database to null,
+        // so we save to the default db
+        theDatabase = document.getElementById(g_cq_database_list);
+        oldDatabase = theDatabase.value;
+        theDatabase.value = null;
         submitForm(theForm, theQuery, "text/html");
+        // TODO restore the user's chosen db
+        alert("cqExport: preserving selected database " + oldDatabase);
+        theDatabase.value = oldDatabase;
     } // if theUri
 } // cqExport
 
@@ -501,11 +472,16 @@ function cqImport(theForm) {
     if (! theUri)
         return;
 
-    //cqImportLink();
     var theQuery = "doc('" + theUri + "')";
     var theOutput = getResultFrame();
     //alert("cqImport: " + theQuery);
+    // set the current database to null,
+    // so we save to the default db
+    theDatabase = document.getElementById(g_cq_database_list);
+    oldDatabase = theDatabase.value;
+    theDatabase.value = null;
     submitForm(theForm, theQuery, "text/xml");
+    theDatabase.value = oldDatabase;
     // read the output
     var theTimeout = setTimeout("finishImport();", g_cq_timeout);
 } // cqImport

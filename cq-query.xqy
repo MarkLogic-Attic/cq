@@ -16,11 +16,17 @@
  : limitations under the License.
  :
  : The use of the Apache License does not indicate that this project is
- : affiliated with the Apache Software Foundation. 
+ : affiliated with the Apache Software Foundation.
  :)
 
 declare namespace db="http://marklogic.com/xdmp/database"
 declare namespace html="http://www.w3.org/1999/xhtml"
+
+(: TODO: worksheet save/load should always go to xdmp:database() :)
+(: TODO add "useful queries" popup :)
+(: TODO add "query history" popup :)
+
+define variable $g-nl { codepoints-to-string((10)) }
 
 define variable $g-worksheet-name {
   xdmp:get-session-field(
@@ -30,19 +36,24 @@ define variable $g-worksheet-name {
 }
 
 define function get-db-selector() as element() {
-  (: html select-list for current database :)
+  (: html select-list for current database
+   : NOTE: requires CIS 2.2
+   :)
   element html:select {
-    attribute name { "/cq:databases" },
-    for $d in xdmp:read-cluster-config-file("databases.xml")
-      /db:databases/db:database
+    attribute name { "/cq:database" },
+    attribute id { "/cq:database" },
+    let $current :=
+      xs:unsignedLong(xdmp:get-session-field(
+        "/cq:current-database",
+        string(xdmp:database())
+      ))
+    for $db in xdmp:databases()
+    let $label := xdmp:database-name($db)
+    order by $label
     return element html:option {
-      attribute value { $d/db:database-id },
-(:
-      if ($d/db:database-id = xdmp:XXX())
-      then attribute selected { "true" }
-      else (),
-:)
-      $d/db:database-name
+      attribute value {$db},
+      if ($db = $current) then attribute selected { true() } else (),
+      $label
     }
   }
 }
@@ -68,14 +79,13 @@ define function get-db-selector() as element() {
             <a href="javascript:cqListBuffers()">list all</a>
             | save query buffers as
             <input type="text" id="cqUri"
-              value="{$g-worksheet-name}" onBlur="cqImportLink()"/>
+              value="{$g-worksheet-name}"/>
             &nbsp;&nbsp;
             <input type="button" class="input1"
              onclick="cqExport(this.form);" value="Save [ctrl-shift-s]"/>
             &nbsp;&nbsp;
             <input type="button" class="input1"
              onclick="cqImport(this.form);" value="Open [ctrl-shift-o]"/>
-            <!-- input type="checkbox" value="1" id="cq_autosave"/>autosave -->
             <br/>
           </td>
           <td >
@@ -84,23 +94,46 @@ define function get-db-selector() as element() {
        </tr>
 {
  (:
-  XXX make the rows and cols dynamic
-  XXX add a database selector
+  TODO make the rows and cols dynamic
+  I'd rather not have every cq_buffer in here,
+  but it helps to preserve the buffer contents on reload.
   :)
 }
        <tr>
          <td>
             <span id="cq_buffers">
-              <textarea id="cq_buffer0" rows="16" cols="80"
-               xml:space="preserve">
-(: buffer 1 :)
-default element namespace="http://www.w3.org/1999/xhtml"
-&lt;p&gt;hello world&lt;/p&gt;
-</textarea>
+{
+  let $default_buffer := string-join(
+    ("(: buffer ID :)",
+     'default element namespace="http://www.w3.org/1999/xhtml"',
+     xdmp:quote(<p>hello world</p>)
+    ), $g-nl
+  )
+  for $id in (0 to 9)
+  let $bufid := concat("cq_buffer", string($id))
+  return element html:textarea {
+    attribute id { $bufid },
+    attribute rows { 16 },
+    attribute cols { 80 },
+    attribute xml:space { "preserve" },
+    (: session-field won't work for this,
+       because it requires a db round-trip.
+       use JS session instead?
+    xdmp:get-session-field(
+      $bufid,
+      replace($default_buffer, "ID", string(1 + $id))
+    )
+     :)
+    replace($default_buffer, "ID", string(1 + $id))
+  }
+}
               <input id="queryInput" name="queryInput" type="hidden"/>
             </span>
             <span style="text-align: right">
-              display results as&nbsp;
+            eval in: { get-db-selector() }
+            </span>
+            <span style="text-align: right">
+              as&nbsp;
               <input type="button" class="input1"
                onclick="submitXML(this.form);" value="XML [ctrl-enter]"/>
               &nbsp;&nbsp;

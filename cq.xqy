@@ -16,7 +16,7 @@
  : limitations under the License.
  :
  : The use of the Apache License does not indicate that this project is
- : affiliated with the Apache Software Foundation. 
+ : affiliated with the Apache Software Foundation.
  :)
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -27,7 +27,6 @@
   "for", xdmp:platform(),
   "on", xdmp:get-request-header("Host")
     }</title>
-    <link rel="stylesheet" type="text/css" href="style/default3.css"/>
   </head>
   <frameset rows="500,*">
     <frame src="cq-query.xqy" name="cq_queryFrame" id="cq_queryFrame"/>

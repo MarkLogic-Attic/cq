@@ -23,16 +23,25 @@ declare namespace db="http://marklogic.com/xdmp/database"
 declare namespace html="http://www.w3.org/1999/xhtml"
 
 (: TODO: worksheet save/load should always go to xdmp:database() :)
+(: TODO store default db? problematic:
+   using xdmp:(get|set)-session-field breaks multiple cq windows|tabs,
+   because the user's session is locked while his query is running.
+   set with JavaScript instead? subrequest?
+ :)
 (: TODO add "useful queries" popup :)
 (: TODO add "query history" popup :)
 
 define variable $g-nl { codepoints-to-string((10)) }
 
 define variable $g-worksheet-name {
+(:
   xdmp:get-session-field(
     "cq_worksheet_name",
+:)
     xdmp:get-request-field("cq_worksheet_name", "worksheet.xml")
+(:
   )
+:)
 }
 
 define function get-db-selector() as element() {
@@ -43,9 +52,8 @@ define function get-db-selector() as element() {
     attribute name { "/cq:database" },
     attribute id { "/cq:database" },
     let $current :=
-      xs:unsignedLong(xdmp:get-session-field(
-        "/cq:current-database",
-        string(xdmp:database())
+      xs:unsignedLong(xdmp:get-request-field(
+        "/cq:current-database", string(xdmp:database())
       ))
     for $db in xdmp:databases()
     let $label := xdmp:database-name($db)

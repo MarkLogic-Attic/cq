@@ -131,10 +131,11 @@ define function error-text($ex as element()) as xs:string {
 xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8")),
 
 try {
-  let $db := xs:unsignedLong(xdmp:get-request-field(
+  let $db :=
+    xs:unsignedLong(xdmp:get-request-field(
       "/cq:database", string(xdmp:database())
-  ))
-  let $dummy := xdmp:set-session-field("/cq:current-database", string($db))
+    ))
+  (: let $dummy := xdmp:set-session-field("/cq:current-database", string($db)) :)
   let $x := xdmp:eval-in(
     xdmp:get-request-field("queryInput", ""), $db
   )
@@ -146,11 +147,15 @@ try {
     else display-text($x)
   )
 } catch ($ex) {
+  (: errors are always displayed as plain-text :)
+(:
   if ($g-mime-type = "text/xml")
   then error-xml($ex)
   else if ($g-mime-type = "text/html")
   then error-html($ex)
-  else error-text($ex)
+  else
+:)
+  error-text($ex)
 }
 
 (: cq-eval.xqy :)

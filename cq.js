@@ -1,4 +1,4 @@
-// Copyright (c)2003, 2004 Mark Logic Corporation
+// Copyright (c) 2003, 2004 Mark Logic Corporation. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 // The use of the Apache License does not indicate that this project is
 // affiliated with the Apache Software Foundation.
 //
-// Copyright (c) 2003, 2004 Mark Logic Corporation. All rights reserved.
 //
 //////////////////////////////////////////////////////////////////////
 //
@@ -48,7 +47,47 @@ var g_cq_buffer_current = 0;
 var g_cq_buffers = 10;
 var g_cq_next_id = 0;
 var g_cq_autosave_incremental = false;
-var g_cq_timeout = 250;
+var g_cq_timeout = 750;
+
+function setCookie(name, value, days) {
+    if (name == null)
+        return null;
+    if (value == null)
+        return setCookie(name, "", days);
+
+    var path = "path=/";
+    var expires = "";
+    if (days != null && days) {
+        var date = new Date();
+        // expires in days-to-millis from now
+        date.setTime( date.getTime() + (days * 24 * 3600 * 1000));
+        var expires = "; expires=" + date.toGMTString();
+    }
+
+    document.cookie = name + "=" + value + expires + "; " + path;
+}
+
+function getCookie(name) {
+    if (name == null)
+        return null;
+
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i=0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ')
+            c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0)
+            return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+function clearCookie(name) {
+    // no value, and it expired yesterday
+    setCookie(name, null, -1);
+}
+
 
 function Is () {
     // convert all characters to lowercase to simplify testing
@@ -70,10 +109,10 @@ function Is () {
 var is = new Is();
 
 function getResultFrame() {
+    // if the result frame is an iframe, get it from the current document
+    //document.getElementById(g_cq_result_frame);
+    // if the result frame is in a frameset, get it from the parent document
     var theFrame =
-        // if the result frame is an iframe, get it from the current document
-        //document.getElementById(g_cq_result_frame);
-        // if the result frame is in a frameset, get it from the parent document
         parent.document.getElementById(g_cq_result_frame);
     return theFrame;
 } // getResultFrame
@@ -252,9 +291,18 @@ function cqOnLoad() {
 
     // register for key-presses
     document.onkeyup = handleKey;
+
     // focusing on the form doesn't seem to be necessary
     //var x = document.getElementById(g_cq_query_form);
     // display the buffer list, exposing buffer 0
+
+    // recover current db from session cookie
+    var currDatabase = getCookie(g_cq_database_list);
+    if (currDatabase != null) {
+        //alert("cqOnLoad: currDatabase = " + currDatabase);
+        document.getElementById(g_cq_database_list).value = currDatabase;
+    }
+
     refreshBufferList(0);
 } // cqOnLoad
 
@@ -306,10 +354,16 @@ function handleKey(e) {
 } // handleKey
 
 function submitForm(theForm, theInput, theMimeType) {
-    if (! theForm) {
+    if (! theForm)
         return;
-    }
+
     refreshBufferList(g_cq_buffer_current);
+
+    // copy the selected database to the session cookie
+    var currDatabase = document.getElementById(g_cq_database_list).value;
+    //alert("submitForm: currDatabase = " + currDatabase);
+    setCookie(g_cq_database_list, currDatabase, 30);
+
     // copy current buffer to hidden element
     document.getElementById(g_cq_query_input).value = theInput;
     //alert("submitForm: "+document.getElementById(g_cq_query_input).value);

@@ -51,6 +51,8 @@ define function get-db-selector() as element() {
   element html:select {
     attribute name { "/cq:database" },
     attribute id { "/cq:database" },
+    (: control the width :)
+    attribute style { "width: 100px" },
     let $current :=
       xs:unsignedLong(xdmp:get-request-field(
         "/cq:current-database", string(xdmp:database())
@@ -156,7 +158,8 @@ define function get-db-selector() as element() {
             </span>
           </td>
           <td>
-            <table summary="buffer list" id="cq_bufferlist" border="border"></table>
+            <table summary="buffer list" id="cq_bufferlist"
+             border="1" width="100%"></table>
           </td>
         </tr>
       </table>

@@ -183,6 +183,11 @@ function resizeFrameset() {
         var documentNode = window.frames[0].window.document;
         visible = documentNode.getElementById(g_cq_query_form_id);
     }
+    if (visible == null) {
+        debug("nothing to resize from!");
+        return;
+    }
+
     debug("resizeFrameset: visible " + visible
           + ", " + visible.offsetTop + ", " + visible.offsetHeight);
     // add a smidgen for fudge-factor:
@@ -220,6 +225,7 @@ function show(s) {
         s.style.display = "block";
 } // show
 
+// OLD normalize-space, in JavaScript
 function normalize(s) {
     while (s.indexOf("\r") > -1)
         s = s.replace("\r", ' ');
@@ -229,6 +235,18 @@ function normalize(s) {
         s = s.replace('  ', ' ');
     return s;
 } // normalize
+
+// OLD create some whitespace for line breaking in the buffer labels
+// TODO is there some *optional* linebreak character we could use?
+function nudge(s) {
+    s = s.replace("(", '( ');
+    s = s.replace(")", ' )');
+    s = s.replace(",", ', ');
+    s = s.replace("=", '= ');
+    //s = s.replace(":", ': ');
+    //s = s.replace("/", "/\n");
+    return s;
+}
 
 function getLabel(n) {
     // get the label text for a buffer:
@@ -246,9 +264,10 @@ function getLabel(n) {
     }
     theNum.appendChild(document.createTextNode("" + (1+n) + "."));
     theNode.appendChild(theNum);
-    var theLabel = normalize(getBuffer(n).value);
-    // let the overflow css handle text that's too long
-    // put the space here, so it won't be inside the link
+    // make sure it doesn't break for huge strings
+    // let the css handle text that's too large for the buffer
+    var theLabel = getBuffer(n).value.substring(0, 4096);
+    // put a space here for formatting, so it won't be inside the link
     theNode.appendChild(document.createTextNode(" " + theLabel));
 
     // highlight the current buffer
@@ -344,7 +363,7 @@ function cqOnLoad() {
     debug("cqOnLoad: begin");
 
     // register for key-presses
-    document.onkeyup = handleKey;
+    document.onkeypress = handleKey;
 
     // focusing on the form doesn't seem to be necessary
     //var x = document.getElementById(g_cq_query_form_id);
@@ -367,6 +386,7 @@ function cqOnLoad() {
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
 //   alt-1 to alt-0 exposes the corresponding buffer (really 0-9)
 function handleKey(e) {
+    // handle both gecko and IE6
     if (!e)
       e = window.event;
     var keyInfo = String.fromCharCode(e.keyCode) + '\n';
@@ -376,12 +396,12 @@ function handleKey(e) {
     if (e['shiftKey'] && e['ctrlKey'] && theCode == 83) {
         // save the buffers to the database
         cqExport(theForm);
-        return;
+        return false;
     }
     if (e['shiftKey'] && e['ctrlKey'] && theCode == 79) {
         // load the buffers from the database
         cqImport(theForm);
-        return;
+        return false;
     }
     // enter = 13
     if (theCode == 13 && (e['ctrlKey'] || e['altKey'] || e['shiftKey']) ) {
@@ -393,20 +413,23 @@ function handleKey(e) {
             // must be ctrl
             submitXML(theForm);
         }
-        return;
-    } // if submitKey
+        return false;
+    }
+
     // 1 = 49, 9 = 57, 0 = 48
     if ( e['altKey'] && (theCode >= 49) && (theCode <= 57) ) {
         // expose the corresponding buffer: 0-8
         refreshBufferList(theCode - 49);
-        return;
-    } // if alt + 1-9
+        return false;
+    }
     if ( e['altKey'] && (theCode == 48) ) {
         // expose the corresponding buffer: 0 => 9
         refreshBufferList(9);
-        return;
-    } // alt + 0
+        return false;
+    }
+
     // ignore other keys
+    return true;
 } // handleKey
 
 function submitForm(theForm, theInput, theMimeType) {

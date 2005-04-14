@@ -22,10 +22,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>{
-  "cq - Mark Logic",
-  xdmp:product-initials(), xdmp:version(),
-  "for", xdmp:platform(),
-  "on", xdmp:get-request-header("Host")
+  "cq -", xdmp:get-request-header("Host"),
+  "- MarkLogic Server", xdmp:version(),
+  "-", xdmp:platform()
     }</title>
     <script language="JavaScript" type="text/javascript" src="cq.js">
     </script>

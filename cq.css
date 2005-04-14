@@ -46,17 +46,33 @@ table {
   font-size: small;
 }
 
-.bufferlabel {
+/* clipping doesn't work quite how I'd like it to:
+ * long lines that contain no breakable characters
+ * tend to disappear entirely!
+ *
+ */
+.bufferlabel 
+{
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: clip;
+  word-break: break-all;
+  word-wrap: break-word;
   height: 1.5em;
   line-height: 1.5;
-  white-space: nowrap;
+  cursor: pointer;
 }
 
-.bufferlabelactive {
+.bufferlabelactive 
+{
   overflow: hidden;
+/*
+ * no nowrap here! two lines high, instead.
+  white-space: nowrap;
+*/
   text-overflow: clip;
+  word-break: break-all;
+  word-wrap: break-word;
   line-height: 1.5;
   height: 3em;
   background-color: #FFCC33;

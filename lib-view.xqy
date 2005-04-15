@@ -80,6 +80,9 @@ define function v:get-text($x) { $x }
 
 define function v:get-error-frame-html
 ($f as element()) as node()* {
+  if (exists($f/err:uri))
+  then concat("in ", string($f/err:uri))
+  else (),
   if (exists($f/err:line))
   then concat("line ", string($f/err:line), ": ")
   else (),

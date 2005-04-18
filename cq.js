@@ -225,27 +225,31 @@ function show(s) {
         s.style.display = "block";
 } // show
 
-// OLD normalize-space, in JavaScript
+// normalize-space, in JavaScript
 function normalize(s) {
     while (s.indexOf("\r") > -1)
         s = s.replace("\r", ' ');
     while (s.indexOf("\n") > -1)
         s = s.replace("\n", ' ');
+    while (s.indexOf("\t") > -1)
+        s = s.replace("\t", ' ');
     while (s.indexOf('  ') > -1)
         s = s.replace('  ', ' ');
     return s;
 } // normalize
 
-// OLD create some whitespace for line breaking in the buffer labels
+// create some whitespace for line breaking in the buffer labels
 // TODO is there some *optional* linebreak character we could use?
+// yes: should be "\A" (0x07), but that doesn't work!
 function nudge(s) {
-    s = s.replace("(", '( ');
-    s = s.replace(")", ' )');
-    s = s.replace(",", ', ');
-    s = s.replace("=", '= ');
-    //s = s.replace(":", ': ');
-    //s = s.replace("/", "/\n");
-    return s;
+    var br = " ";
+    //s = s.replace("(", "(" + br);
+    //s = s.replace(")", br + ")");
+    s = s.replace(",", "," + br);
+    s = s.replace("=", "=" + br);
+    //s = s.replace(":", ":" + br);
+    //s = s.replace("/", "/" + br);
+    return normalize(s);
 }
 
 function getLabel(n) {
@@ -266,7 +270,9 @@ function getLabel(n) {
     theNode.appendChild(theNum);
     // make sure it doesn't break for huge strings
     // let the css handle text that's too large for the buffer
-    var theLabel = getBuffer(n).value.substring(0, 4096);
+    // we shouldn't have to normalize spaces, but IE6 is broken
+    // ...and so we have to hint word-breaks to both browsers...
+    var theLabel = nudge(getBuffer(n).value.substring(0, 4096));
     // put a space here for formatting, so it won't be inside the link
     theNode.appendChild(document.createTextNode(" " + theLabel));
 
@@ -278,12 +284,10 @@ function getLabel(n) {
     // IE6 doesn't like setAttribute here, but gecko accepts it
     theNode.className = className;
 
-    // TODO mouseover for fully formatted text contents as tooltip
-    // doing it this way is too ugly
-    //theNode.setAttribute("onmouseover", 'this.style.height = "auto";');
-    //theNode.setAttribute("onmouseout", 'this.style.height = "";');
+    // TODO mouseover for fully formatted text contents as tooltip?
 
     // make the whole thing active
+    // TODO doesn't work in IE6!
     theNode.setAttribute('onclick', linkAction);
 
     return theNode;

@@ -15,33 +15,40 @@
 // The use of the Apache License does not indicate that this project is
 // affiliated with the Apache Software Foundation. 
 
-body {
+body 
+{
   color: black;
   background-color: white;
   font-family: sans-serif;
   font-size: small;
 }
 
-td {
+td 
+{
   vertical-align: top;
 }
 
-textarea {
+textarea 
+{
   font-family: mono-space;
+  font-family: monospace !important;
   font-size: small;
 }
 
-table {
+table 
+{
 	width: 100%;
 }
 
-.head1 {
+.head1 
+{
   background-color: #FFCC33;
   font-size: medium;
   font-weight: bold;
 }
 
-.input1 {
+.input1 
+{
   font-family: sans-serif;
   font-size: small;
 }
@@ -53,11 +60,15 @@ table {
  */
 .bufferlabel 
 {
-  overflow: hidden;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+/* 
+ * I want to use 'white-space: nowrap', 
+ * so gecko won't swallow long lines,
+ * but that messes up IE6 rendering too much!
+ */
   white-space: nowrap;
-  text-overflow: clip;
-  word-break: break-all;
-  word-wrap: break-word;
+
   height: 1.5em;
   line-height: 1.5;
   cursor: pointer;
@@ -65,17 +76,25 @@ table {
 
 .bufferlabelactive 
 {
-  overflow: hidden;
+  overflow: hidden !important;
+  text-overflow: clip !important;
 /*
- * no nowrap here! two lines high, instead.
-  white-space: nowrap;
-*/
-  text-overflow: clip;
-  word-break: break-all;
-  word-wrap: break-word;
+ * no nowrap here! 
+ * two lines high, instead:
+ * we count on finding a breaking character by the end of line 2.
+ */
+  white-space: pre-line;
   line-height: 1.5;
   height: 3em;
   background-color: #FFCC33;
+}
+
+/* IE6 hack, to allow 'white-space: nowrap' for gecko browsers. 
+ * the '* html' makes this invisible to non-IE browsers.
+ */
+* html .bufferlabel 
+{
+  white-space: normal !important;
 }
 
 // end cq.css

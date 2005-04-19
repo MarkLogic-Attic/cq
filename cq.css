@@ -32,7 +32,9 @@ textarea
 {
   font-family: mono-space;
   font-family: monospace !important;
+/*
   font-size: small;
+*/
 }
 
 table 

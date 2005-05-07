@@ -110,7 +110,7 @@ define function get-db-selector() as element() {
   :)
 }
        <tr>
-         <td>
+         <td nowrap="1">
             <span id="cq_buffers">
 {
   let $default_buffer := string-join(

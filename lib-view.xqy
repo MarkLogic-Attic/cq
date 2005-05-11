@@ -120,6 +120,8 @@ define function v:get-error-html($ex as element()) as element() {
       <br/>,
       if (exists($ex/err:format-string/text()))
       then ($ex/err:format-string/text(), <br/>)
+      else if (exists($ex/err:code/text()))
+      then ($ex/err:code/text(), <br/>)
       else (),
       <br/>,
 (:

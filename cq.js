@@ -48,7 +48,7 @@ var g_cq_buffer_current = 0;
 var g_cq_buffers = 10;
 var g_cq_next_id = 0;
 var g_cq_autosave_incremental = false;
-var g_cq_timeout = 750;
+var g_cq_timeout = 100;
 
 var DEBUG = false;
 
@@ -149,6 +149,29 @@ function Is () {
 } // Is
 
 var is = new Is();
+
+function cqOnLoad() {
+  //alert("DEBUG: cqOnLoad");
+    debug("cqOnLoad: begin");
+
+    // register for key-presses
+    document.onkeypress = handleKey;
+
+    // focusing on the form doesn't seem to be necessary
+    //var x = document.getElementById(g_cq_query_form_id);
+    // recover current db from session cookie
+    var currDatabase = getCookie(g_cq_database_list_id);
+    if (currDatabase != null) {
+        debug("cqOnLoad: currDatabase = " + currDatabase);
+        document.getElementById(g_cq_database_list_id).value = currDatabase;
+    }
+
+    // display the buffer list, exposing buffer 0
+    refreshBufferList(0);
+
+    resizeFrameset();
+
+} // cqOnLoad
 
 function getFrameset() {
     // get it from the parent document
@@ -363,29 +386,6 @@ function parseQuery(key) {
     } // if theQuery
 } // parseQuery
 
-function cqOnLoad() {
-    debug("cqOnLoad: begin");
-
-    // register for key-presses
-    document.onkeypress = handleKey;
-
-    // focusing on the form doesn't seem to be necessary
-    //var x = document.getElementById(g_cq_query_form_id);
-    // display the buffer list, exposing buffer 0
-
-    // recover current db from session cookie
-    var currDatabase = getCookie(g_cq_database_list_id);
-    if (currDatabase != null) {
-        debug("cqOnLoad: currDatabase = " + currDatabase);
-        document.getElementById(g_cq_database_list_id).value = currDatabase;
-    }
-
-    refreshBufferList(0);
-
-    resizeFrameset();
-
-} // cqOnLoad
-
 // keycode support:
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
 //   alt-1 to alt-0 exposes the corresponding buffer (really 0-9)
@@ -576,8 +576,12 @@ function finishImport() {
                     (g_cq_buffer_basename);
             } // is.ie
             var theTimeout = null;
-            if (theList.length < 1)
-                theTimeout = setTimeout('finishImport();', g_cq_timeout);
+            // if we timed out, try again
+            if (theList.length < 1) {
+              debug("no list: setting new timeout " + g_cq_timeout);
+              theTimeout = setTimeout('finishImport();', g_cq_timeout);
+              return null;
+            }
             clearTimeout(theTimeout);
 
             debug("theList = " + theList + ", length = " + theList.length);
@@ -616,6 +620,7 @@ function cqImport(theForm) {
     submitForm(theForm, theQuery, "text/xml");
     theDatabase.value = oldDatabase;
     // read the output
+    debug("setting import timeout to " + g_cq_timeout);
     var theTimeout = setTimeout("finishImport();", g_cq_timeout);
 } // cqImport
 

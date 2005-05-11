@@ -71,10 +71,10 @@ define function get-db-selector() as element() {
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>Query Form</title>
-    <link rel="stylesheet" type="text/css" href="cq.css">
-    </link>
     <script language="JavaScript" type="text/javascript" src="cq.js">
     </script>
+    <link rel="stylesheet" type="text/css" href="cq.css">
+    </link>
   </head>
   <body onload="cqOnLoad(this)">
     <form action="cq-eval.xqy" method="post"

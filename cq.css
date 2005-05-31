@@ -64,7 +64,6 @@ table
 /* 
  * I want to use 'white-space: nowrap', 
  * so gecko won't swallow long lines,
- * but that messes up IE6 rendering too much!
  */
   white-space: nowrap;
 

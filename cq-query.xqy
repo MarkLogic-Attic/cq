@@ -142,7 +142,7 @@ define function get-db-selector() as element() {
             <span style="text-align: right">
             eval in: { get-db-selector() }
             </span>
-            <span style="text-align: right">
+            <span style="text-align: right" nowrap="1">
               as&nbsp;
               <input type="button" class="input1"
                onclick="submitXML(this.form);" value="XML [ctrl-enter]"/>

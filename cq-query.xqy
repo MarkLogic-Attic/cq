@@ -111,18 +111,18 @@ define function get-eval-selector() as element(html:select)
       id="cq_form" name="cq_form" target="cq_resultFrame">
       <table summary="query form">
         <tr width="100%">
-          <td>
+          <td nowrap="1">
             <div class="head1">XQuery Source</div>
-            <div id="cq_import_export" nowrap="1">
+            <div id="cq_import_export">
               <a href="javascript:cqListBuffers()">list all</a>
               | save buffers as
               <input type="text" id="cqUri" value="{$g-worksheet-name}"/>
               &nbsp;&nbsp;
               <input type="button" class="input1"
-               onclick="cqExport(this.form);" value="Save [ctrl-shift-s]"/>
+              onclick="cqExport(this.form);" value="Save [ctrl-shift-s]"/>
               &nbsp;&nbsp;
               <input type="button" class="input1"
-               onclick="cqImport(this.form);" value="Open [ctrl-shift-o]"/>
+              onclick="cqImport(this.form);" value="Open [ctrl-shift-o]"/>
             </div>
             <div nowrap="1" id="cq_buffers">
 {
@@ -159,27 +159,28 @@ define function get-eval-selector() as element(html:select)
             <table id="cq_bufferlist" border="1"/>
           </td>
         </tr>
-        </table>
-
-        <div>
-          <span style="text-align: right">
-          eval in: { get-eval-selector() }
-          </span>
-          <span style="text-align: right" nowrap="1">
-          as&nbsp;
-          <input type="button" class="input1"
-          onclick="submitXML(this.form);" value="XML [ctrl-enter]"/>
-          &nbsp;&nbsp;
-          <input type="button" class="input1"
-          onclick="submitHTML(this.form);" value="HTML [alt-enter]"/>
-          &nbsp;&nbsp;
-          <input type="button" class="input1"
-          onclick="submitText(this.form);"
-          value="TEXT [ctrl-shift-enter]"/>
-          <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
-          value="text/xml"/>
-          </span>
-        </div>
+        <tr>
+          <td colspan="2" nowrap="1">
+            <span style="text-align: right">
+            eval in: { get-eval-selector() }
+            </span>
+            <span style="text-align: right" nowrap="1">
+            as&nbsp;
+            <input type="button" class="input1"
+            onclick="submitXML(this.form);" value="XML [ctrl-enter]"/>
+            &nbsp;&nbsp;
+            <input type="button" class="input1"
+            onclick="submitHTML(this.form);" value="HTML [alt-enter]"/>
+            &nbsp;&nbsp;
+            <input type="button" class="input1"
+            onclick="submitText(this.form);"
+            value="TEXT [ctrl-shift-enter]"/>
+            <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
+            value="text/xml"/>
+            </span>
+          </td>
+        </tr>
+      </table>
     </form>
   </body>
 </html>

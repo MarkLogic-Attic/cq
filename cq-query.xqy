@@ -19,52 +19,82 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-declare namespace db="http://marklogic.com/xdmp/database"
+declare namespace mlgr="http://marklogic.com/xdmp/group"
 declare namespace html="http://www.w3.org/1999/xhtml"
+
+import module namespace k = "com.marklogic.xqzone.cq.constants"
+  at "lib-constants.xqy"
 
 (: TODO: worksheet save/load should always go to xdmp:database() :)
 (: TODO store default db? problematic:
-   using xdmp:(get|set)-session-field breaks multiple cq windows|tabs,
-   because the user's session is locked while his query is running.
-   set with JavaScript instead? subrequest?
+ : using xdmp:(get|set)-session-field breaks multiple cq windows|tabs,
+ : because the user's session is locked while his query is running.
+ : set with JavaScript instead? subrequest?
  :)
 (: TODO add "useful queries" popup :)
 (: TODO add "query history" popup :)
 
-define variable $g-nl { codepoints-to-string((10)) }
-
 define variable $g-worksheet-name {
-(:
-  xdmp:get-session-field(
-    "cq_worksheet_name",
-:)
-    xdmp:get-request-field("cq_worksheet_name", "worksheet.xml")
-(:
-  )
-:)
+  xdmp:get-request-field("cq_worksheet_name", "worksheet.xml")
 }
 
-define function get-db-selector() as element() {
+define function get-eval-selector() as element(html:select)
+{
+  (: TODO
+   : first, list all the app-server labels
+   : next, list all databases that aren't part of an app-server
+   :)
+
   (: html select-list for current database
-   : NOTE: requires CIS 2.2
+   : NOTE: requires MarkLogic Server 2.2 or later
    :)
   element html:select {
-    attribute name { "/cq:database" },
-    attribute id { "/cq:database" },
-    (: control the width :)
-    attribute style { "width: 100px" },
+    attribute name { "/cq:eval-in" },
+    attribute id { "/cq:eval-in" },
     let $current :=
       xs:unsignedLong(xdmp:get-request-field(
-        "/cq:current-database", string(xdmp:database())
+        "/cq:current-eval-in", string(xdmp:database())
       ))
-    for $db in xdmp:databases()
-    let $label := xdmp:database-name($db)
-    order by $label
-    return element html:option {
-      attribute value {$db},
-      if ($db = $current) then attribute selected { true() } else (),
-      $label
-    }
+    (: TODO list the application servers
+     : NOTE: requires MarkLogic Server 3.0 or later
+     : NOTE: uses undocumented APIs
+     :)
+    let $servers :=
+      xdmp:read-cluster-config-file("groups.xml")//mlgr:http-server
+        [mlgr:webDAV eq false()]
+    for $option in (
+      for $s in $servers
+      let $id := data($s/mlgr:http-server-id)
+      let $db := data($s/mlgr:database)
+      let $modules := data($s/mlgr:modules)
+      let $root := data($s/mlgr:root)
+      let $label := concat(
+        $s/mlgr:http-server-name, ": ", xdmp:database-name($db), ", ",
+        if ($modules eq 0) then ""
+        else concat(xdmp:database-name($modules), ":"),
+        $root
+      )
+      let $value := string-join((string($db), string($modules), $root), ":")
+      return element html:option {
+        attribute value { $value },
+        $label
+      },
+      (: list the databases that aren't exposed via an app-server :)
+      (: use reasonable defaults for modules, root values: current server :)
+      let $server := $servers[ mlgr:http-server-id eq xdmp:server() ]
+      let $modules := data($server/mlgr:modules)
+      let $root := data($server/mlgr:root)
+      let $exposed := data($servers/mlgr:database)
+      for $db in xdmp:databases()[not(. = $exposed)]
+      let $label := concat(xdmp:database-name($db), " (no server)")
+      let $value := string-join((string($db), string($modules), $root), ":")
+      return element html:option {
+        attribute value { $value },
+        if ($db eq $current) then attribute selected { true() } else (),
+        $label
+      }
+    ) order by $option
+    return $option
   }
 }
 
@@ -79,45 +109,33 @@ define function get-db-selector() as element() {
   <body onload="cqOnLoad(this)">
     <form action="cq-eval.xqy" method="post"
       id="cq_form" name="cq_form" target="cq_resultFrame">
-      <table summary="query form" cellpadding="3" cellspacing="3">
+      <table summary="query form">
         <tr width="100%">
-          <td  class="head1">XQuery Source</td>
-          <td  class="head1">Buffers</td>
-        </tr>
-        <tr>
-          <td id="cq_import_export" nowrap="nowrap" >
-            <a href="javascript:cqListBuffers()">list all</a>
-            | save buffers as
-            <input type="text" id="cqUri"
-              value="{$g-worksheet-name}"/>
-            &nbsp;&nbsp;
-            <input type="button" class="input1"
-             onclick="cqExport(this.form);" value="Save [ctrl-shift-s]"/>
-            &nbsp;&nbsp;
-            <input type="button" class="input1"
-             onclick="cqImport(this.form);" value="Open [ctrl-shift-o]"/>
-            <br/>
-          </td>
           <td>
-            ALT-1 to ALT-9 =&gt; buffers 1-9; ALT-0 =&gt; 10
-          </td>
-       </tr>
+            <div class="head1">XQuery Source</div>
+            <div id="cq_import_export" nowrap="1">
+              <a href="javascript:cqListBuffers()">list all</a>
+              | save buffers as
+              <input type="text" id="cqUri" value="{$g-worksheet-name}"/>
+              &nbsp;&nbsp;
+              <input type="button" class="input1"
+               onclick="cqExport(this.form);" value="Save [ctrl-shift-s]"/>
+              &nbsp;&nbsp;
+              <input type="button" class="input1"
+               onclick="cqImport(this.form);" value="Open [ctrl-shift-o]"/>
+            </div>
+            <div nowrap="1" id="cq_buffers">
 {
  (:
   TODO make the rows and cols dynamic
   I'd rather not have every cq_buffer in here,
   but it helps to preserve the buffer contents on reload.
   :)
-}
-       <tr>
-         <td nowrap="1">
-            <span id="cq_buffers">
-{
-  let $default_buffer := string-join(
+  let $default-buffer := string-join(
     ("(: buffer ID :)",
      'default element namespace = "http://www.w3.org/1999/xhtml"',
      xdmp:quote(<p>hello world</p>)
-    ), $g-nl
+    ), $k:g-nl
   )
   for $id in (0 to 9)
   let $bufid := concat("cq_buffer", string($id))
@@ -126,42 +144,42 @@ define function get-db-selector() as element() {
     attribute rows { 16 },
     attribute cols { 80 },
     attribute xml:space { "preserve" },
-    (: session-field won't work for this,
-       because it requires a db round-trip.
-       use JS session instead?
-    xdmp:get-session-field(
-      $bufid,
-      replace($default_buffer, "ID", string(1 + $id))
-    )
-     :)
-    replace($default_buffer, "ID", string(1 + $id))
+    replace($default-buffer, "ID", string(1 + $id))
   }
 }
               <input id="/cq:query" name="/cq:query" type="hidden"/>
-            </span>
-            <span style="text-align: right">
-            eval in: { get-db-selector() }
-            </span>
-            <span style="text-align: right" nowrap="1">
-              as&nbsp;
-              <input type="button" class="input1"
-               onclick="submitXML(this.form);" value="XML [ctrl-enter]"/>
-              &nbsp;&nbsp;
-              <input type="button" class="input1"
-               onclick="submitHTML(this.form);" value="HTML [alt-enter]"/>
-              &nbsp;&nbsp;
-              <input type="button" class="input1"
-               onclick="submitText(this.form);"
-               value="TEXT [ctrl-shift-enter]"/>
-              <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
-               value="text/xml"/>
-            </span>
+            </div>
           </td>
           <td>
-          <table summary="buffer list" id="cq_bufferlist" border="1"/>
-           </td>
+            <div class="head1">Buffers
+            <span class="instruction">
+            (use <span id="cq_buffer_accesskey_text">alt</span> to switch)
+            </span>
+            </div>
+            <table id="cq_bufferlist" border="1"/>
+          </td>
         </tr>
-      </table>
+        </table>
+
+        <div>
+          <span style="text-align: right">
+          eval in: { get-eval-selector() }
+          </span>
+          <span style="text-align: right" nowrap="1">
+          as&nbsp;
+          <input type="button" class="input1"
+          onclick="submitXML(this.form);" value="XML [ctrl-enter]"/>
+          &nbsp;&nbsp;
+          <input type="button" class="input1"
+          onclick="submitHTML(this.form);" value="HTML [alt-enter]"/>
+          &nbsp;&nbsp;
+          <input type="button" class="input1"
+          onclick="submitText(this.form);"
+          value="TEXT [ctrl-shift-enter]"/>
+          <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
+          value="text/xml"/>
+          </span>
+        </div>
     </form>
   </body>
 </html>

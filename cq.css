@@ -34,9 +34,24 @@ textarea
   font-family: monospace !important;
 }
 
+.resizable-e
+{ 
+  cursor: e-resize;
+}
+
+.resizable-s
+{ 
+  cursor: s-resize;
+}
+
 table 
 {
-	width: 100%;
+  width: 100%;
+}
+
+select
+{
+  width: 8em;
 }
 
 .head1 
@@ -44,6 +59,14 @@ table
   background-color: #FFCC33;
   font-size: medium;
   font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.instruction
+{ 
+  font-weight: normal;
+  font-size: small;
+  font-style: italic;
 }
 
 .input1 
@@ -63,7 +86,7 @@ table
   text-overflow: clip !important;
 /* 
  * I want to use 'white-space: nowrap', 
- * so gecko won't swallow long lines,
+ * so gecko won't swallow long lines.
  */
   white-space: nowrap;
 

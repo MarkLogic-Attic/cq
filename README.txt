@@ -7,8 +7,8 @@ using Internet Explorer 5.5+ or most other modern browsers.
 To install CQ just copy the files from the downloaded zip under a directory
 served by Content Interaction Server.  You run CQ by making a web request to
 the directory.  For example, by placing the files under the C:\Program
-Files\Mark Logic CIS\Docs\cq directory, you can run CQ as
-http://localhost:8000/cq/.  Just please be very careful in exposing CQ on a
+Files\MarkLogic\Docs\cq directory, you can run CQ as
+http://localhost:8000/cq/.  Please be very careful in exposing CQ on a
 production site as it allows queries to be written by remote clients.
 
 The CQ version number corresponds to the version number of Content Interaction

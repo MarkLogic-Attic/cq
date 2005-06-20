@@ -26,20 +26,11 @@ declare namespace v = "com.marklogic.xqzone.cq.view"
 
 default function namespace = "http://www.w3.org/2003/05/xpath-functions"
 
-(: TODO move to lib-controller? :)
-define variable $g-debug as xs:boolean { false() }
+import module namespace c = "com.marklogic.xqzone.cq.controller"
+  at "lib-controller.xqy"
 
 define variable $g-nbsp as xs:string { codepoints-to-string(160) }
 define variable $g-nl { fn:codepoints-to-string((10)) }
-
-(: TODO move to lib-controller? :)
-define function v:debug($s as item()*) as empty() {
-  if ($g-debug)
-  then xdmp:log(
-    string-join(("DEBUG:", translate(xdmp:quote($s), $g-nl, " ")), " ")
-  )
-  else ()
-}
 
 define function v:get-xml($x) {
   if (count($x) = 1

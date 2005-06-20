@@ -21,20 +21,32 @@
  : arguments:
  :   cq:query: the query to evaluate
  :   cq:mime-type: the mime type with which to return results
- :   cq:database: the database under which to evaluate the query
+ :   cq:eval-in: the database under which to evaluate the query
  :)
 
 import module namespace v="com.marklogic.xqzone.cq.view" at "lib-view.xqy"
 
-(: TODO move to lib-controller? :)
 define variable $g-query as xs:string {
   xdmp:get-request-field("/cq:query", "")
 }
 
+(: split into database, modules location, and root :)
+define variable $g-eval-in as xs:string+ {
+  tokenize(xdmp:get-request-field("/cq:eval-in", string(xdmp:database())), ":")
+}
+
 define variable $g-db as xs:unsignedLong {
-  xs:unsignedLong(xdmp:get-request-field(
-    "/cq:database", string(xdmp:database())
-  ))
+  xs:unsignedLong($g-eval-in[1])
+}
+
+(: default to current server module :)
+define variable $g-modules as xs:unsignedLong {
+  xs:unsignedLong(($g-eval-in[2], xdmp:modules-database())[1])
+}
+
+(: default to root :)
+define variable $g-root as xs:string {
+  ($g-eval-in[3], "/")[1]
 }
 
 define variable $g-mime-type as xs:string {
@@ -43,7 +55,7 @@ define variable $g-mime-type as xs:string {
 
 try {
   xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8")),
-  let $x := xdmp:eval-in($g-query, $g-db)
+  let $x := xdmp:eval-in($g-query, $g-db, (), $g-modules, $g-root)
   return (
     if ($g-mime-type = "text/xml")
     then v:get-xml($x)

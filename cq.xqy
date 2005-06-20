@@ -20,23 +20,29 @@
  :)
 
 <html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <title>{
-  "cq -", xdmp:get-request-header("Host"),
-  "- MarkLogic Server", xdmp:version(),
-  "-", xdmp:platform()
-    }</title>
+  <head>{
+    (: this is the only reason to bother with an xqy:
+     : to show the user what platform and host we're querying.
+     :)
+    element title {
+      "cq -", xdmp:get-request-header("Host"),
+      "- MarkLogic Server", xdmp:version(),
+      "-", xdmp:platform()
+    },
+    (: we don't need the css here, but it makes reloads easier :)
     <script language="JavaScript" type="text/javascript" src="cq.js">
-    </script>
-  </head>
+    </script>,
+    <link rel="stylesheet" type="text/css" href="cq.css">
+    </link>
+  }</head>
   <frameset id="cq_frameset" rows="*,*" onresize="resizeFrameset()">
     <frame src="cq-query.xqy" name="cq_queryFrame" id="cq_queryFrame"/>
     <frame src="cq-result.html" name="cq_resultFrame" id="cq_resultFrame"/>
-  <noframes>
-          <p>Apparently your browser does not support frames.
-            Try using this <a href="cq-query.html">link</a>.
-          </p>
-  </noframes>
+    <noframes>
+      <p>Apparently your browser does not support frames.
+      Try using this <a href="cq-query.html">link</a>.
+      </p>
+    </noframes>
   </frameset>
 </html>
 

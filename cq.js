@@ -39,9 +39,10 @@ var g_cq_autosave_id = "cq_autosave";
 var g_cq_bufferlist_id = "cq_bufferlist";
 var g_cq_buffers_id = "cq_buffers";
 var g_cq_buffer_basename = "cq_buffer";
-var g_cq_database_list_id = "/cq:database";
+var g_cq_eval_list_id = "/cq:eval-in";
 var g_cq_query_mime_type = "/cq:mime-type";
 var g_cq_query_action = "cq-eval.xqy";
+var g_cq_buffer_accesskey_text = "cq_buffer_accesskey_text";
 
 // GLOBAL VARIABLES
 var g_cq_buffer_current = 0;
@@ -133,7 +134,7 @@ function clearCookie(name) {
 
 function Is () {
     // convert all characters to lowercase to simplify testing
-    var agt=navigator.userAgent.toLowerCase();
+    var agt = navigator.userAgent.toLowerCase();
 
     this.major = parseInt(navigator.appVersion);
     this.minor = parseFloat(navigator.appVersion);
@@ -146,32 +147,65 @@ function Is () {
                   && (agt.indexOf('gecko') != -1));
 
     this.ie   = (agt.indexOf("msie") != -1);
+
+    // don't use these unless we must
+    this.x11 = (agt.indexOf("x11") != -1);
+    this.mac = (agt.indexOf("macintosh") != -1);
+    this.win = (agt.indexOf("windows") != -1);
 } // Is
 
 var is = new Is();
 
 function cqOnLoad() {
-  //alert("DEBUG: cqOnLoad");
     debug("cqOnLoad: begin");
+
+    // check for debug
+    var queryDebug = parseQuery("debug");
+    if (queryDebug && queryDebug != "false" && queryDebug != "0")
+        DEBUG = true;
+
+    //debug(navigator.userAgent.toLowerCase());
 
     // register for key-presses
     document.onkeypress = handleKey;
 
-    // focusing on the form doesn't seem to be necessary
-    //var x = document.getElementById(g_cq_query_form_id);
     // recover current db from session cookie
-    var currDatabase = getCookie(g_cq_database_list_id);
+    var currDatabase = getCookie(g_cq_eval_list_id);
     if (currDatabase != null) {
         debug("cqOnLoad: currDatabase = " + currDatabase);
-        document.getElementById(g_cq_database_list_id).value = currDatabase;
+        document.getElementById(g_cq_eval_list_id).value = currDatabase;
     }
 
+    // set the OS-specific instruction text
+    setInstructionText();
+
     // display the buffer list, exposing buffer 0
-    refreshBufferList(0);
+    refreshBufferList(0, "cqOnLoad");
 
     resizeFrameset();
 
 } // cqOnLoad
+
+function setInstructionText() {
+    var instructionNode = document.getElementById(g_cq_buffer_accesskey_text);
+    if (!instructionNode) {
+        alert("no instruction text node!");
+        return;
+    }
+    // if this is IE6, hide the text entirely (doesn't work)
+    if (is.ie) {
+        hide(instructionNode.parentNode);
+        return;
+    }
+    var theText = "alt";
+    // we only need to worry about X11 (see the comment in handleKey)
+    if (is.x11) {
+        theText = "ctrl";
+    }
+    debug("setInstructionText: " + theText);
+    removeChildNodes(instructionNode);
+    instructionNode.appendChild(document.createTextNode(theText));
+}
 
 function getFrameset() {
     // get it from the parent document
@@ -213,9 +247,9 @@ function resizeFrameset() {
 
     debug("resizeFrameset: visible " + visible
           + ", " + visible.offsetTop + ", " + visible.offsetHeight);
-    // add a smidgen for fudge-factor:
-    // 15px is enough for gecko, but IE6 wants 20px
-    rows = 20 + visible.offsetTop + visible.offsetHeight;
+    // add a smidgen for fudge-factor, so we don't activate scrolling:
+    // 15px is enough for gecko, but IE6 wants 17px
+    rows = 17 + visible.offsetTop + visible.offsetHeight;
     frameset.rows = rows + ",*";
 } // resizeFrameset
 
@@ -279,15 +313,27 @@ function getLabel(n) {
     // get the label text for a buffer:
     var theNode = document.createElement('div');
     var theNum = null;
-    var linkAction = "javascript:refreshBufferList(" + n + ")";
+    var linkAction =
+        "javascript:refreshBufferList(" + n + ", \"getLabel.linkAction\")";
+    var linkFunction =
+        function() { refreshBufferList(n, "getLabel.linkFunction") };
+    var className = 'bufferlabel';
     if (g_cq_buffer_current != n) {
         // provide a link to load the buffer
         theNum = document.createElement('a');
         theNum.setAttribute('href', linkAction);
+        // make the whole node active
+        theNode.onclick = linkFunction;
+        // TODO set the access key and focus handler
+        // doesn't seem to work: forget about it?
+        //theNum.tabindex = 10 + n;
+        //theNum.accesskey = n;
+        //theNum.onfocus = linkFunction;
     } else {
         // show the current index in bold, with no link
-        debug("getLabel: " + n + ", " + g_cq_buffer_current);
+        debug("getLabel: " + n + " == " + g_cq_buffer_current);
         theNum = document.createElement('b');
+        className = 'bufferlabelactive';
     }
     theNum.appendChild(document.createTextNode("" + (1+n) + "."));
     theNode.appendChild(theNum);
@@ -300,18 +346,10 @@ function getLabel(n) {
     theNode.appendChild(document.createTextNode(" " + theLabel));
 
     // highlight the current buffer
-    var className = 'bufferlabel';
-    if (g_cq_buffer_current == n) {
-        className = 'bufferlabelactive';
-    }
     // IE6 doesn't like setAttribute here, but gecko accepts it
     theNode.className = className;
 
     // TODO mouseover for fully formatted text contents as tooltip?
-
-    // make the whole thing active
-    // TODO doesn't work in IE6!
-    theNode.setAttribute('onclick', linkAction);
 
     return theNode;
 } // getLabel
@@ -320,7 +358,7 @@ function writeBufferLabel(parentNode, n) {
     if (! parentNode)
         return null;
 
-    // parentNode is a table
+    // parentNode is a table body
     var rowNode = document.createElement('tr');
     var cellNode = document.createElement('td');
     // set the text contents to label the new cell
@@ -330,7 +368,7 @@ function writeBufferLabel(parentNode, n) {
     parentNode.appendChild(rowNode);
 } // writeBufferLabel
 
-function refreshBufferList(n) {
+function refreshBufferList(n, src) {
     // display only the current buffer (textarea)
     // show labels for each buffer
     var theBuffer = null;
@@ -343,12 +381,13 @@ function refreshBufferList(n) {
     labelsNode.appendChild(tableBody);
 
     // 0 will return false, will set to 0: ok
-    if (! n)
+    if (! n) {
         n = 0;
+    }
     g_cq_buffer_current = n;
-    debug("refreshBufferList: " + g_cq_buffer_current);
+    debug("refreshBufferList: from " + src + ", show " + g_cq_buffer_current);
     for (var i = 0; i < g_cq_buffers; i++) {
-        debug("refreshBufferList: i = " + i + " of " + g_cq_buffers);
+        //debug("refreshBufferList: i = " + i + " of " + g_cq_buffers);
         theBuffer = getBuffer(i);
         // not there? skip it
         if (theBuffer) {
@@ -356,8 +395,8 @@ function refreshBufferList(n) {
           hide(theBuffer);
         }
     } // for buffers
-    // show the current buffer only
-    debug("refreshBufferList: show " + g_cq_buffer_current);
+
+    // show the current buffer only, and put the cursor there
     show(getBuffer());
     focusQueryInput();
 } // refreshBufferList
@@ -390,45 +429,92 @@ function parseQuery(key) {
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
 //   alt-1 to alt-0 exposes the corresponding buffer (really 0-9)
 function handleKey(e) {
-    // handle both gecko and IE6
-    if (!e)
-      e = window.event;
-    var keyInfo = String.fromCharCode(e.keyCode) + '\n';
-    var theCode = e['keyCode'];
+    // handle both gecko and IE6 event models
+    if (document.all) {
+        e = window.event;
+    }
+
+    var theCode = e.keyCode;
+    // see http://www.mozilla.org/editor/key-event-spec.html
+    // for weird gecko behavior
+    // see also: http://www.brainjar.com/dhtml/events/default4.asp
+    if (e.charCode && e.charCode != 0) {
+        theCode = e.charCode;
+    }
+    //var theChar = String.fromCharCode(theCode);
+    var altKey = e['altKey'];
+    var ctrlKey = e['ctrlKey'];
+    var shiftKey = e['shiftKey'];
+    var metaKey = e['metaKey'];
+
+    // in case we need debug info...
+    var keyInfo =
+        " win=" + is.win + " x11=" + is.x11 + " mac=" + is.mac + ", "
+        + (metaKey ? "meta " : "")
+        + (ctrlKey ? "ctrl " : "") + (shiftKey ? "shift " : "")
+        + (altKey ? "alt " : "") + theCode;
+    // short-circuit if we obviously don't care about this keypress
+    if (! (ctrlKey || altKey)) {
+        return true;
+    }
+    debug("handleKey: " + keyInfo);
+
+    // handle buffers: 1 = 49, 9 = 57, 0 = 48
+    // ick: firefox-linux decided to use alt 0-9 for tabs
+    //   win32 uses ctrl, macos uses meta.
+    // So we accept either ctrl or alt:
+    // the browser will swallow anything that it doesn't want us to see.
+    if ( (theCode >= 48) && (theCode <= 57) ) {
+        // expose the corresponding buffer: 0-9
+        var theBuffer = (theCode == 48) ? 9 : (theCode - 49);
+        refreshBufferList( theBuffer, "handleKey" );
+        return false;
+    }
+
+    // treat ctrl-shift-s (83) and ctrl-shift-o (79) as save, load
     var theForm = document.getElementById(g_cq_query_form_id);
-    // treat ctrl-alt-s (83) and ctrl-alt-o (79) as save, load
-    if (e['shiftKey'] && e['ctrlKey'] && theCode == 83) {
+    if (shiftKey && ctrlKey && theCode == 83) {
         // save the buffers to the database
         cqExport(theForm);
         return false;
     }
-    if (e['shiftKey'] && e['ctrlKey'] && theCode == 79) {
+    if (shiftKey && ctrlKey && theCode == 79) {
         // load the buffers from the database
         cqImport(theForm);
         return false;
     }
     // enter = 13
-    if (theCode == 13 && (e['ctrlKey'] || e['altKey'] || e['shiftKey']) ) {
-        if (e['ctrlKey'] && e['shiftKey']) {
+    if (theCode == 13) {
+        if (ctrlKey && shiftKey) {
             submitText(theForm);
-        } else if (e['altKey']) {
+        } else if (altKey) {
+            // TODO alt-enter doesn't work in IE6?
             submitHTML(theForm);
         } else {
-            // must be ctrl
             submitXML(theForm);
         }
         return false;
     }
 
-    // 1 = 49, 9 = 57, 0 = 48
-    if ( e['altKey'] && (theCode >= 49) && (theCode <= 57) ) {
-        // expose the corresponding buffer: 0-8
-        refreshBufferList(theCode - 49);
-        return false;
-    }
-    if ( e['altKey'] && (theCode == 48) ) {
-        // expose the corresponding buffer: 0 => 9
-        refreshBufferList(9);
+    // arrow keys, for textarea resize
+    // 37=left, 38=up, 39=right, 40=down
+    if (theCode >= 37 && theCode <= 40) {
+        var x = 0;
+        var y = 0;
+        if (theCode == 37) {
+            x = -1;
+        } else if (theCode == 38) {
+            y = 1;
+        } else if (theCode == 39) {
+            x = 1;
+        } else {
+            // (theCode == 40)
+            y = -1;
+        }
+        resizeBuffers(x, y);
+        if (y != 0) {
+            resizeFrameset();
+        }
         return false;
     }
 
@@ -436,16 +522,31 @@ function handleKey(e) {
     return true;
 } // handleKey
 
-function submitForm(theForm, theInput, theMimeType) {
-    if (! theForm)
-        return;
+function resizeBuffers(x, y) {
+    debug("resizeBuffers: " + x + "," + y);
+    for (var i = 0; i < g_cq_buffers; i++) {
+        theBuffer = getBuffer(i);
+        // not there? skip it
+        if (theBuffer) {
+            //debug("resizeBuffers: " + theBuffer);
+            theBuffer.cols += x;
+            theBuffer.rows += y;
+        }
+    }
+}
 
-    refreshBufferList(g_cq_buffer_current);
+function submitForm(theForm, theInput, theMimeType) {
+    if (! theForm) {
+        alert("null form in submitForm!");
+        return;
+    }
+
+    refreshBufferList(g_cq_buffer_current, "submitForm");
 
     // copy the selected database to the session cookie
-    var currDatabase = document.getElementById(g_cq_database_list_id).value;
+    var currDatabase = document.getElementById(g_cq_eval_list_id).value;
     debug("submitForm: currDatabase = " + currDatabase);
-    setCookie(g_cq_database_list_id, currDatabase, 30);
+    setCookie(g_cq_eval_list_id, currDatabase, 30);
 
     // copy current buffer to hidden element
     document.getElementById(g_cq_query_input).value = theInput;
@@ -480,7 +581,7 @@ function cqExport(theForm) {
             + ', "exported ' + theUri + '"';
         // set the current database to null,
         // so we save to the default db
-        theDatabase = document.getElementById(g_cq_database_list_id);
+        theDatabase = document.getElementById(g_cq_eval_list_id);
         oldDatabase = theDatabase.value;
         theDatabase.value = null;
         submitForm(theForm, theQuery, "text/html");
@@ -593,7 +694,7 @@ function finishImport() {
             } // for theList
 
             // leave the user in the same buffer
-            refreshBufferList(g_cq_buffer_current);
+            refreshBufferList(g_cq_buffer_current, "finishImport");
             //clearTimeout(theTimeout);
             var theUri = document.getElementById(g_cq_uri).value;
             var theQuery = '<p>' + theUri + ' imported</p>';
@@ -614,7 +715,7 @@ function cqImport(theForm) {
     debug("cqImport: " + theQuery);
     // set the current database to null,
     // so we save to the default db
-    theDatabase = document.getElementById(g_cq_database_list_id);
+    theDatabase = document.getElementById(g_cq_eval_list_id);
     oldDatabase = theDatabase.value;
     theDatabase.value = null;
     submitForm(theForm, theQuery, "text/xml");

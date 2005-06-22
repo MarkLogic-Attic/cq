@@ -19,8 +19,8 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-declare namespace mlgr="http://marklogic.com/xdmp/group"
-declare namespace html="http://www.w3.org/1999/xhtml"
+declare namespace mlgr = "http://marklogic.com/xdmp/group"
+declare namespace html = "http://www.w3.org/1999/xhtml"
 
 import module namespace k = "com.marklogic.xqzone.cq.constants"
   at "lib-constants.xqy"
@@ -29,11 +29,11 @@ import module namespace v = "com.marklogic.xqzone.cq.view"
 import module namespace c = "com.marklogic.xqzone.cq.controller"
   at "lib-controller.xqy"
 
-(: TODO: worksheet save/load should always go to xdmp:database() :)
 (: TODO store default db? problematic:
  : using xdmp:(get|set)-session-field breaks multiple cq windows|tabs,
  : because the user's session is locked while his query is running.
  : set with JavaScript instead? subrequest?
+ : for now, we'll let the browser handle it.
  :)
 (: TODO add "useful queries" popup :)
 (: TODO add "query history" popup :)
@@ -44,8 +44,7 @@ define variable $g-worksheet-name {
 
 define function get-eval-selector() as element(html:select)
 {
-  (: TODO
-   : first, list all the app-server labels
+  (: first, list all the app-server labels
    : next, list all databases that aren't part of an app-server
    :)
 
@@ -59,7 +58,7 @@ define function get-eval-selector() as element(html:select)
       xs:unsignedLong(xdmp:get-request-field(
         "/cq:current-eval-in", string(xdmp:database())
       ))
-    (: TODO list the application servers, except webdav servers
+    (: list the application servers, except webdav servers
      : NOTE: requires MarkLogic Server 3.0 or later
      : NOTE: uses undocumented APIs
      :)
@@ -128,9 +127,8 @@ c:check-debug(),
             <div nowrap="1" id="cq_buffers">
 {
  (:
-  TODO make the rows and cols dynamic
-  I'd rather not have every cq_buffer in here,
-  but it helps to preserve the buffer contents on reload.
+  : I'd rather not have every cq_buffer in here,
+  : but it helps to preserve the buffer contents on reload.
   :)
   let $default-buffer := string-join(
     ("(: buffer ID :)",

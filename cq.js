@@ -535,6 +535,18 @@ function resizeBuffers(x, y) {
     }
 }
 
+function disableButtons(flag) {
+    // disable the form buttons
+    debug("disableButtons: " + flag);
+    var inputs = document.getElementsByTagName('INPUT');
+    for (var i=0; i < inputs.length; i++) {
+        if (inputs[i].type == "button") {
+            debug("disableButtons: " + i + ": " + inputs[i].type);
+            inputs[i].disabled = flag;
+        }
+    }
+}
+
 function submitForm(theForm, theInput, theMimeType) {
     if (! theForm) {
         alert("null form in submitForm!");
@@ -543,10 +555,35 @@ function submitForm(theForm, theInput, theMimeType) {
 
     refreshBufferList(g_cq_buffer_current, "submitForm");
 
-    // copy the selected database to the session cookie
-    var currDatabase = document.getElementById(g_cq_eval_list_id).value;
-    debug("submitForm: currDatabase = " + currDatabase);
-    setCookie(g_cq_eval_list_id, currDatabase, 30);
+    // TODO too problematic for now
+    if (false) {
+        disableButtons(true);
+
+        // set onload behavior to re-enable the buttons
+        // TODO this works in gecko, but not IE6 - use onreadystatechange?
+        // TODO how do we re-enable the buttons if the query is cancelled?
+        // seems like onabort should work, but it doesn't
+        // IE6 has onstop handler, but gecko doesn't
+        var fSet = getFrameset();
+        var qFrame = getQueryFrame();
+        var rFrame = getResultFrame();
+        if (!(rFrame && qFrame)) {
+            debug("null queryFrame or resultFrame!");
+        } else {
+            var f = function () { disableButtons(false) };
+            rFrame.onload = f;
+            rFrame.onunload = f;
+            rFrame.onabort = f;
+            qFrame.onabort = f;
+            fSet.onabort = f;
+            debug("resultFrame.onload = " + rFrame.onload);
+        }
+    }
+
+    // copy the selected eval-in args to the session cookie
+    var currEval = document.getElementById(g_cq_eval_list_id).value;
+    debug("submitForm: currEval = " + currEval);
+    setCookie(g_cq_eval_list_id, currEval, 30);
 
     // copy current buffer to hidden element
     document.getElementById(g_cq_query_input).value = theInput;
@@ -558,7 +595,6 @@ function submitForm(theForm, theInput, theMimeType) {
     }
     // post the form
     theForm.submit();
-    return;
 }
 
 function cqExport(theForm) {

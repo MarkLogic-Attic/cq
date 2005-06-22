@@ -19,6 +19,10 @@
  : affiliated with the Apache Software Foundation.
  :)
 
+import module namespace c="com.marklogic.xqzone.cq.controller"
+ at "lib-controller.xqy"
+
+c:check-debug(),
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>{
     (: this is the only reason to bother with an xqy:
@@ -36,7 +40,11 @@
     </link>
   }</head>
   <frameset id="cq_frameset" rows="*,*" onresize="resizeFrameset()">
-    <frame src="cq-query.xqy" name="cq_queryFrame" id="cq_queryFrame"/>
+{
+  (: pass debug context to frames :)
+    <frame src="cq-query.xqy?debug={c:get-debug()}"
+     name="cq_queryFrame" id="cq_queryFrame"/>
+}
     <frame src="cq-result.html" name="cq_resultFrame" id="cq_resultFrame"/>
     <noframes>
       <p>Apparently your browser does not support frames.

@@ -101,36 +101,56 @@ define function v:get-error-frame-html
   )
 }
 
-define function v:get-error-html($ex as element()) as element() {
+define function v:get-error-html
+($db as xs:unsignedLong, $modules as xs:unsignedLong,
+ $root as xs:string, $ex as element())
+ as element()
+{
 <html xmlns="http://www.w3.org/1999/xhtml">
   <body bgcolor="white">
-    <table>
-      <tr valign="top"><td>
-  <b xmlns="http://www.w3.org/1999/xhtml"><code>ERROR:</code><br/>
+    <div>
+  <b xmlns="http://www.w3.org/1999/xhtml">
   <code>{
-      <br/>,
-      if (exists($ex/err:format-string/text()))
-      then ($ex/err:format-string/text(), <br/>)
-      else if (exists($ex/err:code/text()))
-      then ($ex/err:code/text(), <br/>)
-      else (),
-      <br/>,
-(:
-      if (exists($ex/err:stack/err:frame/err:operation))
-      then (
-:)
-        <i>Stack trace:</i>, <br/>, <br/>,
-        for $f in $ex/err:stack/err:frame
-        return v:get-error-frame-html($f)
-(:
-      ) else (),
-:)
-      ,<br/>, comment { xdmp:quote($ex) }
-  }</code></b>
-      </td></tr>
-    </table>
+    (: display eval-in information :)
+    "ERROR: eval-in",
+    xdmp:database-name($db), "at",
+    concat(
+      if ($modules eq 0) then "file" else xdmp:database-name($modules),
+      ":", $root
+    ),
+    <br/>,
+    <br/>,
+    if (exists($ex/err:format-string/text()))
+    then ($ex/err:format-string/text(), <br/>)
+    else if (exists($ex/err:code/text()))
+    then ($ex/err:code/text(), <br/>)
+    else (),
+    <br/>,
+    <i>Stack trace:</i>, <br/>, <br/>,
+    for $f in $ex/err:stack/err:frame return v:get-error-frame-html($f),
+    <br/>,
+    (: for debugging :)
+    comment { xdmp:quote($ex) }
+  }</code>
+  </b>
+    </div>
   </body>
 </html>
 }
+
+define function v:get-eval-label
+($db as xs:unsignedLong, $modules as xs:unsignedLong,
+ $root as xs:string, $name as xs:string?)
+ as xs:string
+{
+  concat(
+    if (exists($name)) then concat($name, ": ") else (),
+    xdmp:database-name($db), ", ",
+    if ($modules eq 0) then ""
+    else concat(xdmp:database-name($modules), ":"),
+    $root
+  )
+}
+
 
 (: lib-view.xqy :)

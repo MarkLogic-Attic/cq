@@ -24,6 +24,10 @@ declare namespace html="http://www.w3.org/1999/xhtml"
 
 import module namespace k = "com.marklogic.xqzone.cq.constants"
   at "lib-constants.xqy"
+import module namespace v = "com.marklogic.xqzone.cq.view"
+  at "lib-view.xqy"
+import module namespace c = "com.marklogic.xqzone.cq.controller"
+  at "lib-controller.xqy"
 
 (: TODO: worksheet save/load should always go to xdmp:database() :)
 (: TODO store default db? problematic:
@@ -55,25 +59,21 @@ define function get-eval-selector() as element(html:select)
       xs:unsignedLong(xdmp:get-request-field(
         "/cq:current-eval-in", string(xdmp:database())
       ))
-    (: TODO list the application servers
+    (: TODO list the application servers, except webdav servers
      : NOTE: requires MarkLogic Server 3.0 or later
      : NOTE: uses undocumented APIs
      :)
     let $servers :=
-      xdmp:read-cluster-config-file("groups.xml")//mlgr:http-server
-        [mlgr:webDAV eq false()]
+      xdmp:read-cluster-config-file("groups.xml")
+      //(mlgr:http-server[mlgr:webDAV eq false()]|mlgr:xdbc-server)
     for $option in (
       for $s in $servers
-      let $id := data($s/mlgr:http-server-id)
+      let $id := data($s/(mlgr:http-server-id|mlgr:xdbc-server-id))[1]
       let $db := data($s/mlgr:database)
       let $modules := data($s/mlgr:modules)
-      let $root := data($s/mlgr:root)
-      let $label := concat(
-        $s/mlgr:http-server-name, ": ", xdmp:database-name($db), ", ",
-        if ($modules eq 0) then ""
-        else concat(xdmp:database-name($modules), ":"),
-        $root
-      )
+      let $root := data($s/(mlgr:root|mlgr:library))[1]
+      let $name := data($s/(mlgr:http-server-name|mlgr:xdbc-server-name))[1]
+      let $label := v:get-eval-label($db, $modules, $root, $name)
       let $value := string-join((string($db), string($modules), $root), ":")
       return element html:option {
         attribute value { $value },
@@ -86,7 +86,7 @@ define function get-eval-selector() as element(html:select)
       let $root := data($server/mlgr:root)
       let $exposed := data($servers/mlgr:database)
       for $db in xdmp:databases()[not(. = $exposed)]
-      let $label := concat(xdmp:database-name($db), " (no server)")
+      let $label := v:get-eval-label($db, $modules, $root, ())
       let $value := string-join((string($db), string($modules), $root), ":")
       return element html:option {
         attribute value { $value },
@@ -98,6 +98,7 @@ define function get-eval-selector() as element(html:select)
   }
 }
 
+c:check-debug(),
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>Query Form</title>
@@ -148,6 +149,8 @@ define function get-eval-selector() as element(html:select)
   }
 }
               <input id="/cq:query" name="/cq:query" type="hidden"/>
+              <input id="debug" name="debug" type="hidden"
+               value="{c:get-debug()}"/>
             </div>
           </td>
           <td>

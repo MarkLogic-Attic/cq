@@ -24,7 +24,10 @@
  :   cq:eval-in: the database under which to evaluate the query
  :)
 
-import module namespace v="com.marklogic.xqzone.cq.view" at "lib-view.xqy"
+import module namespace v = "com.marklogic.xqzone.cq.view"
+ at "lib-view.xqy"
+import module namespace c = "com.marklogic.xqzone.cq.controller"
+ at "lib-controller.xqy"
 
 define variable $g-query as xs:string {
   xdmp:get-request-field("/cq:query", "")
@@ -46,15 +49,24 @@ define variable $g-modules as xs:unsignedLong {
 
 (: default to root :)
 define variable $g-root as xs:string {
-  ($g-eval-in[3], "/")[1]
+  (: hack for bug 1894: eval-in doesn't support relative roots :)
+  let $root := ($g-eval-in[3], "/")[1]
+  let $root :=
+    if (contains($root, "/")) then $root
+    else if ($g-modules eq 0) then concat("./", $root)
+    else concat($root, "/")
+  return $root
 }
 
 define variable $g-mime-type as xs:string {
   xdmp:get-request-field("/cq:mime-type", "text/plain")
 }
 
+c:check-debug(),
+c:debug(("cq-eval:", $g-mime-type)),
+xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8")),
+c:debug(("cq-eval:", $g-db, $g-modules, $g-root, $g-query)),
 try {
-  xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8")),
   let $x := xdmp:eval-in($g-query, $g-db, (), $g-modules, $g-root)
   return (
     if ($g-mime-type = "text/xml")
@@ -66,7 +78,7 @@ try {
 } catch ($ex) {
   (: errors are always displayed as html :)
   xdmp:set-response-content-type("text/html; charset=utf-8"),
-  v:get-error-html($ex)
+  v:get-error-html($g-db, $g-modules, $g-root, $ex)
 }
 
 (: cq-eval.xqy :)

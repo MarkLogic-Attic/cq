@@ -30,6 +30,8 @@ define variable $c:g-debug as xs:boolean { false() }
 
 define variable $c:g-nl { fn:codepoints-to-string((10)) }
 
+define function c:get-debug() as xs:boolean { $c:g-debug }
+
 define function c:debug-on() as empty() { xdmp:set($c:g-debug, true()) }
 define function c:debug-off() as empty() { xdmp:set($c:g-debug, false()) }
 
@@ -39,6 +41,13 @@ define function c:debug($s as item()*) as empty()
   then xdmp:log(
     string-join(("DEBUG:", translate(xdmp:quote($s), $c:g-nl, " ")), " ")
   )
+  else ()
+}
+
+define function c:check-debug() as empty()
+{
+  if (xs:boolean(xdmp:get-request-field("debug", string($c:g-debug))))
+  then c:debug-on()
   else ()
 }
 

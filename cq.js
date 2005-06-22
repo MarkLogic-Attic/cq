@@ -706,6 +706,8 @@ function saveQueryHistory(query) {
 
     // should this be a select list?
     // what about an iframe with a hide-show widget?
+    // more room for full queries, that way... also delete widget
+    // TODO save history as part of the worksheet?
     var selectNode = historyNode.lastChild;
     if (!selectNode) {
         historyNode.appendChild(document.createTextNode("history: "));
@@ -742,7 +744,7 @@ function saveQueryHistory(query) {
     newOption.value = query;
 
     // should we abbreviate the query somehow?
-    newOption.appendChild(document.createTextNode(query));
+    newOption.appendChild(document.createTextNode(normalize(query)));
 
     // it's nice to have the most-recent at the top...
     if (optionsList && optionsList[0]) {

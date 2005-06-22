@@ -43,6 +43,7 @@ var g_cq_eval_list_id = "/cq:eval-in";
 var g_cq_query_mime_type = "/cq:mime-type";
 var g_cq_query_action = "cq-eval.xqy";
 var g_cq_buffer_accesskey_text = "cq_buffer_accesskey_text";
+var g_cq_history_node = "/cq:history";
 
 // GLOBAL VARIABLES
 var g_cq_buffer_current = 0;
@@ -366,7 +367,7 @@ function writeBufferLabel(parentNode, n) {
 
     rowNode.appendChild(cellNode);
     parentNode.appendChild(rowNode);
-} // writeBufferLabel
+}
 
 function refreshBufferList(n, src) {
     // display only the current buffer (textarea)
@@ -381,9 +382,14 @@ function refreshBufferList(n, src) {
     labelsNode.appendChild(tableBody);
 
     // 0 will return false, will set to 0: ok
-    if (! n) {
-        n = 0;
+    if (n == null) {
+        if (g_cq_buffer_current == null) {
+            n = g_cq_buffer_current;
+        } else {
+            n = 0;
+        }
     }
+
     g_cq_buffer_current = n;
     debug("refreshBufferList: from " + src + ", show " + g_cq_buffer_current);
     for (var i = 0; i < g_cq_buffers; i++) {
@@ -621,7 +627,7 @@ function cqExport(theForm) {
         oldDatabase = theDatabase.value;
         theDatabase.value = null;
         submitForm(theForm, theQuery, "text/html");
-        // TODO restore the user's chosen db
+
         debug("cqExport: preserving selected database " + oldDatabase);
         theDatabase.value = oldDatabase;
     } // if theUri
@@ -667,30 +673,89 @@ function cqAutoSave(n) {
 
 // Submit XML Query
 function submitXML(theForm) {
-    debug("submitXML");
-    if (theForm) {
-        //cqAutoSave();
-        submitForm(theForm, getBuffer().value, "text/xml");
-    }
-} // submitXML
+    submitFormWrapper(theForm, "text/xml");
+}
 
 // Submit HTML Query
 function submitHTML(theForm) {
-    debug("submitHTML");
-    if (theForm) {
-        //cqAutoSave();
-        submitForm(theForm, getBuffer().value, "text/html");
-    }
-} // submitHTML
+    submitFormWrapper(theForm, "text/html");
+}
 
 // Submit Text Query
 function submitText(theForm) {
-    debug("submitText");
-    if (theForm) {
-        //cqAutoSave();
-        submitForm(theForm, getBuffer().value, "text/plain");
+    submitFormWrapper(theForm, "text/plain");
+}
+
+function submitFormWrapper(theForm, mimeType) {
+    debug("submitFormWrapper: " + theForm + " as " + mimeType);
+    if (!theForm)
+        return;
+
+    //cqAutoSave();
+    var query = getBuffer().value;
+    saveQueryHistory(query);
+    submitForm(theForm, query, mimeType);
+}
+
+function saveQueryHistory(query) {
+    debug("saveQueryHistory: " + query);
+    var historyNode = document.getElementById(g_cq_history_node);
+    if (! historyNode) {
+        return;
     }
-} // submitText
+
+    // should this be a select list?
+    // what about an iframe with a hide-show widget?
+    var selectNode = historyNode.lastChild;
+    if (!selectNode) {
+        historyNode.appendChild(document.createTextNode("history: "));
+        selectNode = document.createElement("select");
+        historyNode.appendChild(selectNode);
+        selectNode.onchange = function() {
+            // copy selected option to current textarea
+            // note that this will overwrite the current query
+            var buf = getBuffer();
+            buf.value =
+              selectNode.childNodes[selectNode.selectedIndex].value;
+            refreshBufferList(g_cq_buffer_current, "saveQueryHistory");
+        };
+    }
+
+    // simple de-dupe check
+    // abort when we see the first duplicate:
+    // this is most likely to happen with the most recent query
+    var optionsList = selectNode.childNodes;
+    if (optionsList && optionsList[0]) {
+        debug("saveQueryHistory: checking " + optionsList.length);
+        for (var i = 0; i < optionsList.length; i++) {
+            debug("saveQueryHistory: " + i);
+            if (optionsList[i].value == query) {
+                // we want to remove a node and then break
+                selectNode.removeChild(optionsList[i]);
+                debug("saveQueryHistory: " + i + " matched!");
+                break;
+            }
+        }
+    }
+
+    var newOption = document.createElement("option");
+    newOption.value = query;
+
+    // should we abbreviate the query somehow?
+    newOption.appendChild(document.createTextNode(query));
+
+    // it's nice to have the most-recent at the top...
+    if (optionsList && optionsList[0]) {
+        selectNode.insertBefore(newOption, optionsList[0]);
+    } else {
+        selectNode.appendChild(newOption);
+    }
+
+    // select the topmost option: IE6 and gecko work a bit differently
+    newOption.selected = true;
+    selectNode.selectedIndex = 0;
+
+} // saveQueryHistory
 
 // display a confirmation message
 function finishImport() {

@@ -179,6 +179,8 @@ c:check-debug(),
             <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
             value="text/xml"/>
             </span>
+            &nbsp;&nbsp;
+            <span id="/cq:history" name="/cq:history"/>
           </td>
         </tr>
       </table>

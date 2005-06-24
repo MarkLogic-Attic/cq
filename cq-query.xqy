@@ -65,7 +65,7 @@ define function get-eval-selector() as element(html:select)
     let $servers :=
       xdmp:read-cluster-config-file("groups.xml")
       //(mlgr:http-server[mlgr:webDAV eq false()]|mlgr:xdbc-server)
-    for $option in (
+    return (
       for $s in $servers
       let $id := data($s/(mlgr:http-server-id|mlgr:xdbc-server-id))[1]
       let $db := data($s/mlgr:database)
@@ -74,6 +74,7 @@ define function get-eval-selector() as element(html:select)
       let $name := data($s/(mlgr:http-server-name|mlgr:xdbc-server-name))[1]
       let $label := v:get-eval-label($db, $modules, $root, $name)
       let $value := string-join((string($db), string($modules), $root), ":")
+      order by ($id eq xdmp:server()), $label
       return element html:option {
         attribute value { $value },
         $label
@@ -87,13 +88,13 @@ define function get-eval-selector() as element(html:select)
       for $db in xdmp:databases()[not(. = $exposed)]
       let $label := v:get-eval-label($db, $modules, $root, ())
       let $value := string-join((string($db), string($modules), $root), ":")
+      order by $label
       return element html:option {
         attribute value { $value },
-        if ($db eq $current) then attribute selected { true() } else (),
         $label
       }
-    ) order by $option
-    return $option
+    )
+
   }
 }
 

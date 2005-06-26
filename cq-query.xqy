@@ -74,7 +74,8 @@ define function get-eval-selector() as element(html:select)
       let $name := data($s/(mlgr:http-server-name|mlgr:xdbc-server-name))[1]
       let $label := v:get-eval-label($db, $modules, $root, $name)
       let $value := string-join((string($db), string($modules), $root), ":")
-      order by ($id eq xdmp:server()), $label
+      (: sort current app-server to the top, for bootstrap selection :)
+      order by ($id = xdmp:server()) descending, $label
       return element html:option {
         attribute value { $value },
         $label

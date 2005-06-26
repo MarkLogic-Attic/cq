@@ -38,9 +38,7 @@ define variable $g-eval-in as xs:string+ {
   tokenize(xdmp:get-request-field("/cq:eval-in", string(xdmp:database())), ":")
 }
 
-define variable $g-db as xs:unsignedLong {
-  xs:unsignedLong($g-eval-in[1])
-}
+define variable $g-db as xs:unsignedLong { xs:unsignedLong($g-eval-in[1]) }
 
 (: default to current server module :)
 define variable $g-modules as xs:unsignedLong {
@@ -64,17 +62,19 @@ define variable $g-mime-type as xs:string {
 
 c:check-debug(),
 c:debug(("cq-eval:", $g-mime-type)),
-xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8")),
 c:debug(("cq-eval:", $g-db, $g-modules, $g-root, $g-query)),
 try {
+  (: set the mime-type inside the try-catch block,
+   : so errors can override it
+   :)
   let $x := xdmp:eval-in($g-query, $g-db, (), $g-modules, $g-root)
-  return (
-    if ($g-mime-type = "text/xml")
-    then v:get-xml($x)
-    else if ($g-mime-type = "text/html")
-    then v:get-html($x)
+  let $g-mime-type := if (empty($x)) then "text/html" else $g-mime-type
+  let $set :=
+    xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8"))
+  return
+    if ($g-mime-type eq "text/xml") then v:get-xml($x)
+    else if ($g-mime-type eq "text/html") then v:get-html($x)
     else v:get-text($x)
-  )
 } catch ($ex) {
   (: errors are always displayed as html :)
   xdmp:set-response-content-type("text/html; charset=utf-8"),

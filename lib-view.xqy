@@ -51,7 +51,6 @@ define function v:get-xml($x) {
 }
 
 define function v:get-html($x) as element() {
-  (: TODO ditch the html document wrapper :)
   let $body :=
     for $i in $x
     return if ($i instance of document-node()) then $i/node() else $i
@@ -63,7 +62,12 @@ define function v:get-html($x) as element() {
     else
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head><title/></head>
-  <body bgcolor="white">{ $body }</body>
+  <body bgcolor="white">
+{
+  if (exists($body)) then $body
+  else <i>your query returned an empty sequence</i>
+}
+  </body>
 </html>
 }
 

@@ -504,7 +504,8 @@ function handleKey(e) {
 
     // arrow keys, for textarea resize
     // 37=left, 38=up, 39=right, 40=down
-    if (theCode >= 37 && theCode <= 40) {
+    // TODO no good: OS uses these for textarea navigation
+    if (false && theCode >= 37 && theCode <= 40) {
         var x = 0;
         var y = 0;
         if (theCode == 37) {

@@ -24,6 +24,8 @@
  :   cq:eval-in: the database under which to evaluate the query
  :)
 
+declare namespace mlgr = "http://marklogic.com/xdmp/group"
+
 import module namespace v = "com.marklogic.xqzone.cq.view"
  at "lib-view.xqy"
 import module namespace c = "com.marklogic.xqzone.cq.controller"
@@ -35,10 +37,28 @@ define variable $g-query as xs:string {
 
 (: split into database, modules location, and root :)
 define variable $g-eval-in as xs:string+ {
-  tokenize(xdmp:get-request-field("/cq:eval-in", string(xdmp:database())), ":")
+(: get appserver info in real-time, so we can support admin changes :)
+  let $toks :=
+    tokenize(xdmp:get-request-field("/cq:eval-in", string(xdmp:database())), ":")
+  return
+  if ($toks[1] eq "as")
+  then (
+    let $server := (
+      xdmp:read-cluster-config-file("groups.xml")
+        //(mlgr:http-server[mlgr:webDAV eq false()]|mlgr:xdbc-server)
+        [ (string(mlgr:xdbc-server-id), string(mlgr:http-server-id)) = $toks[2]]
+    )[1]
+    return (
+      string($server/mlgr:database),
+      string($server/mlgr:modules),
+      string(($server/(mlgr:root|mlgr:library))[1])
+    )
+  ) else $toks
 }
 
-define variable $g-db as xs:unsignedLong { xs:unsignedLong($g-eval-in[1]) }
+define variable $g-db as xs:unsignedLong {
+  xs:unsignedLong($g-eval-in[1])
+}
 
 (: default to current server module :)
 define variable $g-modules as xs:unsignedLong {

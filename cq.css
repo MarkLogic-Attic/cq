@@ -49,6 +49,11 @@ table
   width: 100%;
 }
 
+ol
+{  
+  cursor: pointer;
+}
+
 select
 {
   width: 8em;
@@ -60,6 +65,47 @@ select
   font-size: medium;
   font-weight: bold;
   margin-bottom: 3px;
+}
+
+/* TODO tab borders */
+.buffer-tab
+{
+  font-size: medium;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 0 1em 0 1em;
+  padding: 0 1em 0 1em;
+  float: left;
+  border: 1px solid black;
+  color: grey;
+}
+
+.buffer-tab-active
+{  
+  background-color: #FFCC33;
+  font-size: medium;
+  font-weight: bold;
+  margin: 0 1em 0 1em;
+  padding: 0 1em 0 1em;
+  float: left;
+  border: 1px solid black;
+  cursor: pointer;
+}
+
+.query-history
+{  
+  border: 1px solid black;
+  overflow: auto;
+  /* would be better if this was dynamic,
+   * but 22em should be font-independent.
+   * the idea is to match the height of the query-buffers area.
+   */
+  height: 21em;
+}
+
+.query-delete
+{
+  color: red;
 }
 
 .instruction

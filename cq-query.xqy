@@ -36,7 +36,6 @@ import module namespace c = "com.marklogic.xqzone.cq.controller"
  : for now, we'll let the browser handle it.
  :)
 (: TODO add "useful queries" popup :)
-(: TODO add "query history" popup :)
 
 define variable $g-worksheet-name {
   xdmp:get-request-field("cq_worksheet_name", "worksheet.xml")
@@ -62,18 +61,14 @@ define function get-eval-selector() as element(html:select)
      : NOTE: requires MarkLogic Server 3.0 or later
      : NOTE: uses undocumented APIs
      :)
-    let $servers :=
-      xdmp:read-cluster-config-file("groups.xml")
+    let $servers := xdmp:read-cluster-config-file("groups.xml")
       //(mlgr:http-server[mlgr:webDAV eq false()]|mlgr:xdbc-server)
     return (
       for $s in $servers
       let $id := data($s/(mlgr:http-server-id|mlgr:xdbc-server-id))[1]
-      let $db := data($s/mlgr:database)
-      let $modules := data($s/mlgr:modules)
-      let $root := data($s/(mlgr:root|mlgr:library))[1]
       let $name := data($s/(mlgr:http-server-name|mlgr:xdbc-server-name))[1]
-      let $label := v:get-eval-label($db, $modules, $root, $name)
-      let $value := string-join((string($db), string($modules), $root), ":")
+      let $label := concat("server: ", $name)
+      let $value := string-join(("as", string($id)), ":")
       (: sort current app-server to the top, for bootstrap selection :)
       order by ($id = xdmp:server()) descending, $label
       return element html:option {
@@ -151,19 +146,6 @@ c:check-debug(),
               <input id="/cq:query" name="/cq:query" type="hidden"/>
               <input id="debug" name="debug" type="hidden"
                value="{c:get-debug()}"/>
-            </div>
-          </td>
-          <td>
-            <div class="head1">Buffers
-            <span class="instruction">
-            (use <span id="cq_buffer_accesskey_text">alt</span> to switch)
-            </span>
-            </div>
-            <table id="cq_bufferlist" border="1"/>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2" nowrap="1">
             <span style="text-align: right">
             eval in: { get-eval-selector() }
             </span>
@@ -181,8 +163,30 @@ c:check-debug(),
             <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
             value="text/xml"/>
             </span>
-            &nbsp;&nbsp;
-            <span id="/cq:history" name="/cq:history"/>
+            </div>
+          </td>
+          <td>
+            <table>
+            <tr id="cq-buffer-tabs">
+              <td class="buffer-tab" id="cq-buffer-tabs-0"
+               onclick="refreshBufferTabs(0)">Buffers
+                  <span class="instruction">
+                  (use
+                  <span id="cq_buffer_accesskey_text">alt</span>
+                  to switch)
+                  </span>
+              </td>
+              <td class="buffer-tab" id="cq-buffer-tabs-1"
+               onclick="refreshBufferTabs(1)">History
+              </td>
+            </tr>
+            </table>
+            <table id="cq_bufferlist" border="1"/>
+            <div id="/cq:history" name="/cq:history" class="query-history"/>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" nowrap="1">
           </td>
         </tr>
       </table>

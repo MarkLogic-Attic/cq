@@ -24,7 +24,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-// TODO mark incremental false on change to uri
 // TODO to support incremental autosave
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
@@ -39,18 +38,24 @@ var g_cq_autosave_id = "cq_autosave";
 var g_cq_bufferlist_id = "cq_bufferlist";
 var g_cq_buffers_id = "cq_buffers";
 var g_cq_buffer_basename = "cq_buffer";
+var g_cq_history_basename = "cq_history";
 var g_cq_eval_list_id = "/cq:eval-in";
 var g_cq_query_mime_type = "/cq:mime-type";
 var g_cq_query_action = "cq-eval.xqy";
 var g_cq_buffer_accesskey_text = "cq_buffer_accesskey_text";
+var g_cq_buffer_tabs_node = "cq-buffer-tabs";
 var g_cq_history_node = "/cq:history";
+var cq_buffers_cookie = "cq_buffer_cookie_buffers";
+var cq_history_cookie = "cq_buffer_cookie_history";
 
 // GLOBAL VARIABLES
+var g_cq_buffer_tabs_current = null;
 var g_cq_buffer_current = 0;
 var g_cq_buffers = 10;
 var g_cq_next_id = 0;
 var g_cq_autosave_incremental = false;
 var g_cq_timeout = 100;
+var g_cq_history_limit = 500;
 
 var DEBUG = false;
 
@@ -94,10 +99,14 @@ function removeChildNodes(node) {
 }
 
 function setCookie(name, value, days) {
-    if (name == null)
+    if (name == null) {
+        debug("setCookie: null name");
         return null;
-    if (value == null)
+    }
+    if (value == null) {
+        debug("setCookie: null value");
         return setCookie(name, "", days);
+    }
 
     var path = "path=/";
     var expires = "";
@@ -108,7 +117,8 @@ function setCookie(name, value, days) {
         var expires = "; expires=" + date.toGMTString();
     }
 
-    document.cookie = name + "=" + value + expires + "; " + path;
+    document.cookie = name + "=" + escape(value) + expires + "; " + path;
+    debug("setCookie: " + document.cookie);
 }
 
 function getCookie(name) {
@@ -122,9 +132,34 @@ function getCookie(name) {
         while (c.charAt(0) == ' ')
             c = c.substring(1, c.length);
         if (c.indexOf(nameEQ) == 0)
-            return c.substring(nameEQ.length, c.length);
+            return unescape(c.substring(nameEQ.length, c.length));
     }
     return null;
+}
+
+function getCookiesStartingWith(name) {
+    var cookies = new Array();
+    var nameEQ;
+    var ca = document.cookie.split(';');
+    var c = null;
+    var nvArray = null;
+    for (var i=0; i < ca.length; i++) {
+        c = ca[i];
+        // skip if expires, path
+        if (c.indexOf("expires=") == 0 || c.indexOf("path=") == 0) {
+            continue;
+        }
+        // gobble whitespace
+        while (c.charAt(0) == ' ')
+            c = c.substring(1, c.length);
+        // add matches to the array
+        if (name == null || c.indexOf(name) == 0) {
+            nvArray = c.split("=");
+            cookies[nvArray[0]] = unescape(nvArray[1]);
+        }
+    }
+
+    return cookies;
 }
 
 function clearCookie(name) {
@@ -153,9 +188,45 @@ function Is () {
     this.x11 = (agt.indexOf("x11") != -1);
     this.mac = (agt.indexOf("macintosh") != -1);
     this.win = (agt.indexOf("windows") != -1);
-} // Is
+}
 
 var is = new Is();
+
+function recoverWorksheet() {
+    // this approach won't work: cookies are limited to 4kB or so
+    recoverQueryBuffers();
+    recoverQueryHistory();
+}
+
+function recoverQueryBuffers() {
+    // given a list of buffers, import them
+    debug("recoverQueryBuffers: start");
+    var bufCookie = getCookie(cq_buffers_cookie);
+    if (bufCookie != null) {
+        var buffersNode = document.getElementById(g_cq_buffers_id);
+        debug("recoverQueryBuffers: " + bufCookie);
+        if (! buffersNode) {
+            debug("recoverQueryBuffers: null buffersNode");
+            return;
+        }
+        buffersNode.innerHTML = bufCookie;
+    }
+}
+
+function recoverQueryHistory() {
+    // given a list of queries, put them in the history
+    // TODO fix onclick for copy, delete widgets
+    debug("recoverQueryHistory: start");
+    var histCookie = getCookie(cq_history_cookie);
+    if (histCookie != null) {
+        var listNode = getQueryHistoryListNode(true);
+        if (! listNode) {
+            debug("recoverQueryHistory: null listNode");
+            return;
+        }
+        listNode.innerHTML = histCookie;
+    }
+}
 
 function cqOnLoad() {
     debug("cqOnLoad: begin");
@@ -177,8 +248,15 @@ function cqOnLoad() {
         document.getElementById(g_cq_eval_list_id).value = currDatabase;
     }
 
+    // recover worksheet (buffers and query history) from session cookie
+    // won't work: cookies get too large
+    //recoverWorksheet();
+
     // set the OS-specific instruction text
     setInstructionText();
+
+    // expose the correct tabs
+    refreshBufferTabs(0);
 
     // display the buffer list, exposing buffer 0
     refreshBufferList(0, "cqOnLoad");
@@ -284,15 +362,20 @@ function show(s) {
 } // show
 
 // normalize-space, in JavaScript
+// warning: replace() isn't a regex function
+// it's closer to 'tr' - character translation
 function normalize(s) {
-    while (s.indexOf("\r") > -1)
-        s = s.replace("\r", ' ');
     while (s.indexOf("\n") > -1)
         s = s.replace("\n", ' ');
     while (s.indexOf("\t") > -1)
         s = s.replace("\t", ' ');
     while (s.indexOf('  ') > -1)
         s = s.replace('  ', ' ');
+    // TODO leading, trailing space? seems to work for leading, not trailing
+    while (s.substring(0, 1) == " ")
+        s = s.substring(1);
+    while (s.length > 0 && s.substring(s.length - 1, 1) == " ")
+        s = s.substring(0, s.length - 2);
     return s;
 } // normalize
 
@@ -369,6 +452,66 @@ function writeBufferLabel(parentNode, n) {
     parentNode.appendChild(rowNode);
 }
 
+function refreshBufferTabs(n) {
+    if (n == null || n == g_cq_buffer_tabs_current)
+        return;
+
+    debug("refreshBufferTabs: " + n + ", " + g_cq_buffer_tabs_current);
+    g_cq_buffer_tabs_current = n;
+
+    var tabsNode = document.getElementById(g_cq_buffer_tabs_node);
+    if (tabsNode == null) {
+        debug("refreshBufferTabs: null tabsNode");
+        return;
+    }
+
+    // check g_cq_buffer_tabs_current against each child span
+    var buffersTitleNode = document.getElementById(g_cq_buffer_tabs_node + "-0");
+    var historyTitleNode = document.getElementById(g_cq_buffer_tabs_node + "-1");
+    if (!buffersTitleNode || ! historyTitleNode) {
+        debug("refreshBufferTabs: null title node(s)");
+        return;
+    }
+
+    var buffersNode = document.getElementById(g_cq_bufferlist_id);
+    if (! buffersNode) {
+        debug("refreshBufferTabs: null buffersNode");
+        return;
+    }
+
+    var historyNode = document.getElementById(g_cq_history_node);
+    if (! historyNode) {
+        debug("refreshBufferTabs: null historyNode");
+        return;
+    }
+
+    // simple for now: node 0 is buffer list, 1 is history
+    // TODO move the instruction text too?
+    if (g_cq_buffer_tabs_current == 0) {
+        debug("refreshBufferTabs: displaying buffer list");
+        // highlight the active tab
+        buffersTitleNode.className = "buffer-tab-active";
+        historyTitleNode.className = "buffer-tab";
+        // hide and show the appropriate list
+        show(buffersNode);
+        hide(historyNode);
+    } else {
+        debug("refreshBufferTabs: displaying history");
+        // highlight the active tab
+        buffersTitleNode.className = "buffer-tab";
+        historyTitleNode.className = "buffer-tab-active";
+
+        // match the buffer height, to reduce frame-redraw
+        debug("resizeBufferTabs: " + buffersNode.offsetTop + ", " + buffersNode.offsetHeight);
+        historyNode.height = buffersNode.offsetHeight;
+
+        // hide and show the appropriate list
+        hide(buffersNode);
+        show(historyNode);
+    }
+}
+
+// TODO autosize textareas to form height
 function refreshBufferList(n, src) {
     // display only the current buffer (textarea)
     // show labels for each buffer
@@ -562,7 +705,8 @@ function submitForm(theForm, theInput, theMimeType) {
 
     refreshBufferList(g_cq_buffer_current, "submitForm");
 
-    // TODO too problematic for now
+    // TODO would like to disable buttons during post
+    // but it's too problematic for now
     if (false) {
         disableButtons(true);
 
@@ -614,16 +758,31 @@ function cqExport(theForm) {
         var theQuery =
             'xdmp:document-insert("' + theUri + '",'
             + '<' + g_cq_buffers_id + ' id="' + g_cq_buffers_id + '">';
+        // save buffers
         for (var i = 0; i < g_cq_buffers; i++) {
             theQuery += '<' + g_cq_buffer_basename + '>'
                 + escape(getBuffer(i).value)
                 + '</' + g_cq_buffer_basename + '>'
                 + "\n";
-        } // for buffers
+        }
+        // save history too
+        var listNode = getQueryHistoryListNode(false);
+        if (!listNode) {
+            debug("cqExport: null listNode");
+        } else {
+            var historyQueries = listNode.childNodes;
+            var historyLength = historyQueries.length;
+            for (var i = 0; i < historyLength; i++) {
+                theQuery += '<' + g_cq_history_basename + '>'
+                    + escape(historyQueries[i].firstChild.nodeValue)
+                    + '</' + g_cq_history_basename + '>'
+                    + "\n";
+            }
+        }
         theQuery += '</' + g_cq_buffers_id + '>)'
             + ', "exported ' + theUri + '"';
         // set the current database to null,
-        // so we save to the default db
+        // so we save to the default db?
         theDatabase = document.getElementById(g_cq_eval_list_id);
         oldDatabase = theDatabase.value;
         theDatabase.value = null;
@@ -695,68 +854,114 @@ function submitFormWrapper(theForm, mimeType) {
     //cqAutoSave();
     var query = getBuffer().value;
     saveQueryHistory(query);
+
+    // this approach won't work: cookie get too big
+    //saveBuffersRecoveryPoint();
+
     submitForm(theForm, query, mimeType);
 }
 
-function saveQueryHistory(query) {
-    debug("saveQueryHistory: " + query);
+function clearQueryHistory() {
     var historyNode = document.getElementById(g_cq_history_node);
     if (! historyNode) {
+        debug("clearQueryHistory: null historyNode");
         return;
     }
 
-    // should this be a select list?
-    // what about an iframe with a hide-show widget?
-    // more room for full queries, that way... also delete widget
-    // TODO save history as part of the worksheet?
-    var selectNode = historyNode.lastChild;
-    if (!selectNode) {
-        historyNode.appendChild(document.createTextNode("history: "));
-        selectNode = document.createElement("select");
-        historyNode.appendChild(selectNode);
-        selectNode.onchange = function() {
-            // copy selected option to current textarea
-            // note that this will overwrite the current query
-            var buf = getBuffer();
-            buf.value =
-              selectNode.childNodes[selectNode.selectedIndex].value;
-            refreshBufferList(g_cq_buffer_current, "saveQueryHistory");
-        };
+    removeChildNodes(historyNode);
+}
+
+function saveBuffersRecoveryPoint() {
+    debug("saveBuffersRecoveryPoint: start");
+    var buffersNode = document.getElementById(g_cq_buffers_id);
+    debug("saveBuffersRecoveryPoint: " + buffersNode);
+    debug("saveBuffersRecoveryPoint: " + buffersNode.innerHTML);
+
+    if (! buffersNode) {
+        debug("saveBuffersRecoveryPoint: null buffersNode");
+        return;
     }
+
+    setCookie(cq_buffers_cookie, buffersNode.innerHTML);
+    debug("saveBuffersRecoveryPoint: " + getCookie(cq_buffers_cookie));
+}
+
+function getQueryHistoryListNode(bootstrapFlag) {
+    var historyNode = document.getElementById(g_cq_history_node);
+    if (! historyNode) {
+        debug("saveQueryHistory: null historyNode");
+        return;
+    }
+
+    // history entries will be list-item elements in an ordered-list
+    var listNode = historyNode.lastChild;
+    if (!listNode && bootstrapFlag) {
+        listNode = document.createElement("ol");
+        historyNode.appendChild(listNode);
+    }
+    return listNode;
+}
+
+function saveQueryHistory(query, appendFlag) {
+    debug("saveQueryHistory: " + query);
+    var listNode = getQueryHistoryListNode(true);
 
     // simple de-dupe check
     // abort when we see the first duplicate:
     // this is most likely to happen with the most recent query
-    var optionsList = selectNode.childNodes;
-    if (optionsList && optionsList[0]) {
-        debug("saveQueryHistory: checking " + optionsList.length);
-        for (var i = 0; i < optionsList.length; i++) {
+    // also implements history limit...
+    var listItems = listNode.childNodes;
+    var normalizedQuery = normalize(query);
+    if (listItems && listItems[0]) {
+        debug("saveQueryHistory: checking " + listItems.length);
+        for (var i = 0; i < listItems.length; i++) {
             debug("saveQueryHistory: " + i);
-            if (optionsList[i].value == query) {
+            if (normalize(listItems[i].childNodes[0].nodeValue) == normalizedQuery) {
                 // we want to remove a node and then break
-                selectNode.removeChild(optionsList[i]);
+                listNode.removeChild(listItems[i]);
                 debug("saveQueryHistory: " + i + " matched!");
-                break;
+                if (g_cq_history_limit != null && g_cq_history_limit > 0)
+                    break;
             }
+            if (g_cq_history_limit != null && i > g_cq_history_limit)
+                listNode.removeChild(listItems[i]);
         }
     }
 
-    var newOption = document.createElement("option");
-    newOption.value = query;
-
-    // should we abbreviate the query somehow?
-    newOption.appendChild(document.createTextNode(normalize(query)));
-
-    // it's nice to have the most-recent at the top...
-    if (optionsList && optionsList[0]) {
-        selectNode.insertBefore(newOption, optionsList[0]);
-    } else {
-        selectNode.appendChild(newOption);
+    var newItem = document.createElement("li");
+    newItem.appendChild(document.createTextNode(query));
+    // onclick, copy to current textarea
+    newItem.onclick = function() {
+         var buf = getBuffer();
+         buf.value = this.childNodes[0].nodeValue;
+         // don't refresh buffer list
+         //refreshBufferList(g_cq_buffer_current, "saveQueryHistory");
     }
 
-    // select the topmost option: IE6 and gecko work a bit differently
-    newOption.selected = true;
-    selectNode.selectedIndex = 0;
+    // delete widget
+    var deleteLink = document.createElement("span");
+    deleteLink.className = "query-delete";
+    deleteLink.onclick = function() {
+        this.parentNode.parentNode.removeChild(this.parentNode);
+        // this approach won't work: cookies get too big
+        //setCookie(cq_history_cookie, this.parentNode.parentNode.innerHTML);
+    };
+    deleteLink.appendChild(document.createTextNode(" (x) "));
+    newItem.appendChild(deleteLink);
+
+    // spacing: css padding, margin don't seem to work with ol
+    newItem.appendChild(document.createElement("hr"));
+
+    // it's nice to have the most-recent at the top...
+    if (listItems && listItems[0] && (!appendFlag)) {
+        listNode.insertBefore(newItem, listItems[0]);
+    } else {
+        listNode.appendChild(newItem);
+    }
+
+    // finally, update the saved-queries cookie
+    // this approach won't work: cookies get too big
+    //setCookie(cq_history_cookie, listNode.innerHTML);
 
 } // saveQueryHistory
 
@@ -799,7 +1004,20 @@ function finishImport() {
 
             // leave the user in the same buffer
             refreshBufferList(g_cq_buffer_current, "finishImport");
-            //clearTimeout(theTimeout);
+
+            // import query history too, by appending
+            //clearQueryHistory();
+            var historyNode = document.getElementById(g_cq_history_node);
+            if (! historyNode) {
+                debug("cqImport: null historyNode");
+            } else {
+                var list = theOutputDoc.getElementsByTagName(g_cq_history_basename);
+                for (var i = 0; i < list.length ; i++) {
+                    theValue = unescape( (list[i]).firstChild.nodeValue );
+                    saveQueryHistory(theValue, true);
+                }
+            }
+
             var theUri = document.getElementById(g_cq_uri).value;
             var theQuery = '<p>' + theUri + ' imported</p>';
             submitForm(document.getElementById(g_cq_query_form_id),

@@ -55,7 +55,7 @@ var g_cq_buffers = 10;
 var g_cq_next_id = 0;
 var g_cq_autosave_incremental = false;
 var g_cq_timeout = 100;
-var g_cq_history_limit = 500;
+var g_cq_history_limit = 50;
 
 var DEBUG = false;
 
@@ -1049,7 +1049,11 @@ function cqImport(theForm) {
 
 function cqListBuffers() {
     var theForm = document.getElementById(g_cq_query_form_id);
-    var theQuery = "for $i in input() return (document-uri($i), <br/>)";
+    var theQuery =
+        "let $est := xdmp:estimate(doc()) "
+        + "where $est gt 1000 "
+        + "return <p><b>first 1000 documents of {$est} total:</b></p>,"
+        + "for $i in input()[1 to 1000] return (base-uri($i), <br/>)";
     submitForm(theForm, theQuery, "text/html");
 } // cqListBuffers
 

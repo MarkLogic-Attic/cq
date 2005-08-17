@@ -70,9 +70,10 @@ define function get-eval-selector() as element(html:select)
       let $label := concat("server: ", $name)
       let $value := string-join(("as", string($id)), ":")
       (: sort current app-server to the top, for bootstrap selection :)
-      order by ($id = xdmp:server()) descending, $label
+      order by $label
       return element html:option {
         attribute value { $value },
+        if ($current eq $id) then attribute selected { true() } else (),
         $label
       },
       (: list the databases that aren't exposed via an app-server :)
@@ -95,6 +96,7 @@ define function get-eval-selector() as element(html:select)
 }
 
 c:check-debug(),
+xdmp:set-response-content-type("text/html; charset=utf-8"),
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>Query Form</title>

@@ -40,6 +40,9 @@ define function c:debug($s as item()*) as empty()
   if ($c:g-debug)
   then xdmp:log(
     string-join(("DEBUG:", translate(xdmp:quote($s), $c:g-nl, " ")), " ")
+(:
+    xdmp:describe($s, count($s))
+:)
   )
   else ()
 }

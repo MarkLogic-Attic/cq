@@ -23,6 +23,7 @@ import module namespace c="com.marklogic.xqzone.cq.controller"
  at "lib-controller.xqy"
 
 c:check-debug(),
+xdmp:set-response-content-type("text/html; charset=utf-8"),
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>{
     (: this is the only reason to bother with an xqy:

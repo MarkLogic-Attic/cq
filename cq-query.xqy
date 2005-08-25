@@ -67,7 +67,7 @@ define function get-eval-selector() as element(html:select)
       for $s in $servers
       let $id := data($s/(mlgr:http-server-id|mlgr:xdbc-server-id))[1]
       let $name := data($s/(mlgr:http-server-name|mlgr:xdbc-server-name))[1]
-      let $label := concat("server: ", $name)
+      let $label := $name
       let $value := string-join(("as", string($id)), ":")
       (: sort current app-server to the top, for bootstrap selection :)
       order by $label

@@ -997,6 +997,8 @@ function finishImport() {
             debug("theList = " + theList + ", length = " + theList.length);
             var theValue = null;
             for (var i = 0; i < theList.length; i++) {
+                if (theList[i].firstChild == null)
+                    continue;
                 theValue = unescape( (theList[i]).firstChild.nodeValue );
                 debug("i = " + i + ", " + theValue);
                 getBuffer(i).value = theValue;
@@ -1013,8 +1015,12 @@ function finishImport() {
             } else {
                 var list = theOutputDoc.getElementsByTagName(g_cq_history_basename);
                 for (var i = 0; i < list.length ; i++) {
-                    theValue = unescape( (list[i]).firstChild.nodeValue );
-                    saveQueryHistory(theValue, true);
+                  if (g_cq_history_limit != null && i > g_cq_history_limit)
+                      break;
+                  if (list[i].firstChild == null)
+                      continue;
+                  theValue = unescape( (list[i]).firstChild.nodeValue );
+                  saveQueryHistory(theValue, true);
                 }
             }
 

@@ -40,6 +40,24 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
     <link rel="stylesheet" type="text/css" href="cq.css">
     </link>
   }</head>
+{
+  (: before we go any further, make sure we have the right exec privs :)
+  let $errors :=
+    for $priv in ("xdmp:eval-in", "xdmp:read-cluster-config-file")
+    return try {
+      xdmp:security-assert($priv, "execute")
+    } catch ($ex) {
+      $priv
+    }
+  where exists($errors)
+  return
+  <body>
+    <h1>Security Configuration Problem</h1>
+    <p>cq will not load until these privileges have been granted
+    to the current user, {xdmp:get-current-user()}:</p>
+    <ul>{ for $e in $errors return element li { $e } }</ul>
+  </body>
+}
   <frameset id="cq_frameset" rows="*,*" onresize="resizeFrameset()">
 {
   (: pass debug context to frames :)

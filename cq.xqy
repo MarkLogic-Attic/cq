@@ -43,7 +43,10 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
 {
   (: before we go any further, make sure we have the right exec privs :)
   let $errors :=
-    for $priv in ("xdmp:eval-in", "xdmp:read-cluster-config-file")
+    for $priv in (
+      "http://marklogic.com/xdmp/privileges/xdmp-read-cluster-config-file",
+      "http://marklogic.com/xdmp/privileges/xdmp-eval-in"
+    )
     return try {
       xdmp:security-assert($priv, "execute")
     } catch ($ex) {

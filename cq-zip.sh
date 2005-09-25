@@ -3,7 +3,7 @@
 set -x
 
 DIRNAME=`dirname $0`
-DIRNAME=`pwd $DIRNAME`/..
+DIRNAME=`pwd`/$DIRNAME/..
 (
  cd $DIRNAME \
  && pwd \

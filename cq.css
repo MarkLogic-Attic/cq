@@ -30,8 +30,8 @@ td
 
 textarea 
 {
-  font-family: mono-space;
-  font-family: monospace !important;
+  // weird gecko hack
+  font-family: monospace -moz-fixed;
 }
 
 .resizable-e

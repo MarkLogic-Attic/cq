@@ -74,17 +74,35 @@ define function v:get-html($x) as element() {
 define function v:get-text($x) { $x }
 
 define function v:get-error-frame-html
-($f as element()) as node()* {
+($f as element(err:frame), $query as xs:string) as node()* {
   if (exists($f/err:uri))
   then concat("in ", string($f/err:uri))
   else (),
   if (exists($f/err:line))
-  then concat("line ", string($f/err:line), ": ")
+  then (
+    concat("line ", string($f/err:line), ": "),
+    (: display the error lines, if it's in a main module :)
+    if (exists($f/err:uri)) then ()
+    else <div id="error-lines"><code>
+    {
+      let $line-no := xs:integer($f/err:line)
+      for $l at $x in tokenize($query, "\r\n|\r|\n", "m")
+      where $x gt ($line-no - 3) and $x lt (3 + $line-no)
+      return (
+        concat(string($x), ": "),
+        element span {
+          if ($x eq $line-no) then attribute style { "color: red" } else (),
+          $l
+        },
+        <br/>
+      )
+    }
+    </code></div>,
+    <br/>
+  )
   else (),
 
-  if (empty($f/err:operation))
-  then "(entry-point or unknown function)"
-  else $f/err:operation/text(),
+  $f/err:operation/text(),
   <br/>,
 
   if (exists($f/err:format-string/text()))
@@ -107,7 +125,8 @@ define function v:get-error-frame-html
 
 define function v:get-error-html
 ($db as xs:unsignedLong, $modules as xs:unsignedLong,
- $root as xs:string, $ex as element())
+ $root as xs:string, $ex as element(err:error),
+ $query as xs:string)
  as element()
 {
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -131,7 +150,8 @@ define function v:get-error-html
     else (),
     <br/>,
     <i>Stack trace:</i>, <br/>, <br/>,
-    for $f in $ex/err:stack/err:frame return v:get-error-frame-html($f),
+    for $f in $ex/err:stack/err:frame
+    return v:get-error-frame-html($f, $query),
     <br/>,
     (: for debugging :)
     comment { xdmp:quote($ex) }
@@ -143,16 +163,18 @@ define function v:get-error-html
 }
 
 define function v:get-eval-label
-($db as xs:unsignedLong, $modules as xs:unsignedLong,
- $root as xs:string, $name as xs:string?)
+($db as xs:unsignedLong, $modules as xs:unsignedLong?,
+ $root as xs:string?, $name as xs:string?)
  as xs:string
 {
   concat(
-    if (exists($name)) then concat($name, ": ") else (),
-    xdmp:database-name($db), ", ",
-    if ($modules eq 0) then ""
+    xdmp:database-name($db),
+    " (",
+    if (exists($name)) then $name
+    else if ($modules eq 0) then "file:"
     else concat(xdmp:database-name($modules), ":"),
-    $root
+    $root,
+    ")"
   )
 }
 

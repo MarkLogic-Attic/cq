@@ -67,7 +67,9 @@ define function get-eval-selector() as element(html:select)
       for $s in $servers
       let $id := data($s/(mlgr:http-server-id|mlgr:xdbc-server-id))[1]
       let $name := data($s/(mlgr:http-server-name|mlgr:xdbc-server-name))[1]
-      let $label := $name
+      let $db := data($s/mlgr:database)[1]
+      let $dbname := xdmp:database-name($db)
+      let $label := v:get-eval-label($db, (), (), $name)
       let $value := string-join(("as", string($id)), ":")
       (: sort current app-server to the top, for bootstrap selection :)
       order by $label
@@ -111,7 +113,10 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
       <table summary="query form">
         <tr width="100%">
           <td nowrap="1">
-            <div class="head1">XQuery Source</div>
+            <table class="head1"><tr>
+            <td width="100%">XQuery Source</td>
+            <td id="cq_textarea_status"></td>
+            </tr></table>
             <div id="cq_import_export">
               <a href="javascript:cqListBuffers()">list all</a>
               | save buffers as
@@ -132,13 +137,15 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
   let $default-buffer := string-join(
     ("(: buffer ID :)",
      'default element namespace = "http://www.w3.org/1999/xhtml"',
-     xdmp:quote(<p>hello world</p>)
+     '<p>hello world</p>'
     ), $k:g-nl
   )
   for $id in (0 to 9)
   let $bufid := concat("cq_buffer", string($id))
-  return element html:textarea {
+  return element textarea {
     attribute id { $bufid },
+    attribute onfocus { "textAreaFocus()" },
+    attribute onblur { "textAreaBlur()" },
     attribute rows { 16 },
     attribute cols { 80 },
     attribute xml:space { "preserve" },

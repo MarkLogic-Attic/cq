@@ -98,7 +98,7 @@ try {
 } catch ($ex) {
   (: errors are always displayed as html :)
   xdmp:set-response-content-type("text/html; charset=utf-8"),
-  v:get-error-html($g-db, $g-modules, $g-root, $ex)
+  v:get-error-html($g-db, $g-modules, $g-root, $ex, $g-query)
 }
 
 (: cq-eval.xqy :)

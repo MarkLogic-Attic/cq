@@ -45,8 +45,9 @@ var g_cq_query_action = "cq-eval.xqy";
 var g_cq_buffer_accesskey_text = "cq_buffer_accesskey_text";
 var g_cq_buffer_tabs_node = "cq-buffer-tabs";
 var g_cq_history_node = "/cq:history";
-var cq_buffers_cookie = "cq_buffer_cookie_buffers";
-var cq_history_cookie = "cq_buffer_cookie_history";
+var g_cq_buffers_cookie = "cq_buffer_cookie_buffers";
+var g_cq_history_cookie = "cq_buffer_cookie_history";
+var g_cq_textarea_status = "cq_textarea_status";
 
 // GLOBAL VARIABLES
 var g_cq_buffer_tabs_current = null;
@@ -56,6 +57,8 @@ var g_cq_next_id = 0;
 var g_cq_autosave_incremental = false;
 var g_cq_timeout = 100;
 var g_cq_history_limit = 50;
+
+var g_textAreaHasFocus = false;
 
 var DEBUG = false;
 
@@ -119,6 +122,17 @@ function setCookie(name, value, days) {
 
     document.cookie = name + "=" + escape(value) + expires + "; " + path;
     debug("setCookie: " + document.cookie);
+}
+
+function textAreaFocus() {
+    //debug("textAreaFocus()");
+    g_textAreaHasFocus = true;
+    setLineNumberStatus();
+}
+
+function textAreaBlur() {
+    //debug("textAreaBlur()");
+    g_textAreaHasFocus = false;
 }
 
 function getCookie(name) {
@@ -201,7 +215,7 @@ function recoverWorksheet() {
 function recoverQueryBuffers() {
     // given a list of buffers, import them
     debug("recoverQueryBuffers: start");
-    var bufCookie = getCookie(cq_buffers_cookie);
+    var bufCookie = getCookie(g_cq_buffers_cookie);
     if (bufCookie != null) {
         var buffersNode = document.getElementById(g_cq_buffers_id);
         debug("recoverQueryBuffers: " + bufCookie);
@@ -215,9 +229,8 @@ function recoverQueryBuffers() {
 
 function recoverQueryHistory() {
     // given a list of queries, put them in the history
-    // TODO fix onclick for copy, delete widgets
     debug("recoverQueryHistory: start");
-    var histCookie = getCookie(cq_history_cookie);
+    var histCookie = getCookie(g_cq_history_cookie);
     if (histCookie != null) {
         var listNode = getQueryHistoryListNode(true);
         if (! listNode) {
@@ -239,7 +252,8 @@ function cqOnLoad() {
     //debug(navigator.userAgent.toLowerCase());
 
     // register for key-presses
-    document.onkeypress = handleKey;
+    document.onkeypress = handleKeyPress;
+    document.onkeyup = handleKeyUp;
 
     // recover current db from session cookie
     var currDatabase = getCookie(g_cq_eval_list_id);
@@ -277,7 +291,7 @@ function setInstructionText() {
         return;
     }
     var theText = "alt";
-    // we only need to worry about X11 (see the comment in handleKey)
+    // we only need to worry about X11 (see the comment in handleKeyPress)
     if (is.x11) {
         theText = "ctrl";
     }
@@ -555,8 +569,7 @@ function parseQuery(key) {
     if (theIdx > -1) {
         var theQuery = location.href.substring(theIdx+1);
         debug("parseQuery: " + key + ' from ' + theQuery);
-        theIdx = theQuery.indexOf(key);
-        if (theIdx > -1) {
+        theIdx = theQuery.indexOf(key);        if (theIdx > -1) {
             // parse past the key and the '='
             var theValue = theQuery.substring(theIdx + key.length + 1);
             // stop at the terminating ';' or '&', if present
@@ -574,10 +587,21 @@ function parseQuery(key) {
     } // if theQuery
 } // parseQuery
 
+function handleKeyUp(e) {
+    // after the keypress event has been handled,
+    // update the line-number display.
+    // note that we don't actually care about the key!
+    if (! g_textAreaHasFocus) {
+        return true;
+    }
+    setLineNumberStatus();
+    // don't return!
+}
+
 // keycode support:
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
 //   alt-1 to alt-0 exposes the corresponding buffer (really 0-9)
-function handleKey(e) {
+function handleKeyPress(e) {
     // handle both gecko and IE6 event models
     if (document.all) {
         e = window.event;
@@ -596,17 +620,19 @@ function handleKey(e) {
     var shiftKey = e['shiftKey'];
     var metaKey = e['metaKey'];
 
+    // short-circuit if we obviously don't care about this keypress
+    if (! (ctrlKey || altKey) ) {
+        return true;
+    }
+
     // in case we need debug info...
     var keyInfo =
         " win=" + is.win + " x11=" + is.x11 + " mac=" + is.mac + ", "
         + (metaKey ? "meta " : "")
         + (ctrlKey ? "ctrl " : "") + (shiftKey ? "shift " : "")
         + (altKey ? "alt " : "") + theCode;
-    // short-circuit if we obviously don't care about this keypress
-    if (! (ctrlKey || altKey)) {
-        return true;
-    }
-    debug("handleKey: " + keyInfo);
+    debug("handleKeyPress: " + keyInfo);
+
 
     // handle buffers: 1 = 49, 9 = 57, 0 = 48
     // ick: firefox-linux decided to use alt 0-9 for tabs
@@ -616,7 +642,7 @@ function handleKey(e) {
     if ( (theCode >= 48) && (theCode <= 57) ) {
         // expose the corresponding buffer: 0-9
         var theBuffer = (theCode == 48) ? 9 : (theCode - 49);
-        refreshBufferList( theBuffer, "handleKey" );
+        refreshBufferList( theBuffer, "handleKeyPress" );
         return false;
     }
 
@@ -645,10 +671,8 @@ function handleKey(e) {
         return false;
     }
 
-    // arrow keys, for textarea resize
-    // 37=left, 38=up, 39=right, 40=down
-    // TODO no good: OS uses these for textarea navigation
-    if (false && theCode >= 37 && theCode <= 40) {
+    // TODO keys for textarea resize
+    if (false) {
         var x = 0;
         var y = 0;
         if (theCode == 37) {
@@ -670,7 +694,58 @@ function handleKey(e) {
 
     // ignore other keys
     return true;
-} // handleKey
+} // handleKeyPress
+
+function setLineNumberStatus() {
+    var lineStatus = document.getElementById(g_cq_textarea_status);
+    if (lineStatus == null) {
+        alert("null textarea_status!");
+        return;
+    }
+    var buf = getBuffer();
+    if (buf == null) {
+        alert("null buffer!");
+        return;
+    }
+
+    // must handle this differently for gecko vs IE6
+    if (buf.selectionStart) {
+        // gecko? is that you?
+    } else {
+        // set it up, using IE5+ API
+        // http://msdn.microsoft.com/workshop/author/dhtml/reference/objects/obj_textrange.asp
+        if (document.selection){
+            var range = document.selection.createRange();
+            var stored_range = range.duplicate();
+            stored_range.moveToElementText(buf);
+            stored_range.setEndPoint('EndToEnd', range);
+            // set start and end points, ala gecko
+            element.selectionStart = stored_range.text.length - range.text.length;
+            element.selectionEnd = element.selectionStart + range.text.length;
+        } else {
+            debug("setLineNumberStatus: no selectionStart or document.selection!");
+            // in gecko, this seems to mean that we're at 1:1
+            buf.selectionStart = 1;
+        }
+    }
+
+    // now we can pretend to be gecko
+    var start = buf.selectionStart;
+    // figure out where start is, in the query
+    var textToStart = buf.value.substring(0, start);
+    var linesArray = textToStart.split(/\r\n|\r|\n/);
+    var lineNumber = linesArray.length;
+    // because of the earlier substring() call,
+    // the last line ends at selectionStart
+    var charPosition = linesArray[lineNumber - 1].length;
+    debug("setLineNumberStatus:"
+          + " selectionStart = " + buf.selectionStart
+          + ", selectionEnd = " + buf.selectionEnd
+          + ", textToStart = " + textToStart
+          + ", lastLine = " + linesArray[lineNumber - 1]
+          );
+    lineStatus.innerHTML = "" + lineNumber + ":" + charPosition;
+}
 
 function resizeBuffers(x, y) {
     debug("resizeBuffers: " + x + "," + y);
@@ -882,8 +957,8 @@ function saveBuffersRecoveryPoint() {
         return;
     }
 
-    setCookie(cq_buffers_cookie, buffersNode.innerHTML);
-    debug("saveBuffersRecoveryPoint: " + getCookie(cq_buffers_cookie));
+    setCookie(g_cq_buffers_cookie, buffersNode.innerHTML);
+    debug("saveBuffersRecoveryPoint: " + getCookie(g_cq_buffers_cookie));
 }
 
 function getQueryHistoryListNode(bootstrapFlag) {
@@ -942,9 +1017,11 @@ function saveQueryHistory(query, appendFlag) {
     var deleteLink = document.createElement("span");
     deleteLink.className = "query-delete";
     deleteLink.onclick = function() {
-        this.parentNode.parentNode.removeChild(this.parentNode);
+        if (confirm("Are you sure you want to delete this history item?")) {
+            this.parentNode.parentNode.removeChild(this.parentNode);
+        }
         // this approach won't work: cookies get too big
-        //setCookie(cq_history_cookie, this.parentNode.parentNode.innerHTML);
+        //setCookie(g_cq_history_cookie, this.parentNode.parentNode.innerHTML);
     };
     deleteLink.appendChild(document.createTextNode(" (x) "));
     newItem.appendChild(deleteLink);
@@ -961,7 +1038,7 @@ function saveQueryHistory(query, appendFlag) {
 
     // finally, update the saved-queries cookie
     // this approach won't work: cookies get too big
-    //setCookie(cq_history_cookie, listNode.innerHTML);
+    //setCookie(g_cq_history_cookie, listNode.innerHTML);
 
 } // saveQueryHistory
 

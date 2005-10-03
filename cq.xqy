@@ -30,8 +30,9 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
      : to show the user what platform and host we're querying.
      :)
     element title {
-      "cq -", xdmp:get-request-header("Host"),
-      "- MarkLogic Server", xdmp:version(),
+      "cq -",
+      concat(xdmp:get-current-user(), "@", xdmp:get-request-header("Host")),
+      "-", xdmp:product-name(), xdmp:version(),
       "-", xdmp:platform()
     },
     (: we don't need the css here, but it makes reloads easier :)

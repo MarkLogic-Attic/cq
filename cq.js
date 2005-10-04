@@ -272,7 +272,7 @@ function cqOnLoad() {
     // expose the correct tabs
     refreshBufferTabs(0);
 
-    // display the buffer list, exposing buffer 0
+    // display the buffer list, exposing buffer 0, and focus
     refreshBufferList(0, "cqOnLoad");
 
     resizeFrameset();
@@ -525,7 +525,6 @@ function refreshBufferTabs(n) {
     }
 }
 
-// TODO autosize textareas to form height
 function refreshBufferList(n, src) {
     // display only the current buffer (textarea)
     // show labels for each buffer
@@ -556,6 +555,11 @@ function refreshBufferList(n, src) {
         if (theBuffer) {
           writeBufferLabel(tableBody, i);
           hide(theBuffer);
+          // set up onblur, onfocus handlers
+          if (! theBuffer.onblur)
+              theBuffer.onblur = textAreaBlur;
+          if (! theBuffer.onfocus)
+              theBuffer.onfocus = textAreaFocus;
         }
     } // for buffers
 
@@ -709,7 +713,7 @@ function setLineNumberStatus() {
     }
 
     // must handle this differently for gecko vs IE6
-    if (buf.selectionStart) {
+    if (buf.selectionStart != null) {
         // gecko? is that you?
     } else {
         // set it up, using IE5+ API
@@ -723,9 +727,8 @@ function setLineNumberStatus() {
             element.selectionStart = stored_range.text.length - range.text.length;
             element.selectionEnd = element.selectionStart + range.text.length;
         } else {
-            debug("setLineNumberStatus: no selectionStart or document.selection!");
-            // in gecko, this seems to mean that we're at 1:1
-            buf.selectionStart = 1;
+            alert("setLineNumberStatus: no selectionStart or document.selection!");
+            return;
         }
     }
 
@@ -987,6 +990,10 @@ function saveQueryHistory(query, appendFlag) {
     // also implements history limit...
     var listItems = listNode.childNodes;
     var normalizedQuery = normalize(query);
+    if (query == null || query == "") {
+        return;
+    }
+
     if (listItems && listItems[0]) {
         debug("saveQueryHistory: checking " + listItems.length);
         for (var i = 0; i < listItems.length; i++) {

@@ -118,7 +118,8 @@ select
 .input1 
 {
   font-family: sans-serif;
-  font-size: small;
+  // IE6 doesn't listen unless we shout
+  font-size: small important!;
 }
 
 /* clipping doesn't work quite how I'd like it to:

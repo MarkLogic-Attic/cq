@@ -129,13 +129,13 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
             <span id="cq_textarea_resize" width="100%" nowrap="1"
              style="text-align:center">
             &nbsp;<span class="resizable-e"
-            onclick="resizeBuffers(-1, 0)">&lArr;</span>
+            onclick="resizeBuffers(-1, 0); return false;">&lArr;</span>
             &nbsp;<span class="resizable-s"
-            onclick="resizeBuffers(0, -1)">&dArr;</span>
+            onclick="resizeBuffers(0, -1); return false;">&dArr;</span>
             &nbsp;<span class="resizable-e"
-            onclick="resizeBuffers(1, 0)">&rArr;</span>
+            onclick="resizeBuffers(1, 0); return false;">&rArr;</span>
             &nbsp;<span class="resizable-s"
-            onclick="resizeBuffers(0, 1)">&uArr;</span>
+            onclick="resizeBuffers(0, 1); return false;">&uArr;</span>
             </span>
             </div>
             <div nowrap="1" id="cq_buffers">

@@ -58,8 +58,6 @@ var g_cq_autosave_incremental = false;
 var g_cq_timeout = 100;
 var g_cq_history_limit = 50;
 
-var g_textAreaHasFocus = false;
-
 var DEBUG = false;
 
 function debug(message) {
@@ -122,17 +120,6 @@ function setCookie(name, value, days) {
 
     document.cookie = name + "=" + escape(value) + expires + "; " + path;
     debug("setCookie: " + document.cookie);
-}
-
-function textAreaFocus() {
-    //debug("textAreaFocus()");
-    g_textAreaHasFocus = true;
-    setLineNumberStatus();
-}
-
-function textAreaBlur() {
-    //debug("textAreaBlur()");
-    g_textAreaHasFocus = false;
 }
 
 function getCookie(name) {
@@ -253,7 +240,6 @@ function cqOnLoad() {
 
     // register for key-presses
     document.onkeypress = handleKeyPress;
-    document.onkeyup = handleKeyUp;
 
     // recover current db from session cookie
     var currDatabase = getCookie(g_cq_eval_list_id);
@@ -364,7 +350,7 @@ function focusQueryInput() {
         return;
 
     t.focus();
-    textAreaFocus();
+    setLineNumberStatus();
 }
 
 // hide/show: generic functions so we always do it the same way
@@ -562,13 +548,13 @@ function refreshBufferList(n, src) {
         if (theBuffer) {
           writeBufferLabel(tableBody, i);
           hide(theBuffer);
-          // set up onblur, onfocus, onclick handlers
-          if (! theBuffer.onblur)
-              theBuffer.onblur = textAreaBlur;
+          // set up handlers to update line-number display
           if (! theBuffer.onfocus)
-              theBuffer.onfocus = textAreaFocus;
+              theBuffer.onfocus = setLineNumberStatus;
           if (! theBuffer.onclick)
-              theBuffer.onclick = textAreaFocus;
+              theBuffer.onclick = setLineNumberStatus;
+          if (! theBuffer.onkeyup)
+              theBuffer.onkeyup = setLineNumberStatus;
         }
     } // for buffers
 
@@ -599,17 +585,6 @@ function parseQuery(key) {
         } // if theIdx
     } // if theQuery
 } // parseQuery
-
-function handleKeyUp(e) {
-    // after the keypress event has been handled,
-    // update the line-number display.
-    // note that we don't actually care about the key!
-    if (! g_textAreaHasFocus) {
-        return true;
-    }
-    setLineNumberStatus();
-    // don't return!
-}
 
 // keycode support:
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
@@ -722,19 +697,27 @@ function setLineNumberStatus() {
     }
 
     // must handle this differently for gecko vs IE6
-    if (buf.selectionStart != null) {
+    //debug("setLineNumberStatus: buf.selectionStart = " + buf.selectionStart);
+    if (!document.selection) {
         // gecko? is that you?
     } else {
         // set it up, using IE5+ API
         // http://msdn.microsoft.com/workshop/author/dhtml/reference/objects/obj_textrange.asp
+        //debug("setLineNumberStatus: document.selection = " + document.selection);
         if (document.selection){
             var range = document.selection.createRange();
-            var stored_range = range.duplicate();
-            stored_range.moveToElementText(buf);
-            stored_range.setEndPoint('EndToEnd', range);
+            //debug("setLineNumberStatus: range = " + range);
+            var storedRange = range.duplicate();
+            //debug("setLineNumberStatus: storedRange = " + storedRange);
+            storedRange.moveToElementText(buf);
+            storedRange.setEndPoint('EndToEnd', range);
+            debug("setLineNumberStatus: storedRange.text = '" + storedRange.text + "'");
+            debug("setLineNumberStatus: storedRange.text.length = " + storedRange.text.length
+                  + ", range.text.length=" + range.text.length
+                  + ", buf.value.length = " + buf.value.length);
             // set start and end points, ala gecko
-            buf.selectionStart = stored_range.text.length - range.text.length;
-            buf.selectionEnd = buf.selectionStart + range.text.length;
+            buf.selectionStart = storedRange.text.length - range.text.length;
+            //buf.selectionEnd = buf.selectionStart + range.text.length;
         } else {
             alert("setLineNumberStatus: no selectionStart or document.selection!");
             return;
@@ -744,12 +727,27 @@ function setLineNumberStatus() {
     // now we can pretend to be gecko
     var start = buf.selectionStart;
     // figure out where start is, in the query
-    var textToStart = buf.value.substring(0, start);
+    var textToStart = buf.value.substr(0, start);
     var linesArray = textToStart.split(/\r\n|\r|\n/);
     var lineNumber = linesArray.length;
     // because of the earlier substring() call,
     // the last line ends at selectionStart
     var charPosition = linesArray[lineNumber - 1].length;
+    // TODO: at the start of a line, firefox returns an empty string
+    // meanwhile, IE6 swallows the whitespace...
+    // seems to be in the selection-range API, not in split(),
+    // so this workaround doesn't work!
+    if (false && is.ie) {
+        var start = textToStart.length - 1;
+        debug("setLineNumberStatus: checking ie for split workaround: " + start);
+        var lastChar = textToStart.substr(start, 10);
+        debug("setLineNumberStatus: checking ie for split workaround: '" + lastChar + "'");
+        if (lastChar == "\n") {
+            lineNumber++;
+            charPosition = 0;
+            debug("setLineNumberStatus: corrected lineNumber = " + lineNumber);
+        }
+    }
     debug("setLineNumberStatus:"
           + " selectionStart = " + buf.selectionStart
           + ", selectionEnd = " + buf.selectionEnd

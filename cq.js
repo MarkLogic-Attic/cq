@@ -726,8 +726,8 @@ function setLineNumberStatus() {
             stored_range.moveToElementText(buf);
             stored_range.setEndPoint('EndToEnd', range);
             // set start and end points, ala gecko
-            element.selectionStart = stored_range.text.length - range.text.length;
-            element.selectionEnd = element.selectionStart + range.text.length;
+            buf.selectionStart = stored_range.text.length - range.text.length;
+            buf.selectionEnd = buf.selectionStart + range.text.length;
         } else {
             alert("setLineNumberStatus: no selectionStart or document.selection!");
             return;

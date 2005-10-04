@@ -555,11 +555,13 @@ function refreshBufferList(n, src) {
         if (theBuffer) {
           writeBufferLabel(tableBody, i);
           hide(theBuffer);
-          // set up onblur, onfocus handlers
+          // set up onblur, onfocus, onclick handlers
           if (! theBuffer.onblur)
               theBuffer.onblur = textAreaBlur;
           if (! theBuffer.onfocus)
               theBuffer.onfocus = textAreaFocus;
+          if (! theBuffer.onclick)
+              theBuffer.onclick = textAreaFocus;
         }
     } // for buffers
 

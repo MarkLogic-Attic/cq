@@ -115,7 +115,6 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
           <td nowrap="1">
             <table class="head1"><tr>
             <td nowrap="1" width="100%">XQuery Source</td>
-            <td id="cq_textarea_status"></td>
             </tr></table>
             <div id="cq_import_export">
               <a href="javascript:cqListBuffers()">list all</a>
@@ -164,23 +163,24 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
               <input id="/cq:query" name="/cq:query" type="hidden"/>
               <input id="debug" name="debug" type="hidden"
                value="{c:get-debug()}"/>
-            <span style="text-align: right">
-            eval in: { get-eval-selector() }
-            </span>
-            <span style="text-align: right" nowrap="1">
-            as&nbsp;
-            <input type="button" class="input1"
-            onclick="submitXML(this.form);" value="XML [ctrl-enter]"/>
-            &nbsp;&nbsp;
-            <input type="button" class="input1"
-            onclick="submitHTML(this.form);" value="HTML [alt-enter]"/>
-            &nbsp;&nbsp;
-            <input type="button" class="input1"
-            onclick="submitText(this.form);"
-            value="TEXT [ctrl-shift-enter]"/>
-            <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
-            value="text/xml"/>
-            </span>
+            <table width="100%">
+              <tr>
+                <td width="100%" nowrap="1">eval in: { get-eval-selector() } as
+                <input type="button" class="input1"
+                onclick="submitXML(this.form);" value="XML [ctrl-enter]"/>
+                &nbsp;&nbsp;
+                <input type="button" class="input1"
+                onclick="submitHTML(this.form);" value="HTML [alt-enter]"/>
+                &nbsp;&nbsp;
+                <input type="button" class="input1"
+                onclick="submitText(this.form);"
+                value="TEXT [ctrl-shift-enter]"/>
+                <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
+                value="text/xml"/>
+                </td>
+                <td id="cq_textarea_status" nowrap="1"></td>
+              </tr>
+            </table>
             </div>
           </td>
           <td>

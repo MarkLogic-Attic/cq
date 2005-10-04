@@ -350,30 +350,37 @@ function getBufferId(n) {
     if ( (! n) && (n != 0) )
         n = g_cq_buffer_current;
     return g_cq_buffer_basename + n;
-} // getBufferId
+}
 
 function getBuffer(n) {
     if ( (! n) && (n != 0) )
         n = g_cq_buffer_current;
     return document.getElementById(getBufferId(n));
-} // getBuffer
+}
 
 function focusQueryInput() {
     var t = getBuffer();
-    if (t)
-        t.focus();
-} // focusQueryInput
+    if (!t)
+        return;
+
+    t.focus();
+    textAreaFocus();
+}
 
 // hide/show: generic functions so we always do it the same way
 function hide(s) {
-    if (s)
-        s.style.display = "none";
-} // hide
+    if (!s)
+        return;
+
+    s.style.display = "none";
+}
 
 function show(s) {
-    if (s)
-        s.style.display = "block";
-} // show
+    if (!s)
+        return;
+
+    s.style.display = "block";
+}
 
 // normalize-space, in JavaScript
 // warning: replace() isn't a regex function
@@ -749,7 +756,7 @@ function setLineNumberStatus() {
           + ", textToStart = " + textToStart
           + ", lastLine = " + linesArray[lineNumber - 1]
           );
-    lineStatus.innerHTML = "" + lineNumber + ":" + charPosition;
+    lineStatus.innerHTML = "" + lineNumber + "," + charPosition;
 }
 
 function resizeBuffers(x, y) {
@@ -1090,9 +1097,6 @@ function finishImport() {
                 getBuffer(i).value = theValue;
             } // for theList
 
-            // leave the user in the same buffer
-            refreshBufferList(g_cq_buffer_current, "finishImport");
-
             // import query history too, by appending
             //clearQueryHistory();
             var historyNode = document.getElementById(g_cq_history_node);
@@ -1109,6 +1113,9 @@ function finishImport() {
                   saveQueryHistory(theValue, true);
                 }
             }
+
+            // leave the user in the same buffer
+            refreshBufferList(g_cq_buffer_current, "finishImport");
 
             var theUri = document.getElementById(g_cq_uri).value;
             var theQuery = '<p>' + theUri + ' imported</p>';

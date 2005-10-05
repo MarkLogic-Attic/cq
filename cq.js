@@ -27,6 +27,9 @@
 // TODO to support incremental autosave
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
+// NB: I'd like to ditch these underscores,
+// NB: in favor of /cq:foo-bar-baz,
+// NB: but the xml export format depends on /cq_buffers/cq_buffer
 var g_cq_frameset_id = "cq_frameset";
 var g_cq_query_frame_id = "cq_queryFrame";
 var g_cq_result_frame_id = "cq_resultFrame";
@@ -36,7 +39,7 @@ var g_cq_import_export_id = "cq_import_export";
 var g_cq_query_form_id = "cq_form";
 var g_cq_autosave_id = "cq_autosave";
 var g_cq_bufferlist_id = "cq_bufferlist";
-var g_cq_buffers_id = "cq_buffers";
+var g_cq_buffers_area_id = "cq_buffers";
 var g_cq_buffer_basename = "cq_buffer";
 var g_cq_history_basename = "cq_history";
 var g_cq_eval_list_id = "/cq:eval-in";
@@ -52,7 +55,6 @@ var g_cq_textarea_status = "cq_textarea_status";
 // GLOBAL VARIABLES
 var g_cq_buffer_tabs_current = null;
 var g_cq_buffer_current = 0;
-var g_cq_buffers = 10;
 var g_cq_next_id = 0;
 var g_cq_autosave_incremental = false;
 var g_cq_timeout = 100;
@@ -204,7 +206,7 @@ function recoverQueryBuffers() {
     debug("recoverQueryBuffers: start");
     var bufCookie = getCookie(g_cq_buffers_cookie);
     if (bufCookie != null) {
-        var buffersNode = document.getElementById(g_cq_buffers_id);
+        var buffersNode = document.getElementById(g_cq_buffers_area_id);
         debug("recoverQueryBuffers: " + bufCookie);
         if (! buffersNode) {
             debug("recoverQueryBuffers: null buffersNode");
@@ -417,11 +419,6 @@ function getLabel(n) {
         theNode.onclick = linkFunction;
         // set tooltip
         theNode.title = "Click to activate this query buffer.";
-        // TODO set the access key and focus handler
-        // doesn't seem to work: forget about it?
-        //theNum.tabindex = 10 + n;
-        //theNum.accesskey = n;
-        //theNum.onfocus = linkFunction;
     } else {
         // show the current index in bold, with no link
         debug("getLabel: " + n + " == " + g_cq_buffer_current);
@@ -525,8 +522,13 @@ function refreshBufferTabs(n) {
 function refreshBufferList(n, src) {
     // display only the current buffer (textarea)
     // show labels for each buffer
-    var theBuffer = null;
-    var theParent = document.getElementById(g_cq_buffers_id);
+
+    // short-circuit if the buffer doesn't exist
+    if (getBuffer(n) == null)
+        return;
+
+    // parent of all the textareas
+    var theParent = document.getElementById(g_cq_buffers_area_id);
     // labels are stored in divs in a table cell
     var labelsNode = document.getElementById(g_cq_bufferlist_id);
     removeChildNodes(labelsNode);
@@ -545,11 +547,13 @@ function refreshBufferList(n, src) {
 
     g_cq_buffer_current = n;
     debug("refreshBufferList: from " + src + ", show " + g_cq_buffer_current);
-    for (var i = 0; i < g_cq_buffers; i++) {
-        //debug("refreshBufferList: i = " + i + " of " + g_cq_buffers);
+    // childNodes.length will return some non-buffer elements, too!
+    var theBuffer = null;
+    for (var i = 0; i < theParent.childNodes.length; i++) {
+        //debug("refreshBufferList: i = " + i + " of " + theParent.childNodes.length);
         theBuffer = getBuffer(i);
         // not there? skip it
-        if (theBuffer) {
+        if (theBuffer != null) {
           writeBufferLabel(tableBody, i);
           hide(theBuffer);
           // set up handlers to update line-number display
@@ -742,7 +746,7 @@ function setLineNumberStatus() {
     if (false && is.ie) {
         var start = textToStart.length - 1;
         debug("setLineNumberStatus: checking ie for split workaround: " + start);
-        var lastChar = textToStart.substr(start, 10);
+        var lastChar = textToStart.substr(start, 1);
         debug("setLineNumberStatus: checking ie for split workaround: '" + lastChar + "'");
         if (lastChar == "\n") {
             lineNumber++;
@@ -761,10 +765,12 @@ function setLineNumberStatus() {
 
 function resizeBuffers(x, y) {
     debug("resizeBuffers: " + x + "," + y);
-    for (var i = 0; i < g_cq_buffers; i++) {
+    // childNodes.length will return some non-buffer elements, too!
+    var theBuffer = null;
+    for (var i = 0; i < theParent.childNodes.length; i++) {
         theBuffer = getBuffer(i);
         // not there? skip it
-        if (theBuffer) {
+        if (theBuffer != null) {
             //debug("resizeBuffers: " + theBuffer);
             theBuffer.cols += x;
             theBuffer.rows += y;
@@ -840,17 +846,25 @@ function cqExport(theForm) {
     // if the g_cq_uri does not exist, we must create it in one XQuery,
     // then populate it in another
     // the simplest way is to create temporary form elements, and submit them
+
+    // TODO if the worksheet has non-default rows/cols attributes, export them
+
     var theUri = document.getElementById(g_cq_uri).value;
     if (theUri) {
         var theQuery =
             'xdmp:document-insert("' + theUri + '",'
-            + '<' + g_cq_buffers_id + ' id="' + g_cq_buffers_id + '">';
+            + '<' + g_cq_buffers_area_id + ' id="' + g_cq_buffers_area_id + '">';
         // save buffers
-        for (var i = 0; i < g_cq_buffers; i++) {
-            theQuery += '<' + g_cq_buffer_basename + '>'
-                + escape(getBuffer(i).value)
-                + '</' + g_cq_buffer_basename + '>'
-                + "\n";
+        // childNodes.length will return some non-buffer elements, too!
+        var buf = null;
+        for (var i = 0; i < theParent.childNodes.length; i++) {
+            buf = getBuffer(i);
+            if (buf != null) {
+                theQuery += '<' + g_cq_buffer_basename + '>'
+                    + escape(getBuffer(i).value)
+                    + '</' + g_cq_buffer_basename + '>'
+                    + "\n";
+            }
         }
         // save history too
         var listNode = getQueryHistoryListNode(false);
@@ -866,7 +880,7 @@ function cqExport(theForm) {
                     + "\n";
             }
         }
-        theQuery += '</' + g_cq_buffers_id + '>)'
+        theQuery += '</' + g_cq_buffers_area_id + '>)'
             + ', "exported ' + theUri + '"';
         // set the current database to null,
         // so we save to the default db?
@@ -903,7 +917,7 @@ function cqAutoSave(n) {
                 var theQuery =
                     'xdmp:node-replace((doc("' + theUri + '")/'
                     // path to buffer n
-                    + g_cq_buffers_id + '/'
+                    + g_cq_buffers_area_id + '/'
                     // XPath starts at 1, not 0
                     + g_cq_buffer_basename + ')[' + (1+n) + "],\n"
                     // new value
@@ -960,7 +974,7 @@ function clearQueryHistory() {
 
 function saveBuffersRecoveryPoint() {
     debug("saveBuffersRecoveryPoint: start");
-    var buffersNode = document.getElementById(g_cq_buffers_id);
+    var buffersNode = document.getElementById(g_cq_buffers_area_id);
     debug("saveBuffersRecoveryPoint: " + buffersNode);
     debug("saveBuffersRecoveryPoint: " + buffersNode.innerHTML);
 
@@ -1090,6 +1104,8 @@ function finishImport() {
               return null;
             }
             clearTimeout(theTimeout);
+
+            // TODO if the imported worksheet has rows/cols attributes, use them
 
             debug("theList = " + theList + ", length = " + theList.length);
             var theValue = null;

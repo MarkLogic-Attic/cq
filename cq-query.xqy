@@ -71,7 +71,9 @@ define variable $g-default-worksheet as element(cq_buffers)? {
       where xdmp:uri-is-file($uri)
       return xdmp:document-get($path)/cq_buffers
   let $d := c:debug(xdmp:describe($worksheet))
-  where exists($worksheet/cq_buffer/text())
+  let $assert :=
+    if (exists($worksheet/cq_buffer/text())) then ()
+    else error("CQ-DEFAULT-WORKSHEET: cannot find default worksheet")
   return $worksheet
 }
 
@@ -182,30 +184,17 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
             <div nowrap="1" id="cq_buffers">
 {
  (:
-  : I'd rather not have every cq_buffer in here,
-  : but it helps to preserve the buffer contents on reload.
+  : initialize the buffers:
+  : we're inside an html xmlns, so null is needed.
   :)
-  let $default-buffer := string-join(
-    ("(: buffer ID :)",
-     'default element namespace = "http://www.w3.org/1999/xhtml"',
-     '<p>hello world</p>'
-    ), $k:g-nl
-  )
-  for $id in (0 to 9)
-  let $bufid := concat("cq_buffer", string($id))
+  for $b at $x in $g-default-worksheet/null:cq_buffer
+  let $bufid := concat("cq_buffer", string($x - 1))
   return element textarea {
     attribute id { $bufid },
-    attribute rows { 16 },
-    attribute cols { 80 },
+    attribute rows { ($g-default-worksheet/@rows, 16)[1] },
+    attribute cols { ($g-default-worksheet/@cols, 80)[1] },
     attribute xml:space { "preserve" },
-    (: this is a primitive sort of a plugin:
-     : if we found a default-worksheet, earlier,
-     : then we load it into the buffers now.
-     : TODO should also load history, but not yet.
-     :)
-    if (exists($g-default-worksheet))
-    then xdmp:url-decode($g-default-worksheet/null:cq_buffer[1 + $id])
-    else replace($default-buffer, "ID", string(1 + $id))
+    xdmp:url-decode($b)
   }
 }
               <input id="/cq:query" name="/cq:query" type="hidden"/>

@@ -115,6 +115,16 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
           <td nowrap="1">
             <table class="head1"><tr>
             <td nowrap="1" width="100%">XQuery Source</td>
+            <td nowrap="1">
+            &nbsp;<img src="larr.gif" class="resizable-e"
+            onclick="resizeBuffers(-1, 0); return false;"/>
+            &nbsp;<img src="darr.gif" class="resizable-s"
+            onclick="resizeBuffers(0, -1); return false;"/>
+            &nbsp;<img src="rarr.gif" class="resizable-e"
+            onclick="resizeBuffers(1, 0); return false;"/>
+            &nbsp;<img src="uarr.gif" class="resizable-s"
+            onclick="resizeBuffers(0, 1); return false;"/>
+            </td>
             </tr></table>
             <div id="cq_import_export">
               <a href="javascript:cqListBuffers()">list all</a>
@@ -126,17 +136,6 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
               &nbsp;&nbsp;
               <input type="button" class="input1"
               onclick="cqImport(this.form);" value="Open [ctrl-shift-o]"/>
-            <span id="cq_textarea_resize" width="100%" nowrap="1"
-             style="text-align:center">
-            &nbsp;<span class="resizable-e"
-            onclick="resizeBuffers(-1, 0); return false;">&lArr;</span>
-            &nbsp;<span class="resizable-s"
-            onclick="resizeBuffers(0, -1); return false;">&dArr;</span>
-            &nbsp;<span class="resizable-e"
-            onclick="resizeBuffers(1, 0); return false;">&rArr;</span>
-            &nbsp;<span class="resizable-s"
-            onclick="resizeBuffers(0, 1); return false;">&uArr;</span>
-            </span>
             </div>
             <div nowrap="1" id="cq_buffers">
 {

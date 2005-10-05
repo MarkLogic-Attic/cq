@@ -706,9 +706,7 @@ function setLineNumberStatus() {
         //debug("setLineNumberStatus: document.selection = " + document.selection);
         if (document.selection){
             var range = document.selection.createRange();
-            //debug("setLineNumberStatus: range = " + range);
             var storedRange = range.duplicate();
-            //debug("setLineNumberStatus: storedRange = " + storedRange);
             storedRange.moveToElementText(buf);
             storedRange.setEndPoint('EndToEnd', range);
             debug("setLineNumberStatus: storedRange.text = '" + storedRange.text + "'");

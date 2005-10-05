@@ -189,7 +189,8 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
                 <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
                 value="text/xml"/>
                 </td>
-                <td id="cq_textarea_status" nowrap="1"></td>
+                <td id="cq_textarea_status" nowrap="1"
+                title="Current position of the caret, as LINE,COLUMN."></td>
               </tr>
             </table>
             </div>

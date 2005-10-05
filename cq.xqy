@@ -64,8 +64,14 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
 }
   <frameset id="cq_frameset" rows="*,*" onresize="resizeFrameset()">
 {
-  (: pass debug context to frames :)
-    <frame src="cq-query.xqy?debug={c:get-debug()}"
+  (: pass uri context to query frame :)
+  let $query-string := string-join(
+    for $f in xdmp:get-request-field-names()
+    return string-join(($f, xdmp:get-request-field($f)), "=")
+    , "&"
+  )
+  return
+    <frame src="cq-query.xqy?{$query-string}"
      name="cq_queryFrame" id="cq_queryFrame"/>
 }
     <frame src="cq-result.html" name="cq_resultFrame" id="cq_resultFrame"/>

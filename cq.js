@@ -527,8 +527,6 @@ function refreshBufferList(n, src) {
     if (getBuffer(n) == null)
         return;
 
-    // parent of all the textareas
-    var theParent = document.getElementById(g_cq_buffers_area_id);
     // labels are stored in divs in a table cell
     var labelsNode = document.getElementById(g_cq_bufferlist_id);
     removeChildNodes(labelsNode);
@@ -547,6 +545,8 @@ function refreshBufferList(n, src) {
 
     g_cq_buffer_current = n;
     debug("refreshBufferList: from " + src + ", show " + g_cq_buffer_current);
+    // parent of all the textareas
+    var theParent = document.getElementById(g_cq_buffers_area_id);
     // childNodes.length will return some non-buffer elements, too!
     var theBuffer = null;
     for (var i = 0; i < theParent.childNodes.length; i++) {
@@ -667,27 +667,6 @@ function handleKeyPress(e) {
         return false;
     }
 
-    // TODO keys for textarea resize
-    if (false) {
-        var x = 0;
-        var y = 0;
-        if (theCode == 37) {
-            x = -1;
-        } else if (theCode == 38) {
-            y = 1;
-        } else if (theCode == 39) {
-            x = 1;
-        } else {
-            // (theCode == 40)
-            y = -1;
-        }
-        resizeBuffers(x, y);
-        if (y != 0) {
-            resizeFrameset();
-        }
-        return false;
-    }
-
     // ignore other keys
     return true;
 } // handleKeyPress
@@ -767,6 +746,8 @@ function resizeBuffers(x, y) {
     debug("resizeBuffers: " + x + "," + y);
     // childNodes.length will return some non-buffer elements, too!
     var theBuffer = null;
+    // parent of all the textareas
+    var theParent = document.getElementById(g_cq_buffers_area_id);
     for (var i = 0; i < theParent.childNodes.length; i++) {
         theBuffer = getBuffer(i);
         // not there? skip it
@@ -857,6 +838,8 @@ function cqExport(theForm) {
         // save buffers
         // childNodes.length will return some non-buffer elements, too!
         var buf = null;
+        // parent of all the textareas
+        var theParent = document.getElementById(g_cq_buffers_area_id);
         for (var i = 0; i < theParent.childNodes.length; i++) {
             buf = getBuffer(i);
             if (buf != null) {

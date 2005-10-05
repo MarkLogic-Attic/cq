@@ -38,8 +38,8 @@ import module namespace c = "com.marklogic.xqzone.cq.controller"
  :)
 (: TODO add "useful queries" popup :)
 
-define variable $g-worksheet-name {
-  xdmp:get-request-field("cq_worksheet_name", "worksheet.xml")
+define variable $g-worksheet-uri {
+  xdmp:get-request-field("worksheet-uri", "worksheet.xml")
 }
 
 (: some deployments like to set their own default worksheet:
@@ -50,10 +50,9 @@ define variable $g-default-worksheet as element(cq_buffers)? {
   (: look for a default worksheet in the current server's
    : module-database (or filesystem)
    :)
-  let $default-uri := "worksheet.xml"
   let $mdb := xdmp:modules-database()
   let $worksheet :=
-    if ($mdb ne 0) then doc($default-uri)/cq_buffers
+    if ($mdb ne 0) then doc($g-worksheet-uri)/cq_buffers
     else
       let $root := data(
         xdmp:read-cluster-config-file("groups.xml")
@@ -65,7 +64,7 @@ define variable $g-default-worksheet as element(cq_buffers)? {
         tokenize(xdmp:get-request-path(), "[/]+")[1 to last() - 1],
         "/"
       )
-      let $path := concat($root, $rpath, "/", $default-uri)
+      let $path := concat($root, $rpath, "/", $g-worksheet-uri)
       let $uri := substring-after($path, $root)
       let $d := c:debug(("default-worksheet: ", $mdb, $root, $path, $uri, xdmp:uri-is-file($uri)))
       where xdmp:uri-is-file($uri)
@@ -160,7 +159,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
             <div id="cq_import_export">
               <a href="javascript:cqListBuffers()">list all</a>
               | <span class="instruction">save buffers as:</span>
-              <input type="text" id="cqUri" value="{$g-worksheet-name}"/>
+              <input type="text" id="cqUri" value="{$g-worksheet-uri}"/>
               <input type="button" class="input1"
               onclick="cqExport(this.form);" value="Save"
               title="Save buffers and queries to the current database. Shortcut: ctrl-shift-s"/>

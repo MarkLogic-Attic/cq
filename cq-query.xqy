@@ -21,6 +21,7 @@
 
 declare namespace mlgr = "http://marklogic.com/xdmp/group"
 declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace null = ""
 
 import module namespace k = "com.marklogic.xqzone.cq.constants"
   at "lib-constants.xqy"
@@ -39,6 +40,39 @@ import module namespace c = "com.marklogic.xqzone.cq.controller"
 
 define variable $g-worksheet-name {
   xdmp:get-request-field("cq_worksheet_name", "worksheet.xml")
+}
+
+(: some deployments like to set their own default worksheet:
+ : if it's in APP-SERVER-ROOT/CQ-LOCATION/worksheet.xml,
+ : this code will find it.
+ :)
+define variable $g-default-worksheet as element(cq_buffers)? {
+  (: look for a default worksheet in the current server's
+   : module-database (or filesystem)
+   :)
+  let $default-uri := "worksheet.xml"
+  let $mdb := xdmp:modules-database()
+  let $worksheet :=
+    if ($mdb ne 0) then doc($default-uri)/cq_buffers
+    else
+      let $root := data(
+        xdmp:read-cluster-config-file("groups.xml")
+          /mlgr:groups/mlgr:group/mlgr:http-servers
+          /mlgr:http-server[ mlgr:http-server-id = xdmp:server() ]
+          /mlgr:root
+      )
+      let $rpath := string-join(
+        tokenize(xdmp:get-request-path(), "[/]+")[1 to last() - 1],
+        "/"
+      )
+      let $path := concat($root, $rpath, "/", $default-uri)
+      let $uri := substring-after($path, $root)
+      let $d := c:debug(("default-worksheet: ", $mdb, $root, $path, $uri, xdmp:uri-is-file($uri)))
+      where xdmp:uri-is-file($uri)
+      return xdmp:document-get($path)/cq_buffers
+  let $d := c:debug(xdmp:describe($worksheet))
+  where exists($worksheet/cq_buffer/text())
+  return $worksheet
 }
 
 define function get-eval-selector() as element(html:select)
@@ -164,7 +198,14 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
     attribute rows { 16 },
     attribute cols { 80 },
     attribute xml:space { "preserve" },
-    replace($default-buffer, "ID", string(1 + $id))
+    (: this is a primitive sort of a plugin:
+     : if we found a default-worksheet, earlier,
+     : then we load it into the buffers now.
+     : TODO should also load history, but not yet.
+     :)
+    if (exists($g-default-worksheet))
+    then xdmp:url-decode($g-default-worksheet/null:cq_buffer[1 + $id])
+    else replace($default-buffer, "ID", string(1 + $id))
   }
 }
               <input id="/cq:query" name="/cq:query" type="hidden"/>

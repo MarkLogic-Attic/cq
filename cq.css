@@ -61,12 +61,14 @@ select
 { 
   cursor: e-resize;
   margin-right: 5px;
+  vertical-align: middle;
 }
 
 .resizable-s
 { 
   cursor: s-resize;
   margin-right: 5px;
+  vertical-align: middle;
 }
 
 .head1 

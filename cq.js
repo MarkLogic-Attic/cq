@@ -415,6 +415,8 @@ function getLabel(n) {
         theNum.setAttribute('href', linkAction);
         // make the whole node active
         theNode.onclick = linkFunction;
+        // set tooltip
+        theNode.title = "Click to activate this query buffer.";
         // TODO set the access key and focus handler
         // doesn't seem to work: forget about it?
         //theNum.tabindex = 10 + n;
@@ -425,6 +427,8 @@ function getLabel(n) {
         debug("getLabel: " + n + " == " + g_cq_buffer_current);
         theNum = document.createElement('b');
         className = 'bufferlabelactive';
+        // set tooltip
+        theNode.title = null;
     }
     theNum.appendChild(document.createTextNode("" + (1+n) + "."));
     theNode.appendChild(theNum);
@@ -1024,6 +1028,8 @@ function saveQueryHistory(query, appendFlag) {
          // don't refresh buffer list
          //refreshBufferList(g_cq_buffer_current, "saveQueryHistory");
     }
+    // tool-tip
+    newItem.title = "Click here to copy this query into the current buffer.";
 
     // delete widget
     var deleteLink = document.createElement("span");
@@ -1035,6 +1041,8 @@ function saveQueryHistory(query, appendFlag) {
         // this approach won't work: cookies get too big
         //setCookie(g_cq_history_cookie, this.parentNode.parentNode.innerHTML);
     };
+    // tool-tip
+    deleteLink.title = "Click here to delete this query from your history.";
     deleteLink.appendChild(document.createTextNode(" (x) "));
     newItem.appendChild(deleteLink);
 

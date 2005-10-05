@@ -53,6 +53,9 @@ define function get-eval-selector() as element(html:select)
   element html:select {
     attribute name { "/cq:eval-in" },
     attribute id { "/cq:eval-in" },
+    attribute title {
+      "Select the database in which this query will evaluate."
+    },
     let $current :=
       xs:unsignedLong(xdmp:get-request-field(
         "/cq:current-eval-in", string(xdmp:database())
@@ -111,31 +114,36 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
     <form action="cq-eval.xqy" method="post"
       id="cq_form" name="cq_form" target="cq_resultFrame">
       <table summary="query form">
-        <tr width="100%">
+        <tr>
           <td nowrap="1">
-            <table class="head1"><tr>
-            <td nowrap="1" width="100%">XQuery Source</td>
-            <td nowrap="1">
-            &nbsp;<img src="larr.gif" class="resizable-e"
-            onclick="resizeBuffers(-1, 0); return false;"/>
-            &nbsp;<img src="darr.gif" class="resizable-s"
-            onclick="resizeBuffers(0, -1); return false;"/>
-            &nbsp;<img src="rarr.gif" class="resizable-e"
-            onclick="resizeBuffers(1, 0); return false;"/>
-            &nbsp;<img src="uarr.gif" class="resizable-s"
-            onclick="resizeBuffers(0, 1); return false;"/>
-            </td>
-            </tr></table>
+            <table class="head1">
+              <tr>
+                <td nowrap="1">XQuery Source</td>
+              </tr>
+            </table>
             <div id="cq_import_export">
               <a href="javascript:cqListBuffers()">list all</a>
-              | save buffers as
+              | <span class="instruction">save buffers as:</span>
               <input type="text" id="cqUri" value="{$g-worksheet-name}"/>
-              &nbsp;&nbsp;
               <input type="button" class="input1"
-              onclick="cqExport(this.form);" value="Save [ctrl-shift-s]"/>
-              &nbsp;&nbsp;
+              onclick="cqExport(this.form);" value="Save"
+              title="Save buffers and queries to the current database. Shortcut: ctrl-shift-s"/>
               <input type="button" class="input1"
-              onclick="cqImport(this.form);" value="Open [ctrl-shift-o]"/>
+              onclick="cqImport(this.form);" value="Open"
+              title="Retrieve buffers and queries from the current database. Shortcut: ctrl-shift-o"/>
+              | <span class="instruction">resize text-area:</span>
+              <img src="larr.gif" class="resizable-e" width="10" height="13"
+              title="reduce the number of columns"
+              onclick="resizeBuffers(-1, 0); return false;"/>
+              <img src="darr.gif" class="resizable-s" width="13" height="10"
+              title="reduce the number of rows"
+              onclick="resizeBuffers(0, -1); return false;"/>
+              <img src="rarr.gif" class="resizable-e" width="10" height="13"
+              title="increase the number of columns"
+              onclick="resizeBuffers(1, 0); return false;"/>
+              <img src="uarr.gif" class="resizable-s" width="13" height="10"
+              title="increase the number of rows"
+              onclick="resizeBuffers(0, 1); return false;"/>
             </div>
             <div nowrap="1" id="cq_buffers">
 {
@@ -164,16 +172,20 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
                value="{c:get-debug()}"/>
             <table width="100%">
               <tr>
-                <td width="100%" nowrap="1">eval in: { get-eval-selector() } as
+                <td width="100%" nowrap="1">
+                <span class="instruction">eval in:</span>
+                { get-eval-selector() }
+                <span class="instruction">as</span>
                 <input type="button" class="input1"
-                onclick="submitXML(this.form);" value="XML [ctrl-enter]"/>
-                &nbsp;&nbsp;
+                onclick="submitXML(this.form);" value="XML"
+                title="Submit query as text/xml. Shortcut: ctrl-enter"/>
                 <input type="button" class="input1"
-                onclick="submitHTML(this.form);" value="HTML [alt-enter]"/>
-                &nbsp;&nbsp;
+                onclick="submitHTML(this.form);" value="HTML"
+                title="Submit query as text/html. Shortcut: alt-enter"/>
                 <input type="button" class="input1"
                 onclick="submitText(this.form);"
-                value="TEXT [ctrl-shift-enter]"/>
+                value="TEXT"
+                title="Submit query as text/plain. Shortcut: ctrl-shift-enter"/>
                 <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
                 value="text/xml"/>
                 </td>
@@ -186,6 +198,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
             <table>
             <tr id="cq-buffer-tabs">
               <td class="buffer-tab" id="cq-buffer-tabs-0"
+              title="Select from one of 10 buffers. Shortcut: ctrl-0 to 9, or alt-0 to 9."
                onclick="refreshBufferTabs(0)">Buffers
                   <span class="instruction">
                   (use
@@ -194,6 +207,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
                   </span>
               </td>
               <td class="buffer-tab" id="cq-buffer-tabs-1"
+              title="Query history, listing the 50 most recent queries."
                onclick="refreshBufferTabs(1)">History
               </td>
             </tr>

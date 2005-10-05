@@ -34,16 +34,6 @@ textarea
   font-family: monospace -moz-fixed;
 }
 
-.resizable-e
-{ 
-  cursor: e-resize;
-}
-
-.resizable-s
-{ 
-  cursor: s-resize;
-}
-
 table 
 {
   width: 100%;
@@ -57,6 +47,26 @@ ol
 select
 {
   width: 8em;
+  margin-right: 5px;
+  margin-left: 5px;
+}
+
+#cq_textarea_status
+{
+  font-weight: normal;
+  font-size: small;
+}
+
+.resizable-e
+{ 
+  cursor: e-resize;
+  margin-right: 5px;
+}
+
+.resizable-s
+{ 
+  cursor: s-resize;
+  margin-right: 5px;
 }
 
 .head1 
@@ -113,13 +123,14 @@ select
   font-weight: normal;
   font-size: small;
   font-style: italic;
+  margin-right: .5em;
 }
 
 .input1 
 {
   font-family: sans-serif;
-  // IE6 doesn't listen unless we shout
-  font-size: small important!;
+  margin-left: 5px;
+  margin-left: 5px;
 }
 
 /* clipping doesn't work quite how I'd like it to:

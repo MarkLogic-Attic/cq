@@ -131,9 +131,9 @@ function getCookie(name) {
     for (var i=0; i < ca.length; i++) {
         var c = ca[i];
         while (c.charAt(0) == ' ')
-            c = c.substring(1, c.length);
+            c = c.substr(1, c.length);
         if (c.indexOf(nameEQ) == 0)
-            return decodeURIComponent(c.substring(nameEQ.length, c.length));
+            return decodeURIComponent(c.substr(nameEQ.length, c.length));
     }
     return null;
 }
@@ -152,7 +152,7 @@ function getCookiesStartingWith(name) {
         }
         // gobble whitespace
         while (c.charAt(0) == ' ')
-            c = c.substring(1, c.length);
+            c = c.substr(1, c.length);
         // add matches to the array
         if (name == null || c.indexOf(name) == 0) {
             nvArray = c.split("=");
@@ -382,10 +382,10 @@ function normalize(s) {
     while (s.indexOf('  ') > -1)
         s = s.replace('  ', ' ');
     // TODO leading, trailing space? seems to work for leading, not trailing
-    while (s.substring(0, 1) == " ")
-        s = s.substring(1);
-    while (s.length > 0 && s.substring(s.length - 1, 1) == " ")
-        s = s.substring(0, s.length - 2);
+    while (s.substr(0, 1) == " ")
+        s = s.substr(1);
+    while (s.length > 0 && s.substr(s.length - 1, 1) == " ")
+        s = s.substr(0, s.length - 2);
     return s;
 }
 
@@ -434,7 +434,7 @@ function getLabel(n) {
     // let the css handle text that's too large for the buffer
     // we shouldn't have to normalize spaces, but IE6 is broken
     // ...and so we have to hint word-breaks to both browsers...
-    var theLabel = nudge(getBuffer(n).value.substring(0, 4096));
+    var theLabel = nudge(getBuffer(n).value.substr(0, 1024));
     // put a space here for formatting, so it won't be inside the link
     theNode.appendChild(document.createTextNode(" " + theLabel));
 
@@ -693,7 +693,7 @@ function setLineNumberStatus() {
     var textToStart = buf.value.substr(0, start);
     var linesArray = textToStart.split(/\r\n|\r|\n/);
     var lineNumber = linesArray.length;
-    // because of the earlier substring() call,
+    // because of the earlier substr() call,
     // the last line ends at selectionStart
     var charPosition = linesArray[lineNumber - 1].length;
     // TODO: at the start of a line, firefox returns an empty string
@@ -822,7 +822,7 @@ function cqExport(theForm) {
             buf = getBuffer(i);
             if (buf != null) {
                 theQuery += '<' + g_cq_buffer_basename + '>'
-                    // TODO must we really encode each of these? CDATA?
+                    // TODO xml-escape, instead?
                     + encodeURIComponent(getBuffer(i).value)
                     + '</' + g_cq_buffer_basename + '>'
                     + "\n";
@@ -837,7 +837,7 @@ function cqExport(theForm) {
             var historyLength = historyQueries.length;
             for (var i = 0; i < historyLength; i++) {
                 theQuery += '<' + g_cq_history_basename + '>'
-                    // TODO must we really escape each of these? CDATA?
+                    // TODO xml-escape, instead?
                     + encodeURIComponent(historyQueries[i].firstChild.nodeValue)
                     + '</' + g_cq_history_basename + '>'
                     + "\n";
@@ -944,7 +944,7 @@ function saveQueryHistory(query, appendFlag) {
     if (listItems && listItems[0]) {
         debug("saveQueryHistory: checking " + listItems.length);
         for (var i = 0; i < listItems.length; i++) {
-            debug("saveQueryHistory: " + i);
+            //debug("saveQueryHistory: " + i);
             if (normalize(listItems[i].childNodes[0].nodeValue) == normalizedQuery) {
                 // we want to remove a node and then break
                 listNode.removeChild(listItems[i]);
@@ -1004,71 +1004,83 @@ function saveQueryHistory(query, appendFlag) {
 function finishImport() {
     debug('finishImport');
     var theOutput = getResultFrame();
-    var theOutputDoc = null;
     debug("theOutput = " + theOutput);
-    if (theOutput) {
-        if (is.ie) {
-            theOutputDoc = theOutput.contentWindow.document;
-        } else {
-            theOutputDoc = theOutput.contentDocument;
+    if (theOutput == null)
+        return;
+
+    var theOutputDoc = theOutput.contentDocument;
+    if (is.ie) {
+        theOutputDoc = theOutput.contentWindow.document;
+    }
+
+    if (theOutputDoc == null)
+        return;
+
+    var theList =
+        theOutputDoc.getElementsByTagName(g_cq_buffer_basename);
+    if (is.ie && theOutputDoc.XMLDocument) {
+        theList = theOutputDoc.XMLDocument.getElementsByTagName
+            (g_cq_buffer_basename);
+    }
+
+    // if we timed out, try again
+    var theTimeout = null;
+    if (theList.length < 1) {
+        debug("finishImport: no list: setting new timeout " + g_cq_timeout);
+        theTimeout = setTimeout('finishImport();', g_cq_timeout);
+        return null;
+    }
+    clearTimeout(theTimeout);
+
+    // TODO if the imported worksheet has rows/cols attributes, use them
+
+    if (is.gecko) {
+        // gecko has a problem with nodeValue longer than 4kB (encoded):
+        // it creates multiple text-node children.
+        // this is a DOM violation, but won't be fixed for some time.
+        // see https://bugzilla.mozilla.org/show_bug.cgi?id=194231
+        // workaround: call normalize() early
+        theOutputDoc.normalize();
+    }
+
+    debug("finishImport: theList = " + theList + ", length = " + theList.length);
+    var theValue = null;
+    for (var i = 0; i < theList.length; i++) {
+        if (theList[i].firstChild == null)
+            continue;
+
+        // TODO remove decode if encode isn't needed?
+        theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
+        debug("finishImport: buffer i = " + i + ", " + theValue.length + ": " + theValue);
+        getBuffer(i).value = theValue;
+    } // for theList
+
+    // import query history too, by appending
+    //clearQueryHistory();
+    var historyNode = document.getElementById(g_cq_history_node);
+    if (! historyNode) {
+        debug("finishImport: null historyNode");
+    } else {
+        var theList = theOutputDoc.getElementsByTagName(g_cq_history_basename);
+        for (var i = 0; i < theList.length ; i++) {
+            if (g_cq_history_limit != null && i > g_cq_history_limit)
+                break;
+            if (theList[i].firstChild == null)
+                continue;
+            // TODO remove decode if encode isn't needed?
+            theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
+            saveQueryHistory(theValue, true);
         }
+    }
 
-        if (theOutputDoc) {
-            var theList =
-                theOutputDoc.getElementsByTagName(g_cq_buffer_basename);
-            if (is.ie && theOutputDoc.XMLDocument) {
-                theList = theOutputDoc.XMLDocument.getElementsByTagName
-                    (g_cq_buffer_basename);
-            } // is.ie
-            var theTimeout = null;
-            // if we timed out, try again
-            if (theList.length < 1) {
-              debug("no list: setting new timeout " + g_cq_timeout);
-              theTimeout = setTimeout('finishImport();', g_cq_timeout);
-              return null;
-            }
-            clearTimeout(theTimeout);
+    // leave the user in the same buffer
+    refreshBufferList(g_cq_buffer_current, "finishImport");
 
-            // TODO if the imported worksheet has rows/cols attributes, use them
+    var theUri = document.getElementById(g_cq_uri).value;
+    var theQuery = '<p>' + theUri + ' imported</p>';
 
-            debug("theList = " + theList + ", length = " + theList.length);
-            var theValue = null;
-            for (var i = 0; i < theList.length; i++) {
-                if (theList[i].firstChild == null)
-                    continue;
-                // TODO remove decode if encode isn't needed?
-                theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
-                debug("i = " + i + ", " + theValue);
-                getBuffer(i).value = theValue;
-            } // for theList
-
-            // import query history too, by appending
-            //clearQueryHistory();
-            var historyNode = document.getElementById(g_cq_history_node);
-            if (! historyNode) {
-                debug("cqImport: null historyNode");
-            } else {
-                var theList = theOutputDoc.getElementsByTagName(g_cq_history_basename);
-                for (var i = 0; i < theList.length ; i++) {
-                  if (g_cq_history_limit != null && i > g_cq_history_limit)
-                      break;
-                  if (theList[i].firstChild == null)
-                      continue;
-                  // TODO remove decode if encode isn't needed?
-                  theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
-                  saveQueryHistory(theValue, true);
-                }
-            }
-
-            // leave the user in the same buffer
-            refreshBufferList(g_cq_buffer_current, "finishImport");
-
-            var theUri = document.getElementById(g_cq_uri).value;
-            var theQuery = '<p>' + theUri + ' imported</p>';
-            submitForm(document.getElementById(g_cq_query_form_id),
-                       theQuery, "text/html");
-        } // if theOutputDoc
-    } // if theOutput
+    submitForm(document.getElementById(g_cq_query_form_id),
+               theQuery, "text/html");
 } // finishImport
 
 function cqImport(theForm) {

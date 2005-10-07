@@ -24,8 +24,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-// TODO to support incremental autosave
-
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 // NB: I'd like to ditch these underscores,
 // NB: in favor of /cq:foo-bar-baz,
@@ -37,7 +35,6 @@ var g_cq_query_input = "/cq:query";
 var g_cq_uri = "cqUri";
 var g_cq_import_export_id = "cq_import_export";
 var g_cq_query_form_id = "cq_form";
-var g_cq_autosave_id = "cq_autosave";
 var g_cq_bufferlist_id = "cq_bufferlist";
 var g_cq_buffers_area_id = "cq_buffers";
 var g_cq_buffer_basename = "cq_buffer";
@@ -51,12 +48,12 @@ var g_cq_history_node = "/cq:history";
 var g_cq_buffers_cookie = "cq_buffer_cookie_buffers";
 var g_cq_history_cookie = "cq_buffer_cookie_history";
 var g_cq_textarea_status = "cq_textarea_status";
+var g_cq_debug_status_id = "/cq:debug"
 
 // GLOBAL VARIABLES
 var g_cq_buffer_tabs_current = null;
 var g_cq_buffer_current = 0;
 var g_cq_next_id = 0;
-var g_cq_autosave_incremental = false;
 var g_cq_timeout = 100;
 var g_cq_history_limit = 50;
 
@@ -120,7 +117,8 @@ function setCookie(name, value, days) {
         var expires = "; expires=" + date.toGMTString();
     }
 
-    document.cookie = name + "=" + escape(value) + expires + "; " + path;
+    document.cookie =
+        name + "=" + encodeURIComponent(value) + expires + "; " + path;
     debug("setCookie: " + document.cookie);
 }
 
@@ -135,7 +133,7 @@ function getCookie(name) {
         while (c.charAt(0) == ' ')
             c = c.substring(1, c.length);
         if (c.indexOf(nameEQ) == 0)
-            return unescape(c.substring(nameEQ.length, c.length));
+            return decodeURIComponent(c.substring(nameEQ.length, c.length));
     }
     return null;
 }
@@ -158,7 +156,7 @@ function getCookiesStartingWith(name) {
         // add matches to the array
         if (name == null || c.indexOf(name) == 0) {
             nvArray = c.split("=");
-            cookies[nvArray[0]] = unescape(nvArray[1]);
+            cookies[nvArray[0]] = decodeURIComponent(nvArray[1]);
         }
     }
 
@@ -234,8 +232,11 @@ function cqOnLoad() {
     debug("cqOnLoad: begin");
 
     // check for debug
-    var queryDebug = parseQuery("debug");
-    if (queryDebug && queryDebug != "false" && queryDebug != "0")
+    var debugStatus = document.getElementById(g_cq_debug_status_id);
+    if (debugStatus != null)
+        debugStatus = debugStatus.value;
+    if (debugStatus != null
+        && debugStatus != "false" && debugStatus != "f" && debugStatus != "0")
         DEBUG = true;
 
     //debug(navigator.userAgent.toLowerCase());
@@ -386,7 +387,7 @@ function normalize(s) {
     while (s.length > 0 && s.substring(s.length - 1, 1) == " ")
         s = s.substring(0, s.length - 2);
     return s;
-} // normalize
+}
 
 // create some whitespace for line breaking in the buffer labels
 // TODO is there some *optional* linebreak character we could use?
@@ -570,29 +571,6 @@ function refreshBufferList(n, src) {
     show(getBuffer());
     focusQueryInput();
 } // refreshBufferList
-
-function parseQuery(key) {
-    var theIdx = location.href.indexOf('?');
-    if (theIdx > -1) {
-        var theQuery = location.href.substring(theIdx+1);
-        debug("parseQuery: " + key + ' from ' + theQuery);
-        theIdx = theQuery.indexOf(key);        if (theIdx > -1) {
-            // parse past the key and the '='
-            var theValue = theQuery.substring(theIdx + key.length + 1);
-            // stop at the terminating ';' or '&', if present
-            theIdx = theValue.indexOf('&');
-            if (theIdx > -1) {
-                theValue = theValue.substring(0, theIdx);
-            }
-            theIdx = theValue.indexOf(';');
-            if (theIdx > -1) {
-                theValue = theValue.substring(0, theIdx);
-            }
-            debug("parseQuery: " + key + ' = ' + theValue);
-            return unescape(theValue);
-        } // if theIdx
-    } // if theQuery
-} // parseQuery
 
 // keycode support:
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
@@ -828,7 +806,7 @@ function cqExport(theForm) {
     // then populate it in another
     // the simplest way is to create temporary form elements, and submit them
 
-    // TODO if the worksheet has non-default rows/cols attributes, export them
+    // TODO export non-default options (rows, cols, etc), export them
 
     var theUri = document.getElementById(g_cq_uri).value;
     if (theUri) {
@@ -844,7 +822,8 @@ function cqExport(theForm) {
             buf = getBuffer(i);
             if (buf != null) {
                 theQuery += '<' + g_cq_buffer_basename + '>'
-                    + escape(getBuffer(i).value)
+                    // TODO must we really encode each of these? CDATA?
+                    + encodeURIComponent(getBuffer(i).value)
                     + '</' + g_cq_buffer_basename + '>'
                     + "\n";
             }
@@ -858,7 +837,8 @@ function cqExport(theForm) {
             var historyLength = historyQueries.length;
             for (var i = 0; i < historyLength; i++) {
                 theQuery += '<' + g_cq_history_basename + '>'
-                    + escape(historyQueries[i].firstChild.nodeValue)
+                    // TODO must we really escape each of these? CDATA?
+                    + encodeURIComponent(historyQueries[i].firstChild.nodeValue)
                     + '</' + g_cq_history_basename + '>'
                     + "\n";
             }
@@ -876,44 +856,6 @@ function cqExport(theForm) {
         theDatabase.value = oldDatabase;
     } // if theUri
 } // cqExport
-
-// TODO seems to be buggy, still
-function cqAutoSave(n) {
-    // use incremental updates if autosave form element is set
-    // and the incremental flag is true (has already been exported)
-    var theFlag = document.getElementById(g_cq_autosave_id);
-    debug("cqAutoSave: " + theFlag.checked);
-    if (theFlag.checked) {
-        if (! g_cq_autosave_incremental) {
-            // this session hasn't been exported, as far as we know:
-            // export it, then mark it ok for incremental
-            cqExport(document.getElementById(g_cq_query_form_id));
-            g_cq_autosave_incremental = true;
-        } else {
-            debug("cqAutoSave: incremental");
-            var theForm = document.getElementById(g_cq_query_form_id);
-            var theUri = document.getElementById(g_cq_uri).value;
-            if (theForm && theUri) {
-                // default to current buffer
-                if ( (!n) && (n != 0) )
-                    n = g_cq_buffer_current;
-                var theQuery =
-                    'xdmp:node-replace((doc("' + theUri + '")/'
-                    // path to buffer n
-                    + g_cq_buffers_area_id + '/'
-                    // XPath starts at 1, not 0
-                    + g_cq_buffer_basename + ')[' + (1+n) + "],\n"
-                    // new value
-                    + '<' + g_cq_buffer_basename + '>'
-                    + escape(getBuffer(n).value)
-                    + '</' + g_cq_buffer_basename + '>'
-                    + '), "updated"';
-                debug("cqAutoSave: " + theQuery);
-                submitForm(theForm, theQuery, "text/html");
-            } // theForm and theUri
-        } // if incremental
-    } // if autosave
-} // cqAutoSave
 
 // Submit XML Query
 function submitXML(theForm) {
@@ -935,7 +877,6 @@ function submitFormWrapper(theForm, mimeType) {
     if (!theForm)
         return;
 
-    //cqAutoSave();
     var query = getBuffer().value;
     saveQueryHistory(query);
 
@@ -1095,7 +1036,8 @@ function finishImport() {
             for (var i = 0; i < theList.length; i++) {
                 if (theList[i].firstChild == null)
                     continue;
-                theValue = unescape( (theList[i]).firstChild.nodeValue );
+                // TODO remove decode if encode isn't needed?
+                theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
                 debug("i = " + i + ", " + theValue);
                 getBuffer(i).value = theValue;
             } // for theList
@@ -1106,13 +1048,14 @@ function finishImport() {
             if (! historyNode) {
                 debug("cqImport: null historyNode");
             } else {
-                var list = theOutputDoc.getElementsByTagName(g_cq_history_basename);
-                for (var i = 0; i < list.length ; i++) {
+                var theList = theOutputDoc.getElementsByTagName(g_cq_history_basename);
+                for (var i = 0; i < theList.length ; i++) {
                   if (g_cq_history_limit != null && i > g_cq_history_limit)
                       break;
-                  if (list[i].firstChild == null)
+                  if (theList[i].firstChild == null)
                       continue;
-                  theValue = unescape( (list[i]).firstChild.nodeValue );
+                  // TODO remove decode if encode isn't needed?
+                  theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
                   saveQueryHistory(theValue, true);
                 }
             }

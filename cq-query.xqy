@@ -66,8 +66,9 @@ define variable $g-default-worksheet as element(cq_buffers)? {
       )
       let $path := concat($root, $rpath, "/", $g-worksheet-uri)
       let $uri := substring-after($path, $root)
-      let $d := c:debug(("default-worksheet: ", $mdb, $root, $path, $uri, xdmp:uri-is-file($uri)))
-      where xdmp:uri-is-file($uri)
+      let $exists := xdmp:uri-is-file($uri)
+      let $d := c:debug(("default-worksheet: ", $mdb, $root, $path, $uri, $exists))
+      where $exists
       return xdmp:document-get($path)/cq_buffers
   let $d := c:debug(xdmp:describe($worksheet))
   let $assert :=
@@ -145,7 +146,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
     <link rel="stylesheet" type="text/css" href="cq.css">
     </link>
   </head>
-  <body onload="cqOnLoad(this)">
+  <body onload="cqOnLoad()">
     <form action="cq-eval.xqy" method="post"
       id="cq_form" name="cq_form" target="cq_resultFrame">
       <table summary="query form">
@@ -197,7 +198,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
   }
 }
               <input id="/cq:query" name="/cq:query" type="hidden"/>
-              <input id="debug" name="debug" type="hidden"
+              <input id="/cq:debug" name="/cq:debug" type="hidden"
                value="{c:get-debug()}"/>
             <table width="100%">
               <tr>

@@ -1002,30 +1002,34 @@ function saveQueryHistory(query, appendFlag) {
 
 // display a confirmation message
 function finishImport() {
-    debug('finishImport');
+    debug('finishImport: checking for output');
     var theOutput = getResultFrame();
-    debug("theOutput = " + theOutput);
+    debug("finishImport: theOutput = " + theOutput);
     if (theOutput == null)
         return;
 
     var theOutputDoc = theOutput.contentDocument;
-    if (is.ie) {
+    if (is.ie)
         theOutputDoc = theOutput.contentWindow.document;
-    }
 
+    // no document? no results...
     if (theOutputDoc == null)
         return;
 
-    var theList =
-        theOutputDoc.getElementsByTagName(g_cq_buffer_basename);
+    // now check for buffers
+    var theList = null;
     if (is.ie && theOutputDoc.XMLDocument) {
+        debug("finishImport: ie, using XMLDocument");
         theList = theOutputDoc.XMLDocument.getElementsByTagName
             (g_cq_buffer_basename);
+    } else {
+        theList =
+            theOutputDoc.getElementsByTagName(g_cq_buffer_basename);
     }
 
     // if we timed out, try again
     var theTimeout = null;
-    if (theList.length < 1) {
+    if (theList == null || theList.length < 1) {
         debug("finishImport: no list: setting new timeout " + g_cq_timeout);
         theTimeout = setTimeout('finishImport();', g_cq_timeout);
         return null;
@@ -1040,13 +1044,14 @@ function finishImport() {
         // this is a DOM violation, but won't be fixed for some time.
         // see https://bugzilla.mozilla.org/show_bug.cgi?id=194231
         // workaround: call normalize() early
+        debug("finishImport: gecko workaround");
         theOutputDoc.normalize();
     }
 
-    debug("finishImport: theList = " + theList + ", length = " + theList.length);
+    debug("finishImport: theList = " + theList.innerHTML + ", length = " + theList.length);
     var theValue = null;
     for (var i = 0; i < theList.length; i++) {
-        if (theList[i].firstChild == null)
+        if (theList[i] == null || theList[i].firstChild == null)
             continue;
 
         // TODO remove decode if encode isn't needed?

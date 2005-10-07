@@ -10,7 +10,7 @@ DIRNAME=`pwd`/$DIRNAME/..
  && rm -f cq.zip \
  && zip -9 cq.zip \
    cq/cq.xqy cq/cq-[eq]*.xqy cq/cq.js cq/cq.css \
-   cq/?arr.gif worksheet.xml \
+   cq/?arr.gif cq/worksheet.xml \
    cq/index.html cq/lib-*.xqy cq/cq-result.html cq/*.txt
 )
 

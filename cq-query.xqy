@@ -51,20 +51,31 @@ define variable $g-default-worksheet as element(cq_buffers)? {
    : module-database (or filesystem)
    :)
   let $mdb := xdmp:modules-database()
+  let $root := data(
+    xdmp:read-cluster-config-file("groups.xml")
+    /mlgr:groups/mlgr:group/mlgr:http-servers
+    /mlgr:http-server[ mlgr:http-server-id = xdmp:server() ]
+    /mlgr:root
+  )
+  let $rpath := string-join(
+    tokenize(xdmp:get-request-path(), "[/]+")[1 to last() - 1],
+    "/"
+  )
+  (: what about Windows and backslashes? don't talk to me about backslashes... :)
+  let $path := replace(concat($root, $rpath, "/", $g-worksheet-uri), '//+', '/')
+  let $path :=
+    if (xdmp:platform() eq "winnt")
+    then replace($path, '\\', '/')
+    else $path
   let $worksheet :=
-    if ($mdb ne 0) then doc($g-worksheet-uri)/cq_buffers
+    if ($mdb ne 0)
+    then
+      (: fetch the worksheet from the modules database :)
+      let $q  := 'define variable $path as xs:string external
+        doc($path)/cq_buffers'
+      return xdmp:eval-in($q, $mdb, (xs:QName("path"), $path))
     else
-      let $root := data(
-        xdmp:read-cluster-config-file("groups.xml")
-          /mlgr:groups/mlgr:group/mlgr:http-servers
-          /mlgr:http-server[ mlgr:http-server-id = xdmp:server() ]
-          /mlgr:root
-      )
-      let $rpath := string-join(
-        tokenize(xdmp:get-request-path(), "[/]+")[1 to last() - 1],
-        "/"
-      )
-      let $path := concat($root, $rpath, "/", $g-worksheet-uri)
+      (: fetch the worksheet from the filesystem :)
       let $uri := substring-after($path, $root)
       let $exists := xdmp:uri-is-file($uri)
       let $d := c:debug(("default-worksheet: ", $mdb, $root, $path, $uri, $exists))

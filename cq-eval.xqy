@@ -67,11 +67,15 @@ define variable $g-modules as xs:unsignedLong {
 
 (: default to root :)
 define variable $g-root as xs:string {
-  (: hack for bug 1894: eval-in doesn't support relative roots :)
-  let $root := ($g-eval-in[3], "/")[1]
+  (: default to root="/", though that should never happen :)
+  (: also fix win32 backslashes :)
+  let $root := replace(($g-eval-in[3], "/")[1], "\\+", "/")
   let $root :=
-    if (contains($root, "/")) then $root
+    if (matches($root, '([a-z]:)?/', "i")) then $root
+    (: relative root, on a filesystem :)
+    (: hack for bug 1894: eval-in doesn't support relative roots without "./" :)
     else if ($g-modules eq 0) then concat("./", $root)
+    (: relative root, in a database :)
     else concat($root, "/")
   return $root
 }

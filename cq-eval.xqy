@@ -68,8 +68,8 @@ define variable $g-modules as xs:unsignedLong {
 (: default to root :)
 define variable $g-root as xs:string {
   (: default to root="/", though that should never happen :)
-  (: also fix win32 backslashes :)
-  let $root := replace(($g-eval-in[3], "/")[1], "\\+", "/")
+  (: also fix win32 backslashes, and repeated slashes :)
+  let $root := replace(($g-eval-in[3], "/")[1], "/+|\\+", "/")
   let $root :=
     if (matches($root, '([a-z]:)?/', "i")) then $root
     (: relative root, on a filesystem :)

@@ -71,6 +71,20 @@ select
   vertical-align: middle;
 }
 
+.resizable-w
+{ 
+  cursor: w-resize;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.resizable-n
+{ 
+  cursor: n-resize;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
 .head1 
 {
   background-color: #FFCC33;

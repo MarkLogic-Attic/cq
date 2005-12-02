@@ -179,7 +179,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
               onclick="cqImport(this.form);" value="Open"
               title="Retrieve buffers and queries from the current database. Shortcut: ctrl-shift-o"/>
               | <span class="instruction">resize text-area:</span>
-              <img src="larr.gif" class="resizable-e" width="10" height="13"
+              <img src="larr.gif" class="resizable-w" width="10" height="13"
               title="reduce the number of columns"
               onclick="resizeBuffers(-1, 0); return false;"/>
               <img src="darr.gif" class="resizable-s" width="13" height="10"
@@ -188,7 +188,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
               <img src="rarr.gif" class="resizable-e" width="10" height="13"
               title="increase the number of columns"
               onclick="resizeBuffers(1, 0); return false;"/>
-              <img src="uarr.gif" class="resizable-s" width="13" height="10"
+              <img src="uarr.gif" class="resizable-n" width="13" height="10"
               title="increase the number of rows"
               onclick="resizeBuffers(0, 1); return false;"/>
             </div>

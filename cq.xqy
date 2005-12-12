@@ -45,6 +45,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
   (: before we go any further, make sure we have the right exec privs :)
   let $errors :=
     for $priv in (
+      "http://marklogic.com/xdmp/privileges/xdmp-document-get",
       "http://marklogic.com/xdmp/privileges/xdmp-read-cluster-config-file",
       "http://marklogic.com/xdmp/privileges/xdmp-eval-in"
     )

@@ -112,15 +112,13 @@ define function v:get-error-frame-html
 
   text { $f/err:data/err:datum },
 
-  if (empty($f/err:variables)) then ()
-  else (
-    for $v in $f/err:variables/err:variable
-    return (
-      concat("$", string($v/err:name), " := ", string($v/err:value)),
-      <br/>
-    ),
+  (: this may be empty :)
+  for $v in $f/err:variables/err:variable
+  return (
+    element code { concat("$", string($v/err:name)), ":=", data($v/err:value) },
     <br/>
-  )
+  ),
+  <br/>
 }
 
 define function v:get-error-html
@@ -132,7 +130,7 @@ define function v:get-error-html
 <html xmlns="http://www.w3.org/1999/xhtml">
   <body bgcolor="white">
     <div>
-  <b xmlns="http://www.w3.org/1999/xhtml">
+  <b>
   <code>{
     (: display eval-in information :)
     "ERROR: eval-in",

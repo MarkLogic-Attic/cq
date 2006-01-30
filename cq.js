@@ -498,8 +498,10 @@ function refreshBufferTabs(n) {
     }
 
     // check g_cq_buffer_tabs_current against each child span
-    var buffersTitleNode = document.getElementById(g_cq_buffer_tabs_node + "-0");
-    var historyTitleNode = document.getElementById(g_cq_buffer_tabs_node + "-1");
+    var buffersTitleNode =
+        document.getElementById(g_cq_buffer_tabs_node + "-0");
+    var historyTitleNode =
+        document.getElementById(g_cq_buffer_tabs_node + "-1");
     if (!buffersTitleNode || ! historyTitleNode) {
         debug.print("refreshBufferTabs: null title node(s)");
         return;
@@ -1152,14 +1154,26 @@ function cqImport(theForm) {
     var theTimeout = setTimeout("finishImport();", g_cq_timeout);
 } // cqImport
 
-function cqListBuffers() {
+function cqListDocuments() {
+    // TODO link to display the document?
     var theForm = document.getElementById(g_cq_query_form_id);
     var theQuery =
         "let $est := xdmp:estimate(doc()) "
         + "where $est gt 1000 "
         + "return <p><b>first 1000 documents of {$est} total:</b></p>,"
-        + "for $i in input()[1 to 1000] return (base-uri($i), <br/>)";
+        + "for $i in doc()[1 to 1000] return (base-uri($i), <br/>)";
     submitForm(theForm, theQuery, "text/html");
-} // cqListBuffers
+}
+
+function cqListWorksheets() {
+    // TODO link to load the worksheet?
+    var theForm = document.getElementById(g_cq_query_form_id);
+    var theQuery =
+        "let $est := xdmp:estimate(/cq_buffers) "
+        + "where $est gt 1000 "
+        + "return <p><b>first 1000 worksheets of {$est} total:</b></p>,"
+        + "for $i in (/cq_buffers)[1 to 1000] return (base-uri($i), <br/>)";
+    submitForm(theForm, theQuery, "text/html");
+}
 
 // cq.js

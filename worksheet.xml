@@ -1,32 +1,32 @@
 <cq_buffers id="cq_buffers" rows="16" cols="80">
-<cq_buffer>(: buffer 1 :)
+<cq_buffer>(: query 1 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
-<cq_buffer>(: buffer 2 :)
+<cq_buffer>(: query 2 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
-<cq_buffer>(: buffer 3 :)
+<cq_buffer>(: query 3 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
-<cq_buffer>(: buffer 4 :)
+<cq_buffer>(: query 4 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
-<cq_buffer>(: buffer 5 :)
+<cq_buffer>(: query 5 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
-<cq_buffer>(: buffer 6 :)
+<cq_buffer>(: query 6 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
-<cq_buffer>(: buffer 7 :)
+<cq_buffer>(: query 7 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
-<cq_buffer>(: buffer 8 :)
+<cq_buffer>(: query 8 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
-<cq_buffer>(: buffer 9 :)
+<cq_buffer>(: query 9 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
-<cq_buffer>(: buffer 10 :)
+<cq_buffer>(: query 10 :)
 default element namespace = "http://www.w3.org/1999/xhtml"
 %3Cp%3Ehello world%3C/p%3E</cq_buffer>
 </cq_buffers>

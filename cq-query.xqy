@@ -165,20 +165,21 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
           <td nowrap="1">
             <table class="head1">
               <tr>
-                <td nowrap="1">XQuery Source</td>
+                <td nowrap="1">Current XQuery</td>
               </tr>
             </table>
             <div id="cq_import_export">
-              <a href="javascript:cqListBuffers()">list all</a>
-              | <span class="instruction">save buffers as:</span>
+              list: <a href="javascript:cqListDocuments()">all</a>
+              &nbsp;<a href="javascript:cqListWorksheets()">queries</a>
+              | <span class="instruction">save queries as:</span>
               <input type="text" id="cqUri" value="{$g-worksheet-uri}"/>
               <input type="button" class="input1"
               onclick="cqExport(this.form);" value="Save"
-              title="Save buffers and queries to the current database. Shortcut: ctrl-shift-s"/>
+              title="Save queries and history to the current database. Shortcut: ctrl-shift-s"/>
               <input type="button" class="input1"
               onclick="cqImport(this.form);" value="Open"
-              title="Retrieve buffers and queries from the current database. Shortcut: ctrl-shift-o"/>
-              | <span class="instruction">resize text-area:</span>
+              title="Retrieve queries and history from the current database. Shortcut: ctrl-shift-o"/>
+              | <span class="instruction">resize query:</span>
               <img src="larr.gif" class="resizable-w" width="10" height="13"
               title="reduce the number of columns"
               onclick="resizeBuffers(-1, 0); return false;"/>
@@ -214,7 +215,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
             <table width="100%">
               <tr>
                 <td width="100%" nowrap="1">
-                <span class="instruction">eval in:</span>
+                <span class="instruction">content source:</span>
                 { get-eval-selector() }
                 <span class="instruction">as</span>
                 <input type="button" class="input1"
@@ -240,12 +241,10 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
             <table>
             <tr id="cq-buffer-tabs">
               <td class="buffer-tab" id="cq-buffer-tabs-0"
-              title="Select from one of 10 buffers. Shortcut: ctrl-0 to 9, or alt-0 to 9."
-               onclick="refreshBufferTabs(0)">Buffers
-                  <span class="instruction">
-                  (use
-                  <span id="cq_buffer_accesskey_text">alt</span>
-                  to switch)
+              title="Select any of 10 queries. Shortcut: ctrl-0 to 9, or alt-0 to 9."
+               onclick="refreshBufferTabs(0)">
+                 Queries<span class="instruction" nowrap="1">
+                  (<span id="cq_buffer_accesskey_text">alt</span>)
                   </span>
               </td>
               <td class="buffer-tab" id="cq-buffer-tabs-1"

@@ -24,6 +24,9 @@
 //
 //////////////////////////////////////////////////////////////////////
 
+// TODO refactor more of this controller-style logic into classes:
+// BufferClass, BufferListClass, HistoryClass, etc.
+
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 // NB: I'd like to ditch these underscores,
 // NB: in favor of /cq:foo-bar-baz,
@@ -57,54 +60,108 @@ var g_cq_next_id = 0;
 var g_cq_timeout = 100;
 var g_cq_history_limit = 50;
 
-var DEBUG = false;
+var debug = new DebugClass();
 
-function debug(message) {
-    if (! DEBUG)
-        return;
+// handy way to get the body element
+function BodyClass() {
+    this.node = document.body;
+    if (this.node == null) {
+        this.node = document.createElement("body");
+        document.appendChild(body);
+    }
+    this.getNode = function() { return this.node; };
+}
 
-    var id = "__debugNode";
-    var debugNode = document.getElementById(id);
-    if (debugNode == null) {
-        var debugNode = document.createElement("div");
-        var bodyNode = document.body;
-        if (bodyNode == null) {
-            bodyNode = document.createElement("body");
-            document.appendChild(body);
+// define a debug class
+function DebugClass(flag) {
+    if (flag == null) {
+        flag = false;
+    }
+
+    this.setEnabled = function(flag) { this.enabled = flag; };
+    this.isEnabled = function() { return this.enabled };
+
+    this.setEnabled(flag);
+
+    this.print = function(message) {
+        if (this.enabled != true) { return; }
+
+        var id = "__debugNode";
+        var debugNode = document.getElementById(id);
+        if (debugNode == null) {
+            // add as new child of the html body
+            var debugNode = document.createElement("div");
+            var bodyNode = new BodyClass();
+            bodyNode.getNode().appendChild(debugNode);
         }
-        bodyNode.appendChild(debugNode);
-    }
 
-    var newNode = document.createElement("pre");
-    // we want the pre to wrap: this is hard until CSS3
-    // but we'll hack it for now.
-    // don't use a class: be as self-contained as possible.
-    newNode.setAttribute("style",
-                         "white-space: -moz-pre-wrap;"
-                         + "word-wrap: break-word;"
-                         + "white-space: -pre-wrap;"
-                         + "white-space: -o-pre-wrap;"
-                         + "white-space: pre-wrap;"
-                         );
-    newNode.appendChild(document.createTextNode(message));
-    debugNode.appendChild(newNode);
-    // just in case debugNode was present but hidden
-    debugNode.style.display = "block";
+        var newNode = document.createElement("pre");
+        // we want the pre to wrap: this is hard without CSS3
+        // but we'll hack it for now.
+        // don't use a class, so it's as self-contained as possible.
+        newNode.setAttribute("style", ""
+                             + "white-space: -moz-pre-wrap;"
+                             // these seem to annoy firefox 1.5
+                             // TODO check UA string?
+                             //+ "white-space: -pre-wrap;"
+                             //+ "white-space: -o-pre-wrap;"
+                             //+ "white-space: pre-wrap;"
+                             //+ "word-wrap: break-word;"
+                             );
+        newNode.appendChild(document.createTextNode("[" + new Date() + "] "
+                                                    + message));
+        debugNode.appendChild(newNode);
+    };
 }
 
-function removeChildNodes(node) {
-    while (node.hasChildNodes()) {
-        node.removeChild(node.firstChild);
+function BrowserIsClass() {
+    // convert all characters to lowercase to simplify testing
+    var agt = navigator.userAgent.toLowerCase();
+
+    this.major = parseInt(navigator.appVersion);
+    this.minor = parseFloat(navigator.appVersion);
+
+    this.nav  = ((agt.indexOf('mozilla') != -1)
+                 && ((agt.indexOf('spoofer') == -1)
+                     &&  (agt.indexOf('compatible') == -1)));
+
+    this.gecko = (this.nav
+                  && (agt.indexOf('gecko') != -1));
+
+    this.ie   = (agt.indexOf("msie") != -1);
+
+    // don't use these unless we must
+    this.x11 = (agt.indexOf("x11") != -1);
+    this.mac = (agt.indexOf("macintosh") != -1);
+    this.win = (agt.indexOf("windows") != -1);
+}
+
+var is = new BrowserIsClass();
+
+// extend HTMLElement class
+HTMLElement.prototype.removeChildNodes = function() {
+    while (this.hasChildNodes()) {
+        this.removeChild(this.firstChild);
     }
 }
 
+HTMLElement.prototype.hide = function() {
+    this.style.display = 'none';
+}
+
+HTMLElement.prototype.show = function() {
+    // TODO introspectively use block or inline
+    this.style.display = 'block';
+}
+
+// Cookie functions
 function setCookie(name, value, days) {
     if (name == null) {
-        debug("setCookie: null name");
+        debug.print("setCookie: null name");
         return null;
     }
     if (value == null) {
-        debug("setCookie: null value");
+        debug.print("setCookie: null value");
         return setCookie(name, "", days);
     }
 
@@ -119,7 +176,8 @@ function setCookie(name, value, days) {
 
     document.cookie =
         name + "=" + encodeURIComponent(value) + expires + "; " + path;
-    debug("setCookie: " + document.cookie);
+    debug.print("setCookie: " + document.cookie);
+    return null;
 }
 
 function getCookie(name) {
@@ -168,31 +226,6 @@ function clearCookie(name) {
     setCookie(name, null, -1);
 }
 
-
-function Is () {
-    // convert all characters to lowercase to simplify testing
-    var agt = navigator.userAgent.toLowerCase();
-
-    this.major = parseInt(navigator.appVersion);
-    this.minor = parseFloat(navigator.appVersion);
-
-    this.nav  = ((agt.indexOf('mozilla') != -1)
-                 && ((agt.indexOf('spoofer') == -1)
-                     &&  (agt.indexOf('compatible') == -1)));
-
-    this.gecko = (this.nav
-                  && (agt.indexOf('gecko') != -1));
-
-    this.ie   = (agt.indexOf("msie") != -1);
-
-    // don't use these unless we must
-    this.x11 = (agt.indexOf("x11") != -1);
-    this.mac = (agt.indexOf("macintosh") != -1);
-    this.win = (agt.indexOf("windows") != -1);
-}
-
-var is = new Is();
-
 function recoverWorksheet() {
     // this approach won't work: cookies are limited to 4kB or so
     recoverQueryBuffers();
@@ -201,13 +234,13 @@ function recoverWorksheet() {
 
 function recoverQueryBuffers() {
     // given a list of buffers, import them
-    debug("recoverQueryBuffers: start");
+    debug.print("recoverQueryBuffers: start");
     var bufCookie = getCookie(g_cq_buffers_cookie);
     if (bufCookie != null) {
         var buffersNode = document.getElementById(g_cq_buffers_area_id);
-        debug("recoverQueryBuffers: " + bufCookie);
+        debug.print("recoverQueryBuffers: " + bufCookie);
         if (! buffersNode) {
-            debug("recoverQueryBuffers: null buffersNode");
+            debug.print("recoverQueryBuffers: null buffersNode");
             return;
         }
         buffersNode.innerHTML = bufCookie;
@@ -216,12 +249,12 @@ function recoverQueryBuffers() {
 
 function recoverQueryHistory() {
     // given a list of queries, put them in the history
-    debug("recoverQueryHistory: start");
+    debug.print("recoverQueryHistory: start");
     var histCookie = getCookie(g_cq_history_cookie);
     if (histCookie != null) {
         var listNode = getQueryHistoryListNode(true);
         if (! listNode) {
-            debug("recoverQueryHistory: null listNode");
+            debug.print("recoverQueryHistory: null listNode");
             return;
         }
         listNode.innerHTML = histCookie;
@@ -229,17 +262,18 @@ function recoverQueryHistory() {
 }
 
 function cqOnLoad() {
-    debug("cqOnLoad: begin");
+    debug.print("cqOnLoad: begin");
 
     // check for debug
     var debugStatus = document.getElementById(g_cq_debug_status_id);
     if (debugStatus != null)
         debugStatus = debugStatus.value;
     if (debugStatus != null
-        && debugStatus != "false" && debugStatus != "f" && debugStatus != "0")
-        DEBUG = true;
+        && debugStatus != "false" && debugStatus != "f" && debugStatus != "0") {
+        debug.setEnabled(true);
+    }
 
-    //debug(navigator.userAgent.toLowerCase());
+    //debug.print(navigator.userAgent.toLowerCase());
 
     // register for key-presses
     document.onkeypress = handleKeyPress;
@@ -247,7 +281,7 @@ function cqOnLoad() {
     // recover current db from session cookie
     var currDatabase = getCookie(g_cq_eval_list_id);
     if (currDatabase != null) {
-        debug("cqOnLoad: currDatabase = " + currDatabase);
+        debug.print("cqOnLoad: currDatabase = " + currDatabase);
         document.getElementById(g_cq_eval_list_id).value = currDatabase;
     }
 
@@ -276,7 +310,7 @@ function setInstructionText() {
     }
     // if this is IE6, hide the text entirely (doesn't work)
     if (is.ie) {
-        hide(instructionNode.parentNode);
+        instructionNode.parentNode.hide();
         return;
     }
     var theText = "alt";
@@ -284,8 +318,8 @@ function setInstructionText() {
     if (is.x11) {
         theText = "ctrl";
     }
-    debug("setInstructionText: " + theText);
-    removeChildNodes(instructionNode);
+    debug.print("setInstructionText: " + theText);
+    instructionNode.removeChildNodes();
     instructionNode.appendChild(document.createTextNode(theText));
 }
 
@@ -307,7 +341,7 @@ function getResultFrame() {
 function resizeFrameset() {
     var frameset = getFrameset();
     if (frameset == null) {
-        debug("resizeFrameset: null frameset");
+        debug.print("resizeFrameset: null frameset");
         return;
     }
     // set the result-frame height to fill the available space
@@ -323,11 +357,11 @@ function resizeFrameset() {
         visible = documentNode.getElementById(g_cq_query_form_id);
     }
     if (visible == null) {
-        debug("nothing to resize from!");
+        debug.print("nothing to resize from!");
         return;
     }
 
-    debug("resizeFrameset: visible " + visible
+    debug.print("resizeFrameset: visible " + visible
           + ", " + visible.offsetTop + ", " + visible.offsetHeight);
     // add a smidgen for fudge-factor, so we don't activate scrolling:
     // 15px is enough for gecko, but IE6 wants 17px
@@ -356,25 +390,13 @@ function focusQueryInput() {
     setLineNumberStatus();
 }
 
-// hide/show: generic functions so we always do it the same way
-function hide(s) {
-    if (!s)
-        return;
-
-    s.style.display = "none";
-}
-
-function show(s) {
-    if (!s)
-        return;
-
-    s.style.display = "block";
-}
-
 // normalize-space, in JavaScript
 // warning: replace() isn't a regex function
 // it's closer to 'tr' - character translation
 function normalize(s) {
+    if (s == null)
+        return null;
+
     while (s.indexOf("\n") > -1)
         s = s.replace("\n", ' ');
     while (s.indexOf("\t") > -1)
@@ -422,7 +444,7 @@ function getLabel(n) {
         theNode.title = "Click to activate this query buffer.";
     } else {
         // show the current index in bold, with no link
-        debug("getLabel: " + n + " == " + g_cq_buffer_current);
+        debug.print("getLabel: " + n + " == " + g_cq_buffer_current);
         theNum = document.createElement('b');
         className = 'bufferlabelactive';
         // set tooltip
@@ -459,18 +481,19 @@ function writeBufferLabel(parentNode, n) {
 
     rowNode.appendChild(cellNode);
     parentNode.appendChild(rowNode);
+    return null;
 }
 
 function refreshBufferTabs(n) {
     if (n == null || n == g_cq_buffer_tabs_current)
         return;
 
-    debug("refreshBufferTabs: " + n + ", " + g_cq_buffer_tabs_current);
+    debug.print("refreshBufferTabs: " + n + ", " + g_cq_buffer_tabs_current);
     g_cq_buffer_tabs_current = n;
 
     var tabsNode = document.getElementById(g_cq_buffer_tabs_node);
     if (tabsNode == null) {
-        debug("refreshBufferTabs: null tabsNode");
+        debug.print("refreshBufferTabs: null tabsNode");
         return;
     }
 
@@ -478,46 +501,48 @@ function refreshBufferTabs(n) {
     var buffersTitleNode = document.getElementById(g_cq_buffer_tabs_node + "-0");
     var historyTitleNode = document.getElementById(g_cq_buffer_tabs_node + "-1");
     if (!buffersTitleNode || ! historyTitleNode) {
-        debug("refreshBufferTabs: null title node(s)");
+        debug.print("refreshBufferTabs: null title node(s)");
         return;
     }
 
     var buffersNode = document.getElementById(g_cq_bufferlist_id);
     if (! buffersNode) {
-        debug("refreshBufferTabs: null buffersNode");
+        debug.print("refreshBufferTabs: null buffersNode");
         return;
     }
 
     var historyNode = document.getElementById(g_cq_history_node);
     if (! historyNode) {
-        debug("refreshBufferTabs: null historyNode");
+        debug.print("refreshBufferTabs: null historyNode");
         return;
     }
 
     // simple for now: node 0 is buffer list, 1 is history
     // TODO move the instruction text too?
     if (g_cq_buffer_tabs_current == 0) {
-        debug("refreshBufferTabs: displaying buffer list");
+        debug.print("refreshBufferTabs: displaying buffer list");
         // highlight the active tab
         buffersTitleNode.className = "buffer-tab-active";
         historyTitleNode.className = "buffer-tab";
         // hide and show the appropriate list
-        show(buffersNode);
-        hide(historyNode);
+        buffersNode.show();
+        historyNode.hide();
     } else {
-        debug("refreshBufferTabs: displaying history");
+        debug.print("refreshBufferTabs: displaying history");
         // highlight the active tab
         buffersTitleNode.className = "buffer-tab";
         historyTitleNode.className = "buffer-tab-active";
 
         // match the buffer height, to reduce frame-redraw
-        debug("resizeBufferTabs: " + buffersNode.offsetTop + ", " + buffersNode.offsetHeight);
+        debug.print("resizeBufferTabs: " + buffersNode.offsetTop + ", "
+              + buffersNode.offsetHeight);
         historyNode.height = buffersNode.offsetHeight;
 
         // hide and show the appropriate list
-        hide(buffersNode);
-        show(historyNode);
+        buffersNode.hide();
+        historyNode.show();
     }
+    return;
 }
 
 function refreshBufferList(n, src) {
@@ -530,7 +555,7 @@ function refreshBufferList(n, src) {
 
     // labels are stored in divs in a table cell
     var labelsNode = document.getElementById(g_cq_bufferlist_id);
-    removeChildNodes(labelsNode);
+    labelsNode.removeChildNodes();
     // create an explicit tbody for the DOM (Mozilla needs this)
     var tableBody = document.createElement('tbody');
     labelsNode.appendChild(tableBody);
@@ -545,18 +570,18 @@ function refreshBufferList(n, src) {
     }
 
     g_cq_buffer_current = n;
-    debug("refreshBufferList: from " + src + ", show " + g_cq_buffer_current);
+    debug.print("refreshBufferList: from " + src + ", show " + g_cq_buffer_current);
     // parent of all the textareas
     var theParent = document.getElementById(g_cq_buffers_area_id);
     // childNodes.length will return some non-buffer elements, too!
     var theBuffer = null;
     for (var i = 0; i < theParent.childNodes.length; i++) {
-        //debug("refreshBufferList: i = " + i + " of " + theParent.childNodes.length);
+        //debug.print("refreshBufferList: i = " + i + " of " + theParent.childNodes.length);
         theBuffer = getBuffer(i);
         // not there? skip it
         if (theBuffer != null) {
           writeBufferLabel(tableBody, i);
-          hide(theBuffer);
+          theBuffer.hide();
           // set up handlers to update line-number display
           if (! theBuffer.onfocus)
               theBuffer.onfocus = setLineNumberStatus;
@@ -568,7 +593,7 @@ function refreshBufferList(n, src) {
     } // for buffers
 
     // show the current buffer only, and put the cursor there
-    show(getBuffer());
+    getBuffer().show();
     focusQueryInput();
 } // refreshBufferList
 
@@ -605,7 +630,7 @@ function handleKeyPress(e) {
         + (metaKey ? "meta " : "")
         + (ctrlKey ? "ctrl " : "") + (shiftKey ? "shift " : "")
         + (altKey ? "alt " : "") + theCode;
-    debug("handleKeyPress: " + keyInfo);
+    debug.print("handleKeyPress: " + keyInfo);
 
 
     // handle buffers: 1 = 49, 9 = 57, 0 = 48
@@ -662,27 +687,30 @@ function setLineNumberStatus() {
     }
 
     // must handle this differently for gecko vs IE6
-    //debug("setLineNumberStatus: buf.selectionStart = " + buf.selectionStart);
+    //debug.print("setLineNumberStatus: buf.selectionStart = "
+    // + buf.selectionStart);
     if (!document.selection) {
         // gecko? is that you?
     } else {
         // set it up, using IE5+ API
         // http://msdn.microsoft.com/workshop/author/dhtml/reference/objects/obj_textrange.asp
-        //debug("setLineNumberStatus: document.selection = " + document.selection);
+        //debug.print("setLineNumberStatus: document.selection = "
+        // + document.selection);
         if (document.selection){
             var range = document.selection.createRange();
             var storedRange = range.duplicate();
             storedRange.moveToElementText(buf);
             storedRange.setEndPoint('EndToEnd', range);
-            debug("setLineNumberStatus: storedRange.text = '" + storedRange.text + "'");
-            debug("setLineNumberStatus: storedRange.text.length = " + storedRange.text.length
-                  + ", range.text.length=" + range.text.length
-                  + ", buf.value.length = " + buf.value.length);
+            debug.print("setLineNumberStatus: storedRange.text = '"
+                        + storedRange.text + "'"
+                        + " (" + storedRange.text.length
+                        + "," + range.text.length
+                        + "," + buf.value.length
+                        + ")");
             // set start and end points, ala gecko
             buf.selectionStart = storedRange.text.length - range.text.length;
-            //buf.selectionEnd = buf.selectionStart + range.text.length;
         } else {
-            alert("setLineNumberStatus: no selectionStart or document.selection!");
+            alert("setLineNumberStatus: no document.selection!");
             return;
         }
     }
@@ -702,26 +730,29 @@ function setLineNumberStatus() {
     // so this workaround doesn't work!
     if (false && is.ie) {
         var start = textToStart.length - 1;
-        debug("setLineNumberStatus: checking ie for split workaround: " + start);
+        debug.print("setLineNumberStatus: checking ie for split workaround: "
+                    + start);
         var lastChar = textToStart.substr(start, 1);
-        debug("setLineNumberStatus: checking ie for split workaround: '" + lastChar + "'");
+        debug.print("setLineNumberStatus: checking ie for split workaround: '"
+                    + lastChar + "'");
         if (lastChar == "\n") {
             lineNumber++;
             charPosition = 0;
-            debug("setLineNumberStatus: corrected lineNumber = " + lineNumber);
+            debug.print("setLineNumberStatus: corrected lineNumber = "
+                        + lineNumber);
         }
     }
-    debug("setLineNumberStatus:"
-          + " selectionStart = " + buf.selectionStart
-          + ", selectionEnd = " + buf.selectionEnd
-          + ", textToStart = " + textToStart
-          + ", lastLine = " + linesArray[lineNumber - 1]
-          );
+    debug.print("setLineNumberStatus:"
+                + " selectionStart = " + buf.selectionStart
+                + ", selectionEnd = " + buf.selectionEnd
+                //+ ", textToStart = " + textToStart
+                + ", lastLine = " + linesArray[lineNumber - 1]
+                );
     lineStatus.innerHTML = "" + lineNumber + "," + charPosition;
 }
 
 function resizeBuffers(x, y) {
-    debug("resizeBuffers: " + x + "," + y);
+    debug.print("resizeBuffers: " + x + "," + y);
     // childNodes.length will return some non-buffer elements, too!
     var theBuffer = null;
     // parent of all the textareas
@@ -730,7 +761,7 @@ function resizeBuffers(x, y) {
         theBuffer = getBuffer(i);
         // not there? skip it
         if (theBuffer != null) {
-            //debug("resizeBuffers: " + theBuffer);
+            //debug.print("resizeBuffers: " + theBuffer);
             theBuffer.cols += x;
             theBuffer.rows += y;
         }
@@ -739,11 +770,11 @@ function resizeBuffers(x, y) {
 
 function disableButtons(flag) {
     // disable the form buttons
-    debug("disableButtons: " + flag);
+    debug.print("disableButtons: " + flag);
     var inputs = document.getElementsByTagName('INPUT');
     for (var i=0; i < inputs.length; i++) {
         if (inputs[i].type == "button") {
-            debug("disableButtons: " + i + ": " + inputs[i].type);
+            debug.print("disableButtons: " + i + ": " + inputs[i].type);
             inputs[i].disabled = flag;
         }
     }
@@ -771,7 +802,7 @@ function submitForm(theForm, theInput, theMimeType) {
         var qFrame = getQueryFrame();
         var rFrame = getResultFrame();
         if (!(rFrame && qFrame)) {
-            debug("null queryFrame or resultFrame!");
+            debug.print("null queryFrame or resultFrame!");
         } else {
             var f = function () { disableButtons(false) };
             rFrame.onload = f;
@@ -779,21 +810,21 @@ function submitForm(theForm, theInput, theMimeType) {
             rFrame.onabort = f;
             qFrame.onabort = f;
             fSet.onabort = f;
-            debug("resultFrame.onload = " + rFrame.onload);
+            debug.print("resultFrame.onload = " + rFrame.onload);
         }
     }
 
     // copy the selected eval-in args to the session cookie
     var currEval = document.getElementById(g_cq_eval_list_id).value;
-    debug("submitForm: currEval = " + currEval);
+    debug.print("submitForm: currEval = " + currEval);
     setCookie(g_cq_eval_list_id, currEval, 30);
 
     // copy current buffer to hidden element
     document.getElementById(g_cq_query_input).value = theInput;
-    debug("submitForm: "+document.getElementById(g_cq_query_input).value);
+    debug.print("submitForm: "+document.getElementById(g_cq_query_input).value);
     // set the mime type
     if (theMimeType != null) {
-        debug("submitForm: mimeType = " + theMimeType);
+        debug.print("submitForm: mimeType = " + theMimeType);
         document.getElementById(g_cq_query_mime_type).value = theMimeType;
     }
     // post the form
@@ -831,7 +862,7 @@ function cqExport(theForm) {
         // save history too
         var listNode = getQueryHistoryListNode(false);
         if (!listNode) {
-            debug("cqExport: null listNode");
+            debug.print("cqExport: null listNode");
         } else {
             var historyQueries = listNode.childNodes;
             var historyLength = historyQueries.length;
@@ -852,7 +883,7 @@ function cqExport(theForm) {
         theDatabase.value = null;
         submitForm(theForm, theQuery, "text/html");
 
-        debug("cqExport: preserving selected database " + oldDatabase);
+        debug.print("cqExport: preserving selected database " + oldDatabase);
         theDatabase.value = oldDatabase;
     } // if theUri
 } // cqExport
@@ -873,7 +904,7 @@ function submitText(theForm) {
 }
 
 function submitFormWrapper(theForm, mimeType) {
-    debug("submitFormWrapper: " + theForm + " as " + mimeType);
+    debug.print("submitFormWrapper: " + theForm + " as " + mimeType);
     if (!theForm)
         return;
 
@@ -889,33 +920,33 @@ function submitFormWrapper(theForm, mimeType) {
 function clearQueryHistory() {
     var historyNode = document.getElementById(g_cq_history_node);
     if (! historyNode) {
-        debug("clearQueryHistory: null historyNode");
+        debug.print("clearQueryHistory: null historyNode");
         return;
     }
 
-    removeChildNodes(historyNode);
+    historyNode.removeChildNodes();
 }
 
 function saveBuffersRecoveryPoint() {
-    debug("saveBuffersRecoveryPoint: start");
+    debug.print("saveBuffersRecoveryPoint: start");
     var buffersNode = document.getElementById(g_cq_buffers_area_id);
-    debug("saveBuffersRecoveryPoint: " + buffersNode);
-    debug("saveBuffersRecoveryPoint: " + buffersNode.innerHTML);
+    debug.print("saveBuffersRecoveryPoint: " + buffersNode);
+    debug.print("saveBuffersRecoveryPoint: " + buffersNode.innerHTML);
 
     if (! buffersNode) {
-        debug("saveBuffersRecoveryPoint: null buffersNode");
+        debug.print("saveBuffersRecoveryPoint: null buffersNode");
         return;
     }
 
     setCookie(g_cq_buffers_cookie, buffersNode.innerHTML);
-    debug("saveBuffersRecoveryPoint: " + getCookie(g_cq_buffers_cookie));
+    debug.print("saveBuffersRecoveryPoint: " + getCookie(g_cq_buffers_cookie));
 }
 
 function getQueryHistoryListNode(bootstrapFlag) {
     var historyNode = document.getElementById(g_cq_history_node);
     if (! historyNode) {
-        debug("saveQueryHistory: null historyNode");
-        return;
+        debug.print("saveQueryHistory: null historyNode");
+        return null;
     }
 
     // history entries will be list-item elements in an ordered-list
@@ -927,8 +958,15 @@ function getQueryHistoryListNode(bootstrapFlag) {
     return listNode;
 }
 
-function saveQueryHistory(query, appendFlag) {
-    debug("saveQueryHistory: " + query);
+function saveQueryHistory(query, appendFlag, checkFlag) {
+    if (appendFlag == null)
+        appendFlag = false;
+    // NOTE: if we know that there are no dups, don't check
+    if (checkFlag == null)
+        checkFlag = true;
+
+    debug.print("saveQueryHistory: append=" + appendFlag
+                + ", check=" + checkFlag + ": " + query.substr(0, 16));
     var listNode = getQueryHistoryListNode(true);
 
     // simple de-dupe check
@@ -941,14 +979,15 @@ function saveQueryHistory(query, appendFlag) {
         return;
     }
 
-    if (listItems && listItems[0]) {
-        debug("saveQueryHistory: checking " + listItems.length);
+    if (checkFlag && listItems && listItems[0]) {
+        debug.print("saveQueryHistory: dup-checking " + listItems.length);
         for (var i = 0; i < listItems.length; i++) {
-            //debug("saveQueryHistory: " + i);
-            if (normalize(listItems[i].childNodes[0].nodeValue) == normalizedQuery) {
+            //debug.print("saveQueryHistory: " + i);
+            if (normalize(listItems[i].childNodes[0].nodeValue)
+                == normalizedQuery) {
                 // we want to remove a node and then break
                 listNode.removeChild(listItems[i]);
-                debug("saveQueryHistory: " + i + " matched!");
+                debug.print("saveQueryHistory: " + i + " matched!");
                 if (g_cq_history_limit != null && g_cq_history_limit > 0)
                     break;
             }
@@ -958,16 +997,18 @@ function saveQueryHistory(query, appendFlag) {
     }
 
     var newItem = document.createElement("li");
-    newItem.appendChild(document.createTextNode(query));
+    var queryNode = document.createElement("span");
+    queryNode.appendChild(document.createTextNode(query));
     // onclick, copy to current textarea
-    newItem.onclick = function() {
+    queryNode.onclick = function() {
          var buf = getBuffer();
          buf.value = this.childNodes[0].nodeValue;
          // don't refresh buffer list
          //refreshBufferList(g_cq_buffer_current, "saveQueryHistory");
     }
     // tool-tip
-    newItem.title = "Click here to copy this query into the current buffer.";
+    queryNode.title = "Click here to copy this query into the current buffer.";
+    newItem.appendChild(queryNode);
 
     // delete widget
     var deleteLink = document.createElement("span");
@@ -1002,9 +1043,9 @@ function saveQueryHistory(query, appendFlag) {
 
 // display a confirmation message
 function finishImport() {
-    debug('finishImport: checking for output');
+    debug.print('finishImport: checking for output');
     var theOutput = getResultFrame();
-    debug("finishImport: theOutput = " + theOutput);
+    debug.print("finishImport: theOutput = " + theOutput);
     if (theOutput == null)
         return;
 
@@ -1019,7 +1060,7 @@ function finishImport() {
     // now check for buffers
     var theList = null;
     if (is.ie && theOutputDoc.XMLDocument) {
-        debug("finishImport: ie, using XMLDocument");
+        debug.print("finishImport: ie, using XMLDocument");
         theList = theOutputDoc.XMLDocument.getElementsByTagName
             (g_cq_buffer_basename);
     } else {
@@ -1030,13 +1071,14 @@ function finishImport() {
     // if we timed out, try again
     var theTimeout = null;
     if (theList == null || theList.length < 1) {
-        debug("finishImport: no list: setting new timeout " + g_cq_timeout);
+        debug.print("finishImport: no list: setting new timeout = "
+                    + g_cq_timeout);
         theTimeout = setTimeout('finishImport();', g_cq_timeout);
-        return null;
+        return;
     }
     clearTimeout(theTimeout);
 
-    // TODO if the imported worksheet has rows/cols attributes, use them
+    // TODO use rows, cols from imported worksheet, if present
 
     if (is.gecko) {
         // gecko has a problem with nodeValue longer than 4kB (encoded):
@@ -1044,11 +1086,11 @@ function finishImport() {
         // this is a DOM violation, but won't be fixed for some time.
         // see https://bugzilla.mozilla.org/show_bug.cgi?id=194231
         // workaround: call normalize() early
-        debug("finishImport: gecko workaround");
+        debug.print("finishImport: normalizing for gecko workaround");
         theOutputDoc.normalize();
     }
 
-    debug("finishImport: theList = " + theList.innerHTML + ", length = " + theList.length);
+    debug.print("finishImport: theList = " + theList.length);
     var theValue = null;
     for (var i = 0; i < theList.length; i++) {
         if (theList[i] == null || theList[i].firstChild == null)
@@ -1056,7 +1098,8 @@ function finishImport() {
 
         // TODO remove decode if encode isn't needed?
         theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
-        debug("finishImport: buffer i = " + i + ", " + theValue.length + ": " + theValue);
+        debug.print("finishImport: buffer i = " + i + ", " + theValue.length
+                    + ": " + theValue.substr(0, 16));
         getBuffer(i).value = theValue;
     } // for theList
 
@@ -1064,7 +1107,7 @@ function finishImport() {
     //clearQueryHistory();
     var historyNode = document.getElementById(g_cq_history_node);
     if (! historyNode) {
-        debug("finishImport: null historyNode");
+        debug.print("finishImport: null historyNode");
     } else {
         var theList = theOutputDoc.getElementsByTagName(g_cq_history_basename);
         for (var i = 0; i < theList.length ; i++) {
@@ -1074,7 +1117,7 @@ function finishImport() {
                 continue;
             // TODO remove decode if encode isn't needed?
             theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
-            saveQueryHistory(theValue, true);
+            saveQueryHistory(theValue, true, false);
         }
     }
 
@@ -1096,16 +1139,16 @@ function cqImport(theForm) {
 
     var theQuery = "doc('" + theUri + "')";
     var theOutput = getResultFrame();
-    debug("cqImport: " + theQuery);
+    debug.print("cqImport: " + theQuery);
     // set the current database to null,
     // so we save to the default db
-    theDatabase = document.getElementById(g_cq_eval_list_id);
-    oldDatabase = theDatabase.value;
+    var theDatabase = document.getElementById(g_cq_eval_list_id);
+    var oldDatabase = theDatabase.value;
     theDatabase.value = null;
     submitForm(theForm, theQuery, "text/xml");
     theDatabase.value = oldDatabase;
     // read the output
-    debug("setting import timeout to " + g_cq_timeout);
+    debug.print("setting import timeout to " + g_cq_timeout);
     var theTimeout = setTimeout("finishImport();", g_cq_timeout);
 } // cqImport
 

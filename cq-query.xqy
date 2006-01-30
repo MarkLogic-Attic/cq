@@ -37,7 +37,7 @@ import module namespace c = "com.marklogic.xqzone.cq.controller"
  : for now, we'll let the browser handle it.
  :)
 (: TODO add "useful queries" popup :)
-
+(: TODO add worksheets list: for $i in /cq_buffers return base-uri($i) :)
 define variable $g-worksheet-uri {
   xdmp:get-request-field("worksheet-uri", "worksheet.xml")
 }

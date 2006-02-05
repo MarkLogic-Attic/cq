@@ -1,7 +1,7 @@
 (:
  : cq: lib-view.xqy
  :
- : Copyright (c)2002-2005 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c)2002-2006 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.

@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2005 Mark Logic Corporation. All rights reserved.
+// Copyright (c) 2003-2006 Mark Logic Corporation. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -138,20 +138,19 @@ function BrowserIsClass() {
 
 var is = new BrowserIsClass();
 
-// extend HTMLElement class
-HTMLElement.prototype.removeChildNodes = function() {
-    while (this.hasChildNodes()) {
-        this.removeChild(this.firstChild);
+function removeChildNodes(n) {
+    while (n.hasChildNodes()) {
+        n.removeChild(n.firstChild);
     }
 }
 
-HTMLElement.prototype.hide = function() {
-    this.style.display = 'none';
+function hide(n) {
+    n.style.display = 'none';
 }
 
-HTMLElement.prototype.show = function() {
+function show(n) {
     // TODO introspectively use block or inline
-    this.style.display = 'block';
+    n.style.display = 'block';
 }
 
 // Cookie functions
@@ -310,7 +309,7 @@ function setInstructionText() {
     }
     // if this is IE6, hide the text entirely (doesn't work)
     if (is.ie) {
-        instructionNode.parentNode.hide();
+        hide(instructionNode.parentNode);
         return;
     }
     var theText = "alt";
@@ -319,7 +318,7 @@ function setInstructionText() {
         theText = "ctrl";
     }
     debug.print("setInstructionText: " + theText);
-    instructionNode.removeChildNodes();
+    removeChildNodes(instructionNode);
     instructionNode.appendChild(document.createTextNode(theText));
 }
 
@@ -390,25 +389,12 @@ function focusQueryInput() {
     setLineNumberStatus();
 }
 
-// normalize-space, in JavaScript
-// warning: replace() isn't a regex function
-// it's closer to 'tr' - character translation
-function normalize(s) {
-    if (s == null)
-        return null;
+// useful string functions
+function trim(s) { return s.replace(/^\s+|\s+$/g, ""); }
 
-    while (s.indexOf("\n") > -1)
-        s = s.replace("\n", ' ');
-    while (s.indexOf("\t") > -1)
-        s = s.replace("\t", ' ');
-    while (s.indexOf('  ') > -1)
-        s = s.replace('  ', ' ');
-    // TODO leading, trailing space? seems to work for leading, not trailing
-    while (s.substr(0, 1) == " ")
-        s = s.substr(1);
-    while (s.length > 0 && s.substr(s.length - 1, 1) == " ")
-        s = s.substr(0, s.length - 2);
-    return s;
+// normalize-space, in JavaScript
+function normalizeSpace(s) {
+    return trim(s.replace(/[\n\t\s]+/g, ' '));
 }
 
 // create some whitespace for line breaking in the buffer labels
@@ -422,7 +408,7 @@ function nudge(s) {
     s = s.replace("=", "=" + br);
     //s = s.replace(":", ":" + br);
     //s = s.replace("/", "/" + br);
-    return normalize(s);
+    return normalizeSpace(s);
 }
 
 function getLabel(n) {
@@ -527,8 +513,8 @@ function refreshBufferTabs(n) {
         buffersTitleNode.className = "buffer-tab-active";
         historyTitleNode.className = "buffer-tab";
         // hide and show the appropriate list
-        buffersNode.show();
-        historyNode.hide();
+        show(buffersNode);
+        hide(historyNode);
     } else {
         debug.print("refreshBufferTabs: displaying history");
         // highlight the active tab
@@ -541,8 +527,8 @@ function refreshBufferTabs(n) {
         historyNode.height = buffersNode.offsetHeight;
 
         // hide and show the appropriate list
-        buffersNode.hide();
-        historyNode.show();
+        hide(buffersNode);
+        show(historyNode);
     }
     return;
 }
@@ -557,7 +543,7 @@ function refreshBufferList(n, src) {
 
     // labels are stored in divs in a table cell
     var labelsNode = document.getElementById(g_cq_bufferlist_id);
-    labelsNode.removeChildNodes();
+    removeChildNodes(labelsNode);
     // create an explicit tbody for the DOM (Mozilla needs this)
     var tableBody = document.createElement('tbody');
     labelsNode.appendChild(tableBody);
@@ -583,7 +569,7 @@ function refreshBufferList(n, src) {
         // not there? skip it
         if (theBuffer != null) {
           writeBufferLabel(tableBody, i);
-          theBuffer.hide();
+          hide(theBuffer);
           // set up handlers to update line-number display
           if (! theBuffer.onfocus)
               theBuffer.onfocus = setLineNumberStatus;
@@ -595,7 +581,7 @@ function refreshBufferList(n, src) {
     } // for buffers
 
     // show the current buffer only, and put the cursor there
-    getBuffer().show();
+    show(getBuffer());
     focusQueryInput();
 } // refreshBufferList
 
@@ -907,8 +893,9 @@ function submitText(theForm) {
 
 function submitFormWrapper(theForm, mimeType) {
     debug.print("submitFormWrapper: " + theForm + " as " + mimeType);
-    if (!theForm)
+    if (!theForm) {
         return;
+    }
 
     var query = getBuffer().value;
     saveQueryHistory(query);
@@ -926,7 +913,7 @@ function clearQueryHistory() {
         return;
     }
 
-    historyNode.removeChildNodes();
+    removeChildNodes(historyNode);
 }
 
 function saveBuffersRecoveryPoint() {
@@ -952,23 +939,39 @@ function getQueryHistoryListNode(bootstrapFlag) {
     }
 
     // history entries will be list-item elements in an ordered-list
-    var listNode = historyNode.lastChild;
-    if (!listNode && bootstrapFlag) {
-        listNode = document.createElement("ol");
-        historyNode.appendChild(listNode);
+    var listNode = historyNode.getElementsByTagName("ol");
+    debug.print("getQueryHistoryListNode: found " + listNode);
+    if (listNode && listNode[0]) {
+        return listNode[0];
     }
+
+    if (!bootstrapFlag) {
+        return null;
+    }
+
+    // if this is the first query, delete the padding junk
+    debug.print("getQueryHistoryListNode: bootstrapping");
+    removeChildNodes(historyNode);
+    listNode = document.createElement("ol");
+    historyNode.appendChild(listNode);
     return listNode;
 }
 
-function saveQueryHistory(query, appendFlag, checkFlag) {
-    if (appendFlag == null)
-        appendFlag = false;
+function saveQueryHistory(query, checkFlag) {
+    if (query == null || query == "") {
+        return;
+    }
+    var normalizedQuery = normalizeSpace(query);
+    if (normalizedQuery == null || normalizedQuery == "") {
+        return;
+    }
     // NOTE: if we know that there are no dups, don't check
     if (checkFlag == null)
         checkFlag = true;
 
-    debug.print("saveQueryHistory: append=" + appendFlag
-                + ", check=" + checkFlag + ": " + query.substr(0, 16));
+    debug.print("saveQueryHistory: "
+                + ", check=" + checkFlag
+                + ": " + normalizedQuery.substr(0, 16));
     var listNode = getQueryHistoryListNode(true);
 
     // simple de-dupe check
@@ -976,16 +979,12 @@ function saveQueryHistory(query, appendFlag, checkFlag) {
     // this is most likely to happen with the most recent query
     // also implements history limit...
     var listItems = listNode.childNodes;
-    var normalizedQuery = normalize(query);
-    if (query == null || query == "") {
-        return;
-    }
 
     if (checkFlag && listItems && listItems[0]) {
         debug.print("saveQueryHistory: dup-checking " + listItems.length);
         for (var i = 0; i < listItems.length; i++) {
             //debug.print("saveQueryHistory: " + i);
-            if (normalize(listItems[i].childNodes[0].nodeValue)
+            if (normalizeSpace(listItems[i].firstChild.firstChild.nodeValue)
                 == normalizedQuery) {
                 // we want to remove a node and then break
                 listNode.removeChild(listItems[i]);
@@ -1031,9 +1030,11 @@ function saveQueryHistory(query, appendFlag, checkFlag) {
     newItem.appendChild(document.createElement("hr"));
 
     // it's nice to have the most-recent at the top...
-    if (listItems && listItems[0] && (!appendFlag)) {
+    if (listItems && listItems[0]) {
         listNode.insertBefore(newItem, listItems[0]);
     } else {
+        debug.print("saveQueryHistory: appending "
+                    + newItem + " to " + listNode);
         listNode.appendChild(newItem);
     }
 
@@ -1119,7 +1120,8 @@ function finishImport() {
                 continue;
             // TODO remove decode if encode isn't needed?
             theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
-            saveQueryHistory(theValue, true, false);
+            // set checkFlag false, to speed up imports
+            saveQueryHistory(theValue, false);
         }
     }
 

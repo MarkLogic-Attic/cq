@@ -1,7 +1,7 @@
 (:
  : Client Query Application
  :
- : Copyright (c) 2002-2005 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2006 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -179,19 +179,19 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
               <input type="button" class="input1"
               onclick="cqImport(this.form);" value="Open"
               title="Retrieve queries and history from the current database. Shortcut: ctrl-shift-o"/>
-              | <span class="instruction">resize query:</span>
-              <img src="larr.gif" class="resizable-w" width="10" height="13"
-              title="reduce the number of columns"
-              onclick="resizeBuffers(-1, 0); return false;"/>
+              | <span class="instruction">resize:</span>
               <img src="darr.gif" class="resizable-s" width="13" height="10"
-              title="reduce the number of rows"
-              onclick="resizeBuffers(0, -1); return false;"/>
+              title="increase the number of rows"
+              onclick="resizeBuffers(0, 1); return false;"/>
               <img src="rarr.gif" class="resizable-e" width="10" height="13"
               title="increase the number of columns"
               onclick="resizeBuffers(1, 0); return false;"/>
               <img src="uarr.gif" class="resizable-n" width="13" height="10"
-              title="increase the number of rows"
-              onclick="resizeBuffers(0, 1); return false;"/>
+              title="reduce the number of rows"
+              onclick="resizeBuffers(0, -1); return false;"/>
+              <img src="larr.gif" class="resizable-w" width="10" height="13"
+              title="reduce the number of columns"
+              onclick="resizeBuffers(-1, 0); return false;"/>
             </div>
             <div nowrap="1" id="cq_buffers">
 {
@@ -205,13 +205,12 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
     attribute id { $bufid },
     attribute rows { ($g-default-worksheet/@rows, 16)[1] },
     attribute cols { ($g-default-worksheet/@cols, 80)[1] },
+    (: preserve all whitespace :)
     attribute xml:space { "preserve" },
     xdmp:url-decode($b)
   }
 }
               <input id="/cq:query" name="/cq:query" type="hidden"/>
-              <input id="/cq:debug" name="/cq:debug" type="hidden"
-               value="{c:get-debug()}"/>
             <table width="100%">
               <tr>
                 <td width="100%" nowrap="1">
@@ -242,10 +241,9 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
             <tr id="cq-buffer-tabs">
               <td class="buffer-tab" id="cq-buffer-tabs-0"
               title="Select any of 10 queries. Shortcut: ctrl-0 to 9, or alt-0 to 9."
-               onclick="refreshBufferTabs(0)">
-                 Queries<span class="instruction" nowrap="1">
-                  (<span id="cq_buffer_accesskey_text">alt</span>)
-                  </span>
+               onclick="refreshBufferTabs(0)">Queries&nbsp;<span
+               class="instruction" nowrap="1">(<span
+               id="cq_buffer_accesskey_text">alt</span>)</span>
               </td>
               <td class="buffer-tab" id="cq-buffer-tabs-1"
               title="Query history, listing the 50 most recent queries."
@@ -254,7 +252,11 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
             </tr>
             </table>
             <table id="cq_bufferlist" border="1"/>
-            <div id="/cq:history" name="/cq:history" class="query-history"/>
+            <div id="/cq:history" name="/cq:history" class="query-history">
+            <span><i>
+            This is an empty query history list:
+            populate it by submitting queries.</i></span>
+            </div>
           </td>
         </tr>
         <tr>
@@ -262,6 +264,8 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
           </td>
         </tr>
       </table>
+      <input id="/cq:debug" name="/cq:debug" type="hidden"
+      value="{c:get-debug()}"/>
     </form>
   </body>
 </html>

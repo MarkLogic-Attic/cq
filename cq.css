@@ -1,4 +1,4 @@
-/* Copyright (c) 2004-2005 Mark Logic Corporation. All Rights Reserved.
+/* Copyright (c) 2004-2006 Mark Logic Corporation. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -165,8 +165,8 @@ select
  */
   white-space: nowrap;
 
-  height: 1.5em;
   line-height: 1.5;
+  height: 1.5em;
   cursor: pointer;
 }
 
@@ -179,11 +179,12 @@ select
  * two lines high, instead:
  * we count on finding a breaking character by the end of line 2...
  */
+  white-space: -moz-pre-wrap;
+  /* CSS 2.1: white-space: pre-wrap; */
+
   line-height: 1.5;
   height: 3em;
   background-color: #FFCC33;
-  white-space: -moz-pre-wrap;
-  /* CSS 2.1: white-space: pre-wrap; */
 }
 
 /* IE6 hack, to allow 'white-space: nowrap' for gecko browsers. 

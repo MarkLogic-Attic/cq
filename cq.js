@@ -675,15 +675,12 @@ function setLineNumberStatus() {
     }
 
     // must handle this differently for gecko vs IE6
-    //debug.print("setLineNumberStatus: buf.selectionStart = "
-    // + buf.selectionStart);
-    if (!document.selection) {
-        // gecko? is that you?
-    } else {
+    // must test non-gecko first, since this code will persist
+    if (document.selection) {
         // set it up, using IE5+ API
-        // http://msdn.microsoft.com/workshop/author/dhtml/reference/objects/obj_textrange.asp
-        //debug.print("setLineNumberStatus: document.selection = "
-        // + document.selection);
+        // http://msdn.microsoft.com/workshop/author/dhtml/reference
+        //   /objects/obj_textrange.asp
+        debug.print("setLineNumberStatus: found document.selection");
         if (document.selection){
             var range = document.selection.createRange();
             var storedRange = range.duplicate();
@@ -701,6 +698,11 @@ function setLineNumberStatus() {
             alert("setLineNumberStatus: no document.selection!");
             return;
         }
+    } else if (buf.selectionStart) {
+        // looks like it's gecko
+    } else {
+        // TODO khtml, webcore support (probably can't do it yet)
+        return;
     }
 
     // now we can pretend to be gecko

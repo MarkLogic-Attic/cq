@@ -105,8 +105,7 @@ define function get-eval-selector() as element(html:select)
     },
     let $current :=
       xs:unsignedLong(xdmp:get-request-field(
-        "/cq:current-eval-in", string(xdmp:database())
-      ))
+        "/cq:current-eval-in", string(xdmp:server()) ) )
     (: list the application servers, except webdav servers
      : NOTE: requires MarkLogic Server 3.0 or later
      : NOTE: uses undocumented APIs
@@ -122,7 +121,7 @@ define function get-eval-selector() as element(html:select)
       let $label := v:get-eval-label($db, (), (), $name)
       let $value := string-join(("as", string($id)), ":")
       (: sort current app-server to the top, for bootstrap selection :)
-      order by $label
+      order by ($id eq xdmp:server()) descending, $label
       return element html:option {
         attribute value { $value },
         if ($current eq $id) then attribute selected { true() } else (),

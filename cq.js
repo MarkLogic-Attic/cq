@@ -390,7 +390,7 @@ function focusQueryInput() {
 }
 
 // useful string functions
-function trim(s) { return s.replace(/^\s+|\s+$/g, ""); }
+function trim(s) { return s == null ? null : s.replace(/^\s+|\s+$/g, ""); }
 
 // normalize-space, in JavaScript
 function normalizeSpace(s) {
@@ -829,7 +829,7 @@ function cqExport(theForm) {
 
     // TODO export non-default options (rows, cols, etc), export them
 
-    var theUri = document.getElementById(g_cq_uri).value;
+    var theUri = trim(document.getElementById(g_cq_uri).value);
     if (theUri) {
         var theQuery =
             'xdmp:document-insert("' + theUri + '",'
@@ -868,8 +868,8 @@ function cqExport(theForm) {
             + ', "exported ' + theUri + '"';
         // set the current database to null,
         // so we save to the default db?
-        theDatabase = document.getElementById(g_cq_eval_list_id);
-        oldDatabase = theDatabase.value;
+        var theDatabase = document.getElementById(g_cq_eval_list_id);
+        var oldDatabase = theDatabase.value;
         theDatabase.value = null;
         submitForm(theForm, theQuery, "text/html");
 
@@ -1063,24 +1063,31 @@ function finishImport() {
         return;
 
     // now check for buffers
+    // it's critical to be able to tell the difference between
+    // needing to retry vs simply importing an empty worksheet.
     var theList = null;
+    var retry = false;
     if (is.ie && theOutputDoc.XMLDocument) {
-        debug.print("finishImport: ie, using XMLDocument");
-        theList = theOutputDoc.XMLDocument.getElementsByTagName
-            (g_cq_buffer_basename);
+        // make it look like gecko
+        debug.print("finishImport: ie, using XMLDocument = " + theOutputDoc.XMLDocument);
+        theOutputDoc = theOutputDoc.XMLDocument;
+    }
+
+    if (theOutputDoc.getElementsByTagName(g_cq_buffers_area_id).length < 1) {
+        retry = true;
     } else {
-        theList =
-            theOutputDoc.getElementsByTagName(g_cq_buffer_basename);
+        theList = theOutputDoc.getElementsByTagName(g_cq_buffer_basename);
     }
 
     // if we timed out, try again
     var theTimeout = null;
-    if (theList == null || theList.length < 1) {
-        debug.print("finishImport: no list: setting new timeout = "
+    if (retry) {
+        debug.print("finishImport: retrying with new timeout = "
                     + g_cq_timeout);
         theTimeout = setTimeout('finishImport();', g_cq_timeout);
         return;
     }
+
     clearTimeout(theTimeout);
 
     // TODO use rows, cols from imported worksheet, if present
@@ -1096,6 +1103,14 @@ function finishImport() {
     }
 
     debug.print("finishImport: theList = " + theList.length);
+    // if the length is 0, there was nothing to import
+    if (theList.length < 1) {
+        var theUri = document.getElementById(g_cq_uri).value;
+        var theQuery = '<p>Sorry, but ' + theUri + ' was empty</p>';
+        submitForm(document.getElementById(g_cq_query_form_id),
+                   theQuery, "text/html");
+    }
+
     var theValue = null;
     for (var i = 0; i < theList.length; i++) {
         if (theList[i] == null || theList[i].firstChild == null)
@@ -1139,11 +1154,12 @@ function finishImport() {
 
 function cqImport(theForm) {
     // load the buffer state from the uri stored in g_cq_uri
-    var theUri = document.getElementById(g_cq_uri).value;
+    var theUri = trim(document.getElementById(g_cq_uri).value);
     if (! theUri)
         return;
 
-    var theQuery = "doc('" + theUri + "')";
+    // if the document doesn't exits, we want an empty parent element
+    var theQuery = "(doc('" + theUri + "'), <" + g_cq_buffers_area_id + "/>)[1]";
     var theOutput = getResultFrame();
     debug.print("cqImport: " + theQuery);
     // set the current database to null,
@@ -1151,6 +1167,7 @@ function cqImport(theForm) {
     var theDatabase = document.getElementById(g_cq_eval_list_id);
     var oldDatabase = theDatabase.value;
     theDatabase.value = null;
+    // must send XML, so that we can use the resulting nodes
     submitForm(theForm, theQuery, "text/xml");
     theDatabase.value = oldDatabase;
     // read the output

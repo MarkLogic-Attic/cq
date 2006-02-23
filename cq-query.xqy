@@ -103,9 +103,8 @@ define function get-eval-selector() as element(html:select)
     attribute title {
       "Select the database in which this query will evaluate."
     },
-    let $current :=
-      xs:unsignedLong(xdmp:get-request-field(
-        "/cq:current-eval-in", string(xdmp:server()) ) )
+    let $current := xdmp:get-request-field(
+      "/cq:current-eval-in", string-join(("as", string(xdmp:server())), ":") )
     (: list the application servers, except webdav servers
      : NOTE: requires MarkLogic Server 3.0 or later
      : NOTE: uses undocumented APIs
@@ -124,11 +123,13 @@ define function get-eval-selector() as element(html:select)
       order by ($id eq xdmp:server()) descending, $label
       return element html:option {
         attribute value { $value },
-        if ($current eq $id) then attribute selected { true() } else (),
+        if ($current eq $value) then attribute selected { true() } else (),
         $label
       },
-      (: list the databases that aren't exposed via an app-server :)
-      (: use reasonable defaults for modules, root values: current server :)
+      (: list the databases that aren't exposed via an app-server -
+       : use reasonable defaults for modules, root values: current server.
+       : note that we can default to one of these, too!
+       :)
       let $server := $servers[ mlgr:http-server-id eq xdmp:server() ]
       let $modules := data($server/mlgr:modules)
       let $root := data($server/mlgr:root)
@@ -139,6 +140,7 @@ define function get-eval-selector() as element(html:select)
       order by $label
       return element html:option {
         attribute value { $value },
+        if ($current eq $value) then attribute selected { true() } else (),
         $label
       }
     )

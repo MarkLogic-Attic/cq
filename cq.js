@@ -701,7 +701,10 @@ function setLineNumberStatus() {
     } else if (buf.selectionStart) {
         // looks like it's gecko
     } else {
-        // TODO khtml, webcore support (probably can't do it yet)
+        // TODO khtml, webcore support (probably cannot do it yet)
+        // may also be 1,0 so set that location and return
+        debug.print("no selection information: setting 1,0");
+        lineStatus.innerHTML = "" + 1 + "," + 0;
         return;
     }
 

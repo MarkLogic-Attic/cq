@@ -330,12 +330,12 @@ function getFrameset() {
 function getQueryFrame() {
     // get it from the parent document
     return parent.document.getElementById(g_cq_query_frame_id);
-} // getResultFrame
+}
 
 function getResultFrame() {
     // get it from the parent document
     return parent.document.getElementById(g_cq_result_frame_id);
-} // getResultFrame
+}
 
 function resizeFrameset() {
     var frameset = getFrameset();
@@ -1054,43 +1054,59 @@ function finishImport() {
     debug.print('finishImport: checking for output');
     var theOutput = getResultFrame();
     debug.print("finishImport: theOutput = " + theOutput);
-    if (theOutput == null)
+    if (theOutput == null) {
         return;
+    }
 
     var theOutputDoc = theOutput.contentDocument;
-    if (is.ie)
+    debug.print("finishImport: theOutputDoc = " + theOutputDoc);
+    if (typeof theOutputDoc == "undefined") {
+        // IE6 or similar...
         theOutputDoc = theOutput.contentWindow.document;
+        debug.print("finishImport: using contentWindow.document, theOutputDoc = "
+                    + theOutputDoc);
+    }
 
-    // no document? no results...
-    if (theOutputDoc == null)
-        return;
+    if (theOutputDoc.readyState) {
+        debug.print("finishImport: readyState = " + theOutputDoc.readyState);
+        if (theOutputDoc.readyState != "complete") {
+            // this is a signal to sleep and retry
+            theOutputDoc == null;
+        } else {
+            // loaded ok: now make it look like gecko
+            // NOTE: this doesn't seem to work with IE6 under wine,
+            // NOTE: probably because the MSXML ActiveX isn't working?
+            debug.print("finishImport: IE, using XMLDocument = "
+                        + theOutputDoc.XMLDocument);
+            theOutputDoc = theOutputDoc.XMLDocument;
+        }
+    }
+    debug.print("finishImport: theOutputDoc = " + theOutputDoc);
 
     // now check for buffers
     // it's critical to be able to tell the difference between
     // needing to retry vs simply importing an empty worksheet.
-    var theList = null;
-    var retry = false;
-    if (is.ie && theOutputDoc.XMLDocument) {
-        // make it look like gecko
-        debug.print("finishImport: ie, using XMLDocument = " + theOutputDoc.XMLDocument);
-        theOutputDoc = theOutputDoc.XMLDocument;
+    var parentNodeList = null;
+    if (theOutputDoc && theOutputDoc.firstChild) {
+        debug.print("finishImport: theOutputDoc.firstChild = "
+                    + theOutputDoc.firstChild);
+        parentNodeList = theOutputDoc.getElementsByTagName(g_cq_buffers_area_id);
     }
-
-    if (theOutputDoc.getElementsByTagName(g_cq_buffers_area_id).length < 1) {
-        retry = true;
-    } else {
-        theList = theOutputDoc.getElementsByTagName(g_cq_buffer_basename);
-    }
+    debug.print("finishImport: parentNodeList = " + parentNodeList);
 
     // if we timed out, try again
-    var theTimeout = null;
-    if (retry) {
+    if (! theOutputDoc || ! parentNodeList || ! parentNodeList[0]) {
         debug.print("finishImport: retrying with new timeout = "
                     + g_cq_timeout);
         theTimeout = setTimeout('finishImport();', g_cq_timeout);
         return;
     }
+    debug.print("finishImport: parentNodeList[0] = " + parentNodeList[0]);
 
+    var theList = theOutputDoc.getElementsByTagName(g_cq_buffer_basename);
+
+    // TODO I don't remember why this variable is needed
+    var theTimeout = null;
     clearTimeout(theTimeout);
 
     // TODO use rows, cols from imported worksheet, if present
@@ -1110,7 +1126,7 @@ function finishImport() {
     if (theList.length < 1) {
         var theUri = document.getElementById(g_cq_uri).value;
         var theQuery = '<p>Sorry, but ' + theUri + ' was empty</p>';
-        submitForm(document.getElementById(g_cq_query_form_id),
+        return submitForm(document.getElementById(g_cq_query_form_id),
                    theQuery, "text/html");
     }
 

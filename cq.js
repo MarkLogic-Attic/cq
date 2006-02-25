@@ -833,52 +833,50 @@ function cqExport(theForm) {
     // TODO export non-default options (rows, cols, etc), export them
 
     var theUri = trim(document.getElementById(g_cq_uri).value);
-    if (theUri) {
-        var theQuery =
-            'xdmp:document-insert("' + theUri + '",'
-            + '<' + g_cq_buffers_area_id + ' id="' + g_cq_buffers_area_id + '">';
-        // save buffers
-        // childNodes.length will return some non-buffer elements, too!
-        var buf = null;
-        // parent of all the textareas
-        var theParent = document.getElementById(g_cq_buffers_area_id);
-        for (var i = 0; i < theParent.childNodes.length; i++) {
-            buf = getBuffer(i);
-            if (buf != null) {
-                theQuery += '<' + g_cq_buffer_basename + '>'
-                    // TODO xml-escape, instead?
-                    + encodeURIComponent(getBuffer(i).value)
-                    + '</' + g_cq_buffer_basename + '>'
-                    + "\n";
-            }
-        }
-        // save history too
-        var listNode = getQueryHistoryListNode(false);
-        if (!listNode) {
-            debug.print("cqExport: null listNode");
-        } else {
-            var historyQueries = listNode.childNodes;
-            var historyLength = historyQueries.length;
-            for (var i = 0; i < historyLength; i++) {
-                theQuery += '<' + g_cq_history_basename + '>'
-                    // TODO xml-escape, instead?
-                    + encodeURIComponent(historyQueries[i].firstChild.nodeValue)
-                    + '</' + g_cq_history_basename + '>'
-                    + "\n";
-            }
-        }
-        theQuery += '</' + g_cq_buffers_area_id + '>)'
-            + ', "exported ' + theUri + '"';
-        // set the current database to null,
-        // so we save to the default db?
-        var theDatabase = document.getElementById(g_cq_eval_list_id);
-        var oldDatabase = theDatabase.value;
-        theDatabase.value = null;
-        submitForm(theForm, theQuery, "text/html");
+    if (! theUri) {
+      return null;
+    }
 
-        debug.print("cqExport: preserving selected database " + oldDatabase);
-        theDatabase.value = oldDatabase;
-    } // if theUri
+    var theQuery =
+        'xdmp:document-insert("' + theUri + '",'
+        + '<' + g_cq_buffers_area_id + ' id="' + g_cq_buffers_area_id + '">';
+    // save buffers
+    // childNodes.length will return some non-buffer elements, too!
+    var buf = null;
+    // parent of all the textareas
+    var theParent = document.getElementById(g_cq_buffers_area_id);
+    for (var i = 0; i < theParent.childNodes.length; i++) {
+        buf = getBuffer(i);
+        if (buf != null) {
+            theQuery += '<' + g_cq_buffer_basename + '>'
+                // TODO xml-escape, instead?
+                + encodeURIComponent(getBuffer(i).value)
+                + '</' + g_cq_buffer_basename + '>'
+                + "\n";
+        }
+    }
+    // save history too
+    var listNode = getQueryHistoryListNode(false);
+    if (!listNode) {
+        debug.print("cqExport: null listNode");
+    } else {
+        var historyQueries = listNode.childNodes;
+        var historyLength = historyQueries.length;
+        for (var i = 0; i < historyLength; i++) {
+            theQuery += '<' + g_cq_history_basename + '>'
+                // TODO xml-escape, instead?
+                + encodeURIComponent(historyQueries[i].firstChild.nodeValue)
+                + '</' + g_cq_history_basename + '>'
+                + "\n";
+        }
+    }
+    theQuery += '</' + g_cq_buffers_area_id + '>)'
+        + ', "exported ' + theUri + '"';
+    // TODO think about separating queries from worksheets,
+    // for storage purposes.
+    submitForm(theForm, theQuery, "text/html");
+
+    debug.print("cqExport: preserving selected database " + oldDatabase);
 } // cqExport
 
 // Submit XML Query
@@ -1074,8 +1072,7 @@ function finishImport() {
             theOutputDoc == null;
         } else {
             // loaded ok: now make it look like gecko
-            // NOTE: this doesn't seem to work with IE6 under wine,
-            // NOTE: probably because the MSXML ActiveX isn't working?
+            // note that the debug output is useless!
             debug.print("finishImport: IE, using XMLDocument = "
                         + theOutputDoc.XMLDocument);
             theOutputDoc = theOutputDoc.XMLDocument;
@@ -1157,6 +1154,7 @@ function finishImport() {
             // TODO remove decode if encode isn't needed?
             theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
             // set checkFlag false, to speed up imports
+						// this may result in duplicate queries...
             saveQueryHistory(theValue, false);
         }
     }
@@ -1178,21 +1176,16 @@ function cqImport(theForm) {
         return;
 
     // if the document doesn't exits, we want an empty parent element
-    var theQuery = "(doc('" + theUri + "'), <" + g_cq_buffers_area_id + "/>)[1]";
+    var theQuery = 
+      "(doc('" + theUri + "'), <" + g_cq_buffers_area_id + "/>)[1]";
     var theOutput = getResultFrame();
     debug.print("cqImport: " + theQuery);
-    // set the current database to null,
-    // so we save to the default db
-    var theDatabase = document.getElementById(g_cq_eval_list_id);
-    var oldDatabase = theDatabase.value;
-    theDatabase.value = null;
     // must send XML, so that we can use the resulting nodes
     submitForm(theForm, theQuery, "text/xml");
-    theDatabase.value = oldDatabase;
     // read the output
     debug.print("setting import timeout to " + g_cq_timeout);
     var theTimeout = setTimeout("finishImport();", g_cq_timeout);
-} // cqImport
+}
 
 function cqListDocuments() {
     // TODO link to display the document?

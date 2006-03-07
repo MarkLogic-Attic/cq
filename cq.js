@@ -862,12 +862,16 @@ function cqExport(theForm) {
     } else {
         var historyQueries = listNode.childNodes;
         var historyLength = historyQueries.length;
+        var queryText = null;
         for (var i = 0; i < historyLength; i++) {
-            theQuery += '<' + g_cq_history_basename + '>'
-                // TODO xml-escape, instead?
-                + encodeURIComponent(historyQueries[i].firstChild.nodeValue)
-                + '</' + g_cq_history_basename + '>'
-                + "\n";
+            queryText = historyQueries[i].firstChild.nodeValue;
+            if (queryText != null) {
+                theQuery += '<' + g_cq_history_basename + '>'
+                    // TODO xml-escape, instead?
+                    + encodeURIComponent(queryText)
+                    + '</' + g_cq_history_basename + '>'
+                    + "\n";
+            }
         }
     }
     theQuery += '</' + g_cq_buffers_area_id + '>)'
@@ -876,7 +880,6 @@ function cqExport(theForm) {
     // for storage purposes.
     submitForm(theForm, theQuery, "text/html");
 
-    debug.print("cqExport: preserving selected database " + oldDatabase);
 } // cqExport
 
 // Submit XML Query
@@ -1154,7 +1157,7 @@ function finishImport() {
             // TODO remove decode if encode isn't needed?
             theValue = decodeURIComponent( (theList[i]).firstChild.nodeValue );
             // set checkFlag false, to speed up imports
-						// this may result in duplicate queries...
+                        // this may result in duplicate queries...
             saveQueryHistory(theValue, false);
         }
     }
@@ -1176,7 +1179,7 @@ function cqImport(theForm) {
         return;
 
     // if the document doesn't exits, we want an empty parent element
-    var theQuery = 
+    var theQuery =
       "(doc('" + theUri + "'), <" + g_cq_buffers_area_id + "/>)[1]";
     var theOutput = getResultFrame();
     debug.print("cqImport: " + theQuery);

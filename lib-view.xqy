@@ -141,10 +141,11 @@ define function v:get-error-html
     ),
     <br/>,
     <br/>,
+    (: NOTE: format-string is sometimes empty. if so, we omit the br :)
     if (exists($ex/err:format-string/text()))
     then ($ex/err:format-string/text(), <br/>)
     else if (exists($ex/err:code/text()))
-    then ($ex/err:code/text(), <br/>)
+    then (text { $ex/err:code, $ex/err:data/err:datum }, <br/>)
     else (),
     <br/>,
     <i>Stack trace:</i>, <br/>, <br/>,

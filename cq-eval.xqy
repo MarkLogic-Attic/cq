@@ -38,11 +38,9 @@ define variable $g-query as xs:string {
 (: split into database, modules location, and root :)
 define variable $g-eval-in as xs:string+ {
 (: get appserver info in real-time, so we can support admin changes :)
-  let $toks :=
-    tokenize(xdmp:get-request-field("/cq:eval-in", string(xdmp:database())), ":")
-  return
-  if ($toks[1] eq "as")
-  then (
+  let $toks := tokenize(xdmp:get-request-field(
+    "/cq:eval-in", string(xdmp:database())), ":")
+  return if ($toks[1] ne "as") then $toks else (
     let $server := (
       xdmp:read-cluster-config-file("groups.xml")
         //(mlgr:http-server[mlgr:webDAV eq false()]|mlgr:xdbc-server)
@@ -53,7 +51,7 @@ define variable $g-eval-in as xs:string+ {
       string($server/mlgr:modules),
       string(($server/(mlgr:root|mlgr:library))[1])
     )
-  ) else $toks
+  )
 }
 
 define variable $g-db as xs:unsignedLong {
@@ -89,7 +87,7 @@ c:debug(("cq-eval:", $g-mime-type)),
 c:debug(("cq-eval:", $g-db, $g-modules, $g-root, $g-query)),
 try {
   (: set the mime-type inside the try-catch block,
-   : so errors can override it
+   : so errors can override it.
    :)
   let $x := xdmp:eval-in($g-query, $g-db, (), $g-modules, $g-root)
   let $g-mime-type := if (empty($x)) then "text/html" else $g-mime-type

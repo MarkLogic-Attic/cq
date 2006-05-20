@@ -61,12 +61,14 @@ define variable $g-default-worksheet as element(cq_buffers)? {
     tokenize(xdmp:get-request-path(), "[/]+")[1 to last() - 1],
     "/"
   )
-  (: what about Windows and backslashes? don't talk to me about backslashes... :)
-  let $path := replace(concat($root, $rpath, "/", $g-worksheet-uri), '//+', '/')
-  let $path :=
-    if (xdmp:platform() eq "winnt")
-    then replace($path, '\\', '/')
-    else $path
+  (: Windows and backslashes? don't talk to me about backslashes... 
+   : Problem is, we're going to use '/' in db-resident module paths anyhow,
+   : so I'd prefer to use '/' everywhere. But what about SMB paths?
+   : Ultimately, it seems to work for all three cases if we just
+   : use whatever the user supplies.
+   :)
+  let $path := 
+    replace(concat($root, $rpath, "/", $g-worksheet-uri), '//+', '/')
   let $worksheet :=
     if ($mdb ne 0)
     then

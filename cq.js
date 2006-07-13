@@ -59,6 +59,7 @@ var g_cq_buffer_current = 0;
 var g_cq_next_id = 0;
 var g_cq_timeout = 100;
 var g_cq_history_limit = 50;
+var g_cq_carets = new Array();
 
 var debug = new DebugClass();
 
@@ -380,34 +381,24 @@ function getBuffer(n) {
     return document.getElementById(getBufferId(n));
 }
 
-function focusQueryInput() {
-    var t = getBuffer();
-    if (!t)
-        return;
-
-    t.focus();
-    setLineNumberStatus();
-}
-
 // useful string functions
 function trim(s) { return s == null ? null : s.replace(/^\s+|\s+$/g, ""); }
 
 // normalize-space, in JavaScript
-function normalizeSpace(s) {
-    return trim(s.replace(/[\n\t\s]+/g, ' '));
-}
+function normalizeSpace(s) { return trim(s.replace(/[\n\t\s]+/g, ' ')); }
 
 // create some whitespace for line breaking in the buffer labels
-// TODO is there some *optional* linebreak character we could use?
-// yes: should be "\A" (0x07), but that doesn't work!
+// is there some *optional* linebreak character we could use?
+// yes: http://www.quirksmode.org/oddsandends/wbr.html
+// but I don't want to muck with the wbr element in a string...
+// solution: "&shy;" (#173, 0xAD) for IE, else #8203 (0x200b)
+// not perfect, but seems to be ok...
 function nudge(s) {
-    var br = " ";
-    //s = s.replace("(", "(" + br);
-    //s = s.replace(")", br + ")");
+    var br = is.ie ? "\u200b" : "\u00ad";
+    s = s.replace("(", "(" + br);
+    s = s.replace(")", br + ")");
     s = s.replace(",", "," + br);
-    s = s.replace("=", "=" + br);
-    //s = s.replace(":", ":" + br);
-    //s = s.replace("/", "/" + br);
+    s = s.replace("=", br + "=" + br);
     return normalizeSpace(s);
 }
 
@@ -443,8 +434,8 @@ function getLabel(n) {
     // we shouldn't have to normalize spaces, but IE6 is broken
     // ...and so we have to hint word-breaks to both browsers...
     var theLabel = nudge(getBuffer(n).value.substr(0, 1024));
-    // put a space here for formatting, so it won't be inside the link
-    theNode.appendChild(document.createTextNode(" " + theLabel));
+    // put a nbsp here for formatting, so it won't be inside the link
+    theNode.appendChild(document.createTextNode("\u00a0" + theLabel));
 
     // highlight the current buffer
     // IE6 doesn't like setAttribute here, but gecko accepts it
@@ -557,19 +548,30 @@ function refreshBufferList(n, src) {
         }
     }
 
+    var theBuffer = getBuffer();
+    // remember the current caret position
+    if (theBuffer.selectionStart) {
+        g_cq_carets[g_cq_buffer_current] = theBuffer.selectionStart;
+        debug.print("remembering buffer " + g_cq_buffer_current
+                    + " caret position " + g_cq_carets[i]);
+    }
+    // for gecko, handle disappearing-cursor weirdness?
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=215724
+    theBuffer.blur();
+    // hide current, to avoid flashing
+    hide(theBuffer);
     g_cq_buffer_current = n;
-    debug.print("refreshBufferList: from " + src + ", show " + g_cq_buffer_current);
+    debug.print("refreshBufferList: from " + src
+                + ", show " + g_cq_buffer_current);
     // parent of all the textareas
     var theParent = document.getElementById(g_cq_buffers_area_id);
     // childNodes.length will return some non-buffer elements, too!
-    var theBuffer = null;
     for (var i = 0; i < theParent.childNodes.length; i++) {
         //debug.print("refreshBufferList: i = " + i + " of " + theParent.childNodes.length);
         theBuffer = getBuffer(i);
         // not there? skip it
         if (theBuffer != null) {
           writeBufferLabel(tableBody, i);
-          hide(theBuffer);
           // set up handlers to update line-number display
           if (! theBuffer.onfocus)
               theBuffer.onfocus = setLineNumberStatus;
@@ -577,12 +579,26 @@ function refreshBufferList(n, src) {
               theBuffer.onclick = setLineNumberStatus;
           if (! theBuffer.onkeyup)
               theBuffer.onkeyup = setLineNumberStatus;
+          // show the current buffer only, and put the cursor there
+          if (i == g_cq_buffer_current) {
+              show(theBuffer);
+              theBuffer.focus();
+
+              if (theBuffer.selectionStart) {
+                  if (g_cq_carets[i] == null) {
+                      g_cq_carets[i] = theBuffer.value.length;
+                  }
+                  debug.print("restoring caret position " + g_cq_carets[i]);
+                  theBuffer.selectionStart = g_cq_carets[i];
+                  theBuffer.selectionEnd = g_cq_carets[i];
+              }
+
+              setLineNumberStatus();
+          } else {
+              hide(theBuffer);
+          }
         }
     } // for buffers
-
-    // show the current buffer only, and put the cursor there
-    show(getBuffer());
-    focusQueryInput();
 } // refreshBufferList
 
 // keycode support:

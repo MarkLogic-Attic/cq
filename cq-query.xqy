@@ -37,10 +37,8 @@ import module namespace c = "com.marklogic.xqzone.cq.controller"
  : for now, we'll let the browser handle it.
  :)
 (: TODO add "useful queries" popup :)
-(: TODO add worksheets list: for $i in /cq_buffers return base-uri($i) :)
 define variable $g-worksheet-uri {
-  xdmp:get-request-field("worksheet-uri", "worksheet.xml")
-}
+  xdmp:get-request-field("worksheet-uri", "worksheet.xml") }
 
 (: some deployments like to set their own default worksheet:
  : if it's in APP-SERVER-ROOT/CQ-LOCATION/worksheet.xml,
@@ -61,13 +59,13 @@ define variable $g-default-worksheet as element(cq_buffers)? {
     tokenize(xdmp:get-request-path(), "[/]+")[1 to last() - 1],
     "/"
   )
-  (: Windows and backslashes? don't talk to me about backslashes... 
+  (: Windows and backslashes? don't talk to me about backslashes...
    : Problem is, we're going to use '/' in db-resident module paths anyhow,
    : so I'd prefer to use '/' everywhere. But what about SMB paths?
    : Ultimately, it seems to work for all three cases if we just
    : use whatever the user supplies.
    :)
-  let $path := 
+  let $path :=
     replace(concat($root, $rpath, "/", $g-worksheet-uri), '//+', '/')
   let $worksheet :=
     if ($mdb ne 0)
@@ -80,7 +78,8 @@ define variable $g-default-worksheet as element(cq_buffers)? {
       (: fetch the worksheet from the filesystem :)
       let $uri := substring-after($path, $root)
       let $exists := xdmp:uri-is-file($uri)
-      let $d := c:debug(("default-worksheet: ", $mdb, $root, $path, $uri, $exists))
+      let $d := c:debug(("default-worksheet: ",
+        $mdb, $root, $path, $uri, $exists))
       where $exists
       return xdmp:document-get($path)/cq_buffers
   let $d := c:debug(xdmp:describe($worksheet))
@@ -161,8 +160,8 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
     </link>
   </head>
   <body onload="cqOnLoad()">
-    <form action="cq-eval.xqy" method="post"
-      id="cq_form" name="cq_form" target="cq_resultFrame">
+    <form action="cq-eval.xqy" method="post" id="/cq:form"
+     target="/cq:resultFrame">
       <table summary="query form">
         <tr>
           <td nowrap="1">
@@ -171,11 +170,12 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
                 <td nowrap="1">Current XQuery</td>
               </tr>
             </table>
-            <div id="cq_import_export">
+            <div id="/cq:import-export">
               list: <a href="javascript:cqListDocuments()">all</a>
               &nbsp;<a href="javascript:cqListWorksheets()">queries</a>
               | <span class="instruction">save queries as:</span>
-              <input type="text" id="cqUri" value="{$g-worksheet-uri}"/>
+              <input type="text" id="/cq:worksheet-uri"
+              value="{$g-worksheet-uri}"/>
               <input type="button" class="input1"
               onclick="cqExport(this.form);" value="Save"
               title="Save queries and history to the current database. Shortcut: ctrl-shift-s"/>
@@ -230,10 +230,10 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
                 onclick="submitText(this.form);"
                 value="TEXT"
                 title="Submit query as text/plain. Shortcut: ctrl-shift-enter"/>
-                <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
-                value="text/xml"/>
+                <input type="hidden" value="text/xml"
+                id="/cq:mime-type" name="/cq:mime-type"/>
                 </td>
-                <td id="cq_textarea_status" nowrap="1"
+                <td id="/cq:textarea-status" nowrap="1"
                 title="Current position of the caret, as LINE,COLUMN."></td>
               </tr>
             </table>
@@ -241,21 +241,21 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
           </td>
           <td>
             <table>
-            <tr id="cq-buffer-tabs">
-              <td class="buffer-tab" id="cq-buffer-tabs-0"
+            <tr id="/cq:buffer-tabs">
+              <td class="buffer-tab" id="/cq:buffer-tabs-0"
               title="Select any of 10 queries. Shortcut: ctrl-0 to 9, or alt-0 to 9."
                onclick="refreshBufferTabs(0)">Queries&nbsp;<span
                class="instruction" nowrap="1">(<span
-               id="cq_buffer_accesskey_text">alt</span>)</span>
+               id="/cq:buffer-accesskey-text">alt</span>)</span>
               </td>
-              <td class="buffer-tab" id="cq-buffer-tabs-1"
+              <td class="buffer-tab" id="/cq:buffer-tabs-1"
               title="Query history, listing the 50 most recent queries."
                onclick="refreshBufferTabs(1)">History
               </td>
             </tr>
             </table>
-            <table id="cq_bufferlist" border="1"/>
-            <div id="/cq:history" name="/cq:history" class="query-history">
+            <table id="/cq:buffer-list" border="1"/>
+            <div id="/cq:history" class="query-history">
             <span><i>
             This is an empty query history list:
             populate it by submitting queries.</i></span>
@@ -267,8 +267,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
           </td>
         </tr>
       </table>
-      <input id="/cq:debug" name="/cq:debug" type="hidden"
-      value="{c:get-debug()}"/>
+      <input id="debug" name="debug" type="hidden" value="{c:get-debug()}"/>
     </form>
   </body>
 </html>

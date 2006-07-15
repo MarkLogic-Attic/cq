@@ -1,7 +1,7 @@
 (:
  : Client Query Application
  :
- : Copyright (c) 2002-2005 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2006 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -22,16 +22,16 @@
 import module namespace c="com.marklogic.xqzone.cq.controller"
  at "lib-controller.xqy"
 
+define variable $USER as xs:string { xdmp:get-current-user() }
+
 c:check-debug(),
 xdmp:set-response-content-type("text/html; charset=utf-8"),
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>{
-    (: this is the only reason to bother with an xqy:
-     : to show the user what platform and host we're querying.
-     :)
+    (: show the user what platform and host we're querying :)
     element title {
       "cq -",
-      concat(xdmp:get-current-user(), "@", xdmp:get-request-header("Host")),
+      concat($USER, "@", xdmp:get-request-header("Host")),
       "-", xdmp:product-name(), xdmp:version(),
       "-", xdmp:platform()
     },
@@ -49,38 +49,38 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
       "http://marklogic.com/xdmp/privileges/xdmp-read-cluster-config-file",
       "http://marklogic.com/xdmp/privileges/xdmp-eval-in"
     )
-    return try {
-      xdmp:security-assert($priv, "execute")
-    } catch ($ex) {
-      $priv
-    }
+    return
+      try { xdmp:security-assert($priv, "execute") }
+      catch ($ex) { $priv }
   where exists($errors)
   return
   <body>
     <h1>Security Configuration Problem</h1>
-    <p>cq will not load until these privileges have been granted
-    to the current user, {xdmp:get-current-user()}:</p>
+    <p>cq cannot load until these privileges have been granted
+    to the current user, {$USER}:</p>
     <ul>{ for $e in $errors return element li { $e } }</ul>
   </body>
 }
-  <frameset id="cq_frameset" rows="*,*" onresize="resizeFrameset()">
-{
-  (: pass uri context to query frame :)
-  let $query-string := string-join(
-    for $f in xdmp:get-request-field-names()
-    return string-join(($f, xdmp:get-request-field($f)), "=")
-    , "&"
-  )
-  return
-    <frame src="cq-query.xqy?{$query-string}"
-     name="cq_queryFrame" id="cq_queryFrame"/>
-}
-    <frame src="cq-result.html" name="cq_resultFrame" id="cq_resultFrame"/>
-    <noframes>
-      <p>Apparently your browser does not support frames.
-      Try using this <a href="cq-query.html">link</a>.
-      </p>
-    </noframes>
+  <frameset id="/cq:frameset" rows="*,*" onresize="resizeFrameset()">
+  {
+    element frame {
+      attribute src {
+        concat("cq-query.xqy?",
+        (: pass the query string along, for worksheet and debug support :)
+        string-join(
+          for $f in xdmp:get-request-field-names()
+          return string-join(($f, xdmp:get-request-field($f)), '=')
+            , '&') )
+      },
+      attribute id { "/cq:queryFrame" }
+    }
+  }
+  <frame src="cq-result.html" id="/cq:resultFrame" name="/cq:resultFrame"/>
+  <noframes>
+    <p>Apparently your browser does not support frames.
+    Try using this <a href="cq-query.html">link</a>.
+    </p>
+  </noframes>
   </frameset>
 </html>
 

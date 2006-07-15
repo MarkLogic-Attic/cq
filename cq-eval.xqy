@@ -32,8 +32,7 @@ import module namespace c = "com.marklogic.xqzone.cq.controller"
  at "lib-controller.xqy"
 
 define variable $g-query as xs:string {
-  xdmp:get-request-field("/cq:query", "")
-}
+  xdmp:get-request-field("/cq:query", "") }
 
 (: split into database, modules location, and root :)
 define variable $g-eval-in as xs:string+ {

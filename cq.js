@@ -30,28 +30,30 @@
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 // NB: I'd like to ditch these underscores,
 // NB: in favor of /cq:foo-bar-baz,
-// NB: but the xml export format depends on /cq_buffers/cq_buffer
-var g_cq_frameset_id = "cq_frameset";
-var g_cq_query_frame_id = "cq_queryFrame";
-var g_cq_result_frame_id = "cq_resultFrame";
+var g_cq_frameset_id = "/cq:frameset";
+var g_cq_query_frame_id = "/cq:queryFrame";
+var g_cq_result_frame_id = "/cq:resultFrame";
 var g_cq_query_input = "/cq:query";
-var g_cq_uri = "cqUri";
-var g_cq_import_export_id = "cq_import_export";
-var g_cq_query_form_id = "cq_form";
-var g_cq_bufferlist_id = "cq_bufferlist";
-var g_cq_buffers_area_id = "cq_buffers";
-var g_cq_buffer_basename = "cq_buffer";
+var g_cq_uri = "/cq:worksheet-uri";
+var g_cq_import_export_id = "/cq:import-export";
+var g_cq_query_form_id = "/cq:form";
+var g_cq_bufferlist_id = "/cq:buffer-list";
+// NB: the xml export format depends on /cq_history
 var g_cq_history_basename = "cq_history";
+// NB: the xml export format depends on /cq_buffers/cq_buffer
+var g_cq_buffer_basename = "cq_buffer";
+var g_cq_buffers_area_id = g_cq_buffer_basename + "s";
 var g_cq_eval_list_id = "/cq:eval-in";
 var g_cq_query_mime_type = "/cq:mime-type";
 var g_cq_query_action = "cq-eval.xqy";
-var g_cq_buffer_accesskey_text = "cq_buffer_accesskey_text";
-var g_cq_buffer_tabs_node = "cq-buffer-tabs";
+var g_cq_buffer_accesskey_text = "/cq:buffer-accesskey-text";
+var g_cq_buffer_tabs_node = "/cq:buffer-tabs";
 var g_cq_history_node = "/cq:history";
-var g_cq_buffers_cookie = "cq_buffer_cookie_buffers";
-var g_cq_history_cookie = "cq_buffer_cookie_history";
-var g_cq_textarea_status = "cq_textarea_status";
-var g_cq_debug_status_id = "/cq:debug"
+var g_cq_buffers_cookie = "/cq:buffer_cookie_buffers";
+var g_cq_history_cookie = "/cq:buffer_cookie_history";
+var g_cq_textarea_status = "/cq:textarea-status";
+// this is global for any user of the debug routines, so no cq prefix
+var g_cq_debug_status_id = "debug";
 
 // GLOBAL VARIABLES
 var g_cq_buffer_tabs_current = null;
@@ -830,7 +832,8 @@ function submitForm(theForm, theInput, theMimeType) {
 
     // copy current buffer to hidden element
     document.getElementById(g_cq_query_input).value = theInput;
-    debug.print("submitForm: "+document.getElementById(g_cq_query_input).value);
+    debug.print("submitForm: "
+                + document.getElementById(g_cq_query_input).value);
     // set the mime type
     if (theMimeType != null) {
         debug.print("submitForm: mimeType = " + theMimeType);
@@ -1182,7 +1185,7 @@ function finishImport() {
     refreshBufferList(g_cq_buffer_current, "finishImport");
 
     var theUri = document.getElementById(g_cq_uri).value;
-    var theQuery = '<p>' + theUri + ' imported</p>';
+    var theQuery = '<p>imported ' + theUri + '</p>';
 
     submitForm(document.getElementById(g_cq_query_form_id),
                theQuery, "text/html");

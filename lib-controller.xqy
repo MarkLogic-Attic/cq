@@ -1,7 +1,7 @@
 (:
  : cq: lib-controller.xqy
  :
- : Copyright (c)2002-2005 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c)2002-2006 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -35,19 +35,16 @@ define function c:get-debug() as xs:boolean { $c:g-debug }
 define function c:debug-on() as empty() { xdmp:set($c:g-debug, true()) }
 define function c:debug-off() as empty() { xdmp:set($c:g-debug, false()) }
 
-define function c:debug($s as item()*) as empty()
+define function c:debug($s as item()*)
+ as empty()
 {
-  if ($c:g-debug)
-  then xdmp:log(
+  if (not($c:g-debug)) then () else xdmp:log(
     string-join(("DEBUG:", translate(xdmp:quote($s), $c:g-nl, " ")), " ")
-(:
-    xdmp:describe($s, count($s))
-:)
   )
-  else ()
 }
 
-define function c:check-debug() as empty()
+define function c:check-debug()
+ as empty()
 {
   if (xs:boolean(xdmp:get-request-field("debug", string($c:g-debug))))
   then c:debug-on()

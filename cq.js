@@ -63,6 +63,14 @@ var g_cq_timeout = 100;
 var g_cq_history_limit = 50;
 var g_cq_carets = new Array();
 
+// is there some *optional* linebreak character we could use?
+// yes: http://www.quirksmode.org/oddsandends/wbr.html
+// but I don't want to muck with the wbr element in a string...
+// solution: "&shy;" (#173, 0xAD) seems to work for IE and gecko
+// another candiate is #8203 (0x200b), but it isn't as nice.
+// not perfect, but seems to be ok...
+var g_br = "\u00ad"; //"\u200b";
+
 var debug = new DebugClass();
 
 // handy way to get the body element
@@ -390,17 +398,11 @@ function trim(s) { return s == null ? null : s.replace(/^\s+|\s+$/g, ""); }
 function normalizeSpace(s) { return trim(s.replace(/[\n\t\s]+/g, ' ')); }
 
 // create some whitespace for line breaking in the buffer labels
-// is there some *optional* linebreak character we could use?
-// yes: http://www.quirksmode.org/oddsandends/wbr.html
-// but I don't want to muck with the wbr element in a string...
-// solution: "&shy;" (#173, 0xAD) for IE, else #8203 (0x200b)
-// not perfect, but seems to be ok...
 function nudge(s) {
-    var br = is.ie ? "\u200b" : "\u00ad";
-    s = s.replace("(", "(" + br);
-    s = s.replace(")", br + ")");
-    s = s.replace(",", "," + br);
-    s = s.replace("=", br + "=" + br);
+    s = s.replace("(", "(" + g_br);
+    s = s.replace(")", g_br + ")");
+    s = s.replace(",", "," + g_br);
+    s = s.replace("=", g_br + "=" + g_br);
     return normalizeSpace(s);
 }
 
@@ -551,15 +553,19 @@ function refreshBufferList(n, src) {
     }
 
     var theBuffer = getBuffer();
+
     // remember the current caret position
+    simulateSelectionStart(theBuffer);
     if (theBuffer.selectionStart) {
         g_cq_carets[g_cq_buffer_current] = theBuffer.selectionStart;
         debug.print("remembering buffer " + g_cq_buffer_current
                     + " caret position " + g_cq_carets[i]);
     }
-    // for gecko, handle disappearing-cursor weirdness?
+
+    // for gecko, handle disappearing-cursor weirdness
     // https://bugzilla.mozilla.org/show_bug.cgi?id=215724
     theBuffer.blur();
+
     // hide current, to avoid flashing
     hide(theBuffer);
     g_cq_buffer_current = n;
@@ -569,7 +575,8 @@ function refreshBufferList(n, src) {
     var theParent = document.getElementById(g_cq_buffers_area_id);
     // childNodes.length will return some non-buffer elements, too!
     for (var i = 0; i < theParent.childNodes.length; i++) {
-        //debug.print("refreshBufferList: i = " + i + " of " + theParent.childNodes.length);
+        //debug.print("refreshBufferList: i = " + i
+        //+ " of " + theParent.childNodes.length);
         theBuffer = getBuffer(i);
         // not there? skip it
         if (theBuffer != null) {
@@ -585,16 +592,7 @@ function refreshBufferList(n, src) {
           if (i == g_cq_buffer_current) {
               show(theBuffer);
               theBuffer.focus();
-
-              if (theBuffer.selectionStart) {
-                  if (g_cq_carets[i] == null) {
-                      g_cq_carets[i] = theBuffer.value.length;
-                  }
-                  debug.print("restoring caret position " + g_cq_carets[i]);
-                  theBuffer.selectionStart = g_cq_carets[i];
-                  theBuffer.selectionEnd = g_cq_carets[i];
-              }
-
+              restoreCaretPosition(theBuffer, g_cq_carets[i]);
               setLineNumberStatus();
           } else {
               hide(theBuffer);
@@ -602,6 +600,35 @@ function refreshBufferList(n, src) {
         }
     } // for buffers
 } // refreshBufferList
+
+function restoreCaretPosition(buf, pos) {
+    if (buf == null) {
+        debug("restoreCaretPosition: null buffer!");
+        return;
+    }
+    if (pos == null) {
+        // use end of buffer
+        return restoreCaretPosition(buf, buf.value ? buf.value.length : 0);
+    }
+    if (document.selection) {
+        debug.print("document.selection, not restoring caret position " + pos);
+        // TODO use IE5+ API
+        // http://msdn.microsoft.com/workshop/author/dhtml/reference
+        //   /objects/obj_selection.asp
+        // http://msdn.microsoft.com/workshop/author/dhtml/reference
+        //   /objects/obj_textrange.asp
+        //var range = document.selection.createRange();
+        //var storedRange = range.duplicate();
+        //storedRange.moveToElementText(buf);
+        //storedRange.setEndPoint('EndToEnd', range);
+        //buf.selectionStart = storedRange.text.length - range.text.length;
+    } else {
+        // gecko
+        debug.print("gecko - restoring caret position " + pos);
+        buf.selectionStart = pos;
+        buf.selectionEnd = pos;
+    }
+}
 
 // keycode support:
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
@@ -680,6 +707,45 @@ function handleKeyPress(e) {
     return true;
 } // handleKeyPress
 
+function simulateSelectionStart(buf) {
+    // must handle this differently for gecko vs IE6
+    // must test non-gecko first, since this code will persist
+    // it's a little tricky to tell the difference between IE6 and opera,
+    // but I'd rather avoid calling is.opera()
+    if (!window.getSelection && !document.getSelection
+        && document.selection && document.selection.createRange) {
+        debug.print("simulateSelectionStart: found document.selection");
+        // set it up, using IE5+ API
+        // http://msdn.microsoft.com/workshop/author/dhtml/reference
+        //   /objects/obj_textrange.asp
+        // first, make sure we have the focus
+        buf.focus();
+        var range = document.selection.createRange();
+        debug.print("simulateSelectionStart: range = " + range);
+        var storedRange = range.duplicate();
+        storedRange.moveToElementText(buf);
+        storedRange.setEndPoint('EndToEnd', range);
+        debug.print("simulateSelectionStart: storedRange.text = '"
+                    + storedRange.text + "'"
+                    + " (" + storedRange.text.length
+                    + "," + range.text.length
+                    + "," + buf.value.length
+                    + ")");
+        // set start and end points, ala gecko
+        buf.selectionStart = storedRange.text.length - range.text.length;
+        // now we can pretend that IE6 is gecko
+    } else if (buf.selectionStart) {
+        // looks like it's gecko: selectionStart should work
+        debug.print("setLineNumberStatus: found selectionStart "
+                    + buf.selectionStart);
+    } else {
+        // khtml, webcore support (probably cannot do it yet)
+        // may also be at the start of buffer, so set that location and return
+        debug.print("no selection information: setting 0");
+        buf.selectionStart = 0;
+    }
+}
+
 function setLineNumberStatus() {
     var lineStatus = document.getElementById(g_cq_textarea_status);
     if (lineStatus == null) {
@@ -692,74 +758,34 @@ function setLineNumberStatus() {
         return;
     }
 
-    // must handle this differently for gecko vs IE6
-    // must test non-gecko first, since this code will persist
-    if (document.selection) {
-        // set it up, using IE5+ API
-        // http://msdn.microsoft.com/workshop/author/dhtml/reference
-        //   /objects/obj_textrange.asp
-        debug.print("setLineNumberStatus: found document.selection");
-        if (document.selection){
-            var range = document.selection.createRange();
-            var storedRange = range.duplicate();
-            storedRange.moveToElementText(buf);
-            storedRange.setEndPoint('EndToEnd', range);
-            debug.print("setLineNumberStatus: storedRange.text = '"
-                        + storedRange.text + "'"
-                        + " (" + storedRange.text.length
-                        + "," + range.text.length
-                        + "," + buf.value.length
-                        + ")");
-            // set start and end points, ala gecko
-            buf.selectionStart = storedRange.text.length - range.text.length;
-        } else {
-            alert("setLineNumberStatus: no document.selection!");
-            return;
-        }
-    } else if (buf.selectionStart) {
-        // looks like it's gecko
-    } else {
-        // TODO khtml, webcore support (probably cannot do it yet)
-        // may also be 1,0 so set that location and return
-        debug.print("no selection information: setting 1,0");
-        lineStatus.innerHTML = "" + 1 + "," + 0;
-        return;
-    }
+    simulateSelectionStart(buf);
 
-    // now we can pretend to be gecko
     var start = buf.selectionStart;
-    // figure out where start is, in the query
-    var textToStart = buf.value.substr(0, start);
-    var linesArray = textToStart.split(/\r\n|\r|\n/);
-    var lineNumber = linesArray.length;
-    // because of the earlier substr() call,
-    // the last line ends at selectionStart
-    var charPosition = linesArray[lineNumber - 1].length;
-    // TODO: at the start of a line, firefox returns an empty string
-    // meanwhile, IE6 swallows the whitespace...
-    // seems to be in the selection-range API, not in split(),
-    // so this workaround doesn't work!
-    if (false && is.ie) {
-        var start = textToStart.length - 1;
-        debug.print("setLineNumberStatus: checking ie for split workaround: "
-                    + start);
-        var lastChar = textToStart.substr(start, 1);
-        debug.print("setLineNumberStatus: checking ie for split workaround: '"
-                    + lastChar + "'");
-        if (lastChar == "\n") {
-            lineNumber++;
-            charPosition = 0;
-            debug.print("setLineNumberStatus: corrected lineNumber = "
-                        + lineNumber);
-        }
+    var textToStart = null;
+    var linesArray = null;
+    var lineNumber = 1;
+    var column = 0;
+    if (start > 0) {
+        // figure out where start is, in the query
+        textToStart = buf.value.substr(0, start);
+        linesArray = textToStart.split(/\r\n|\r|\n/);
+        lineNumber = linesArray.length;
+        // because of the earlier substr() call,
+        // we know that the last line ends at selectionStart
+        var column = linesArray[lineNumber - 1].length;
+        // TODO: at the start of a line, firefox returns an empty string
+        // meanwhile, IE6 swallows the whitespace...
+        // seems to be in the selection-range API, not in split(),
+        // so there is no workaround!
+        debug.print("setLineNumberStatus:"
+                    + " start = " + start
+                    + " lineNumber = " + lineNumber
+                    + " column = " + column
+                    + ", lastLine = " + linesArray[lineNumber - 1] );
+    } else {
+        debug.print("setLineNumberStatus: start = 0");
     }
-    debug.print("setLineNumberStatus:"
-                + " selectionStart = " + buf.selectionStart
-                + ", selectionEnd = " + buf.selectionEnd
-                //+ ", textToStart = " + textToStart
-                + ", lastLine = " + linesArray[lineNumber - 1]
-                );
-    lineStatus.innerHTML = "" + lineNumber + "," + charPosition;
+    lineStatus.innerHTML = "" + lineNumber + "," + column;
 }
 
 function resizeBuffers(x, y) {

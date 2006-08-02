@@ -19,7 +19,6 @@
  : affiliated with the Apache Software Foundation.
  :
  :)
-
 module "com.marklogic.xqzone.cq.controller"
 
 declare namespace c = "com.marklogic.xqzone.cq.controller"

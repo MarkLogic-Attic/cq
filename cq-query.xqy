@@ -37,7 +37,7 @@ import module namespace c = "com.marklogic.xqzone.cq.controller"
  : for now, we'll let the browser handle it.
  :)
 (: TODO add "useful queries" popup :)
-define variable $g-worksheet-uri {
+define variable $g-worksheet-uri as xs:string {
   xdmp:get-request-field("worksheet-uri", "worksheet.xml") }
 
 (: some deployments like to set their own default worksheet:

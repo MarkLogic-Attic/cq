@@ -191,8 +191,13 @@ function setCookie(name, value, days) {
 }
 
 function getCookie(name) {
-    if (name == null)
+    if (name == null) {
         return null;
+    }
+
+    if (document.cookie == null) {
+        return null;
+    }
 
     var nameEQ = name + "=";
     var ca = document.cookie.split(';');
@@ -543,7 +548,7 @@ function refreshBufferList(n, src) {
     var tableBody = document.createElement('tbody');
     labelsNode.appendChild(tableBody);
 
-    // 0 will return false, will set to 0: ok
+    // 0 will return false, will set to 0: that's ok
     if (n == null) {
         if (g_cq_buffer_current == null) {
             n = g_cq_buffer_current;
@@ -827,6 +832,7 @@ function submitForm(theForm, theInput, theMimeType) {
 
     // TODO would like to disable buttons during post
     // but it's too problematic for now
+    var rFrame = getResultFrame();
     if (false) {
         disableButtons(true);
 
@@ -837,7 +843,6 @@ function submitForm(theForm, theInput, theMimeType) {
         // IE6 has onstop handler, but gecko doesn't
         var fSet = getFrameset();
         var qFrame = getQueryFrame();
-        var rFrame = getResultFrame();
         if (!(rFrame && qFrame)) {
             debug.print("null queryFrame or resultFrame!");
         } else {
@@ -850,6 +855,8 @@ function submitForm(theForm, theInput, theMimeType) {
             debug.print("resultFrame.onload = " + rFrame.onload);
         }
     }
+
+    // TODO it would be nice to grey out the target frame, if possible
 
     // copy the selected eval-in args to the session cookie
     var currEval = document.getElementById(g_cq_eval_list_id).value;

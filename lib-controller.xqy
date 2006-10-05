@@ -27,7 +27,10 @@ default function namespace = "http://www.w3.org/2003/05/xpath-functions"
 
 define variable $c:g-debug as xs:boolean { false() }
 
-define variable $c:g-nl { fn:codepoints-to-string((10)) }
+define variable $c:g-nl as xs:string { fn:codepoints-to-string((10)) }
+
+define variable $c:ACCEPT-XML as xs:boolean {
+  contains(xdmp:get-request-header('accept'), 'application/xhtml+xml') }
 
 define function c:get-debug() as xs:boolean { $c:g-debug }
 
@@ -48,6 +51,14 @@ define function c:check-debug()
   if (xs:boolean(xdmp:get-request-field("debug", string($c:g-debug))))
   then c:debug-on()
   else ()
+}
+
+define function c:set-content-type()
+ as empty()
+{
+  xdmp:set-response-content-type( concat(
+    if ($c:ACCEPT-XML) then "application/xhtml+xml" else "text/html",
+    "; charset=utf-8") )
 }
 
 (: lib-controller.xqy :)

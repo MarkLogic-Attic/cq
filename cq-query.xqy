@@ -150,7 +150,7 @@ define function get-eval-selector() as element(html:select)
 }
 
 c:check-debug(),
-xdmp:set-response-content-type("text/html; charset=utf-8"),
+c:set-content-type(),
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>Query Form</title>
@@ -171,8 +171,8 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
               </tr>
             </table>
             <div id="/cq:import-export">
-              list: <a href="javascript:cqListDocuments()">all</a>
-              &nbsp;<a href="javascript:cqListWorksheets()">queries</a>
+              list:&#160;<a href="javascript:cqListDocuments()">all</a>
+              &#160;<a href="javascript:cqListWorksheets()">queries</a>
               | <span class="instruction">save queries as:</span>
               <input type="text" id="/cq:worksheet-uri"
               value="{$g-worksheet-uri}"/>
@@ -244,7 +244,7 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
             <tr id="/cq:buffer-tabs">
               <td class="buffer-tab" id="/cq:buffer-tabs-0"
               title="Select any of 10 queries. Shortcut: ctrl-0 to 9, or alt-0 to 9."
-               onclick="refreshBufferTabs(0)">Queries&nbsp;<span
+               onclick="refreshBufferTabs(0)">Queries&#160;<span
                class="instruction" nowrap="1">(<span
                id="/cq:buffer-accesskey-text">alt</span>)</span>
               </td>

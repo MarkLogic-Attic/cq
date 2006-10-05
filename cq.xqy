@@ -25,7 +25,7 @@ import module namespace c="com.marklogic.xqzone.cq.controller"
 define variable $USER as xs:string { xdmp:get-current-user() }
 
 c:check-debug(),
-xdmp:set-response-content-type("text/html; charset=utf-8"),
+c:set-content-type(),
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>{
     (: show the user what platform and host we're querying :)

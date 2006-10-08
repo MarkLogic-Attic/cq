@@ -118,10 +118,6 @@ function SessionClass(databaseId, buffers, history) {
 
     var syncUrl = "update-session.xqy";
 
-    // TODO persist content-source id
-
-    // TODO persist non-default options: rows, cols, etc.
-
     // TODO autosave if 60 sec old?
 
     // TODO handle case where user doesn't have write permission
@@ -146,6 +142,44 @@ function SessionClass(databaseId, buffers, history) {
             }
                                    );
         this.lastSync = new Date();
+    }
+
+    this.restore = function(id) {
+        var restore = $(id);
+        debug.print("onload: restoring from "
+                    + restore + " " + restore.hasChildNodes());
+        if (null != restore && restore.hasChildNodes()) {
+            var children = restore.childNodes;
+            var queries = null;
+            var query = null;
+            var source = null;
+
+            // first div is the buffers
+            var buffers = children[0];
+            // handle rows and cols (global)
+            this.buffers.setRows(buffers.getAttribute('rows'));
+            this.buffers.setCols(buffers.getAttribute('cols'));
+            queries = buffers.childNodes;
+            debug.print("onload: restoring buffers " + queries.length);
+            for (var i = 0; i < queries.length; i++) {
+                query = queries[i].textContent;
+                //debug.print("onload: restoring " + i + " " + query);
+                // handle content-source (per buffer)
+                source = queries[i].getAttribute('content-source');
+                this.buffers.add(query, source);
+            }
+
+            // second div is the history
+            var history = children[1];
+            queries = history.childNodes;
+            debug.print("onload: restoring history " + queries.length);
+            // restore in reverse order
+            for (var i = queries.length; i > 0; i--) {
+                query = queries[ i - 1 ].textContent;
+                //debug.print("onload: restoring " + i + " " + query);
+                this.history.add(query);
+            }
+        }
     }
 
 } // SessionClass

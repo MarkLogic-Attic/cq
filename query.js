@@ -17,8 +17,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-// TODO better eval-in handling
-
 // TODO refactor more of this controller-style logic into classes:
 // QueryTabsClass, etc.
 
@@ -59,6 +57,9 @@ function normalizeSpace(s) { return trim(s.replace(/[\n\t\s]+/g, ' ')); }
 
 // create some whitespace, for line breaking in the buffer labels
 function nudge(s) {
+    if (null == s) {
+        return;
+    }
     s = s.replace("/(/g", "(" + gBreakChar);
     s = s.replace("/)/g", gBreakChar + ")");
     s = s.replace("/,/g", "," + gBreakChar);
@@ -67,6 +68,9 @@ function nudge(s) {
 }
 
 function escapeXml(s) {
+    if (null == s) {
+        return;
+    }
     s = s.replace(/\&/g, "&amp;");
     s = s.replace(/\</g, "&lt;");
     s = s.replace(/\>/g, "&gt;");
@@ -151,7 +155,7 @@ function setSelectionStart(n, start) {
     }
 
     // gecko
-    debug.print(label + "gecko, restoring " + start);
+    debug.print(label + "gecko, setting " + start);
     n.selectionStart = start;
     n.selectionEnd = start;
 }
@@ -373,12 +377,20 @@ function QueryBufferClass(query, selectionStart, contentSource) {
     }
 
     this.setContentSource = function(v) {
+        if (null == v) {
+            return;
+        }
         this.contentSource = v;
     }
 
     this.toXml = function() {
         var name = "query";
-        return "<" + name + ">" + escapeXml(this.query) + "</" + name + ">\n";
+        var xml ="<" + name;
+        if (null != this.contentSource) {
+            xml += " content-source=\"" + escapeXml(this.contentSource) + "\"";
+        }
+        xml += ">" + escapeXml(this.query) + "</" + name + ">\n";
+        return xml;
     }
 
 } // QueryBufferClass
@@ -412,13 +424,18 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
                       this.setLineNumberStatus.bindAsEventListener(this));
     }
 
-    this.add = function(query) {
+    this.add = function(query, source) {
         var n = this.buffers.length;
         this.buffers[n] = new QueryBufferClass(query);
+        this.buffers[n].setContentSource(source);
         var active = false;
         if (n == this.pos) {
             // lazy init
             this.input.value = query;
+            if (source != null) {
+                this.eval.value = source;
+            }
+            this.input.focus();
             active = true;
         }
         this.setLabel(n, active);
@@ -521,6 +538,21 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.input.rows += y;
     }
 
+    this.setRows = function(x) {
+        if (null == x) {
+            return;
+        }
+        this.input.rows = x;
+    }
+
+    this.setCols = function(y) {
+        if (null == y) {
+            return;
+        }
+        this.input.cols = y;
+    }
+
+    // TODO reduce the flashing
     this.activate = function(n) {
         label = "QueryBufferListClass.activate: ";
         debug.print(label + this.pos + " to " + n);
@@ -552,6 +584,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.input.value = buf.getQuery();
         this.setContentSource(buf.getContentSource());
         this.setLabel(this.pos, true);
+        this.input.focus();
         setSelectionStart(this.input, buf.getSelectionStart());
     }
 
@@ -561,7 +594,6 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
     }
 
     this.setContentSource = function(v) {
-        // TODO set the content source using this.eval
         this.eval.value = v;
     }
 
@@ -608,7 +640,10 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
     this.toXml = function() {
         var name = "query-buffers";
-        var xml = "<" + name + ">\n";
+        var xml = "<" + name
+        xml += " rows=\"" + this.input.rows + "\""
+        xml += " cols=\"" + this.input.cols + "\""
+        xml += ">\n";
 
         for (var i = 0; i < this.buffers.length; i++) {
             xml += this.buffers[i].toXml();
@@ -637,39 +672,10 @@ function cqOnLoad() {
                                         "/cq:textarea-status");
     gBuffers.initHandlers();
     gHistory = new QueryHistoryClass("/cq:history", gBuffers);
+
     var sessionDatabaseId = $F("/cq:session-database");
     gSession = new SessionClass(sessionDatabaseId, gBuffers, gHistory);
-
-    // restore buffers and history
-    var restore = $("/cq:restore-session");
-    debug.print("onload: restoring from "
-                + restore + " " + restore.hasChildNodes());
-    if (null != restore && restore.hasChildNodes()) {
-        var children = restore.childNodes;
-        var queries = null;
-        var query = null;
-
-        // first div is the buffers
-        var buffers = children[0];
-        queries = buffers.childNodes;
-        debug.print("onload: restoring buffers " + queries.length);
-        for (var i = 0; i < queries.length; i++) {
-            query = queries[i].textContent;
-            //debug.print("onload: restoring " + i + " " + query);
-            gBuffers.add(query);
-        }
-
-        // second div is the history
-        var history = children[1];
-        queries = history.childNodes;
-        debug.print("onload: restoring history " + queries.length);
-        // restore in reverse order
-        for (var i = queries.length; i > 0; i--) {
-            query = queries[ i - 1 ].textContent;
-            //debug.print("onload: restoring " + i + " " + query);
-            gHistory.add(query);
-        }
-    }
+    gSession.restore("/cq:restore-session");
 
     // expose the correct tabs
     refreshBufferTabs(0);
@@ -873,7 +879,7 @@ function handleKeyPress(e) {
     return true;
 } // handleKeyPress
 
-function submitForm(theForm, query, theMimeType) {
+function submitForm(theForm, query, theMimeType, saveHistory) {
     if (! theForm) {
         alert("null form in submitForm!");
         return;
@@ -881,7 +887,9 @@ function submitForm(theForm, query, theMimeType) {
 
     gBuffers.activate();
 
-    gHistory.add(query);
+    if (saveHistory) {
+        gHistory.add(query);
+    }
 
     // sync the session, if it has changed
     gSession.sync(gHistory.lastModified);
@@ -923,7 +931,7 @@ function submitFormWrapper(theForm, mimeType) {
 
     var query = gBuffers.getQuery();
 
-    submitForm(theForm, query, mimeType);
+    submitForm(theForm, query, mimeType, true);
 }
 
 function cqListDocuments() {
@@ -937,7 +945,7 @@ function cqListDocuments() {
         + " text{})[$est gt 1000],"
         + "  for $i in doc()[1 to 1000] return text { base-uri($i) }"
         + ")";
-    submitForm(theForm, theQuery, "text/plain");
+    submitForm(theForm, theQuery, "text/plain", false);
 }
 
 // query.js

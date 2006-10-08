@@ -1,7 +1,7 @@
 (:
- : cq: lib-constants.xqy
+ : Client Query Application
  :
- : Copyright (c)2002-2005 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2006 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -17,11 +17,14 @@
  :
  : The use of the Apache License does not indicate that this project is
  : affiliated with the Apache Software Foundation.
- :
  :)
 
-module "com.marklogic.xqzone.cq.constants"
+define variable $URI as xs:anyURI {
+  xs:anyURI(xdmp:get-request-field("URI")) }
 
-define variable $g-nl { fn:codepoints-to-string((10)) }
+import module namespace c="com.marklogic.developer.cq.controller"
+ at "lib-controller.xqy"
 
-(: lib-constants.xqy :)
+c:delete-session($URI)
+
+(: delete-session.xqy :)

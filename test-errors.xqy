@@ -24,8 +24,8 @@
  :   cq:database: the database under which to evaluate the query
  :)
 
-import module namespace v="com.marklogic.xqzone.cq.view" at "lib-view.xqy"
-
+import module namespace v="com.marklogic.developer.cq.view"
+ at "lib-view.xqy"
 
 xdmp:set-response-content-type("text/html; charset=utf-8"),
 <html>

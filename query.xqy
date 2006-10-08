@@ -21,74 +21,32 @@
 
 declare namespace mlgr = "http://marklogic.com/xdmp/group"
 declare namespace html = "http://www.w3.org/1999/xhtml"
-declare namespace null = ""
+declare namespace sess="com.marklogic.developer.cq.session"
 
-import module namespace k = "com.marklogic.xqzone.cq.constants"
-  at "lib-constants.xqy"
-import module namespace v = "com.marklogic.xqzone.cq.view"
+import module namespace v = "com.marklogic.developer.cq.view"
   at "lib-view.xqy"
-import module namespace c = "com.marklogic.xqzone.cq.controller"
+import module namespace c = "com.marklogic.developer.cq.controller"
   at "lib-controller.xqy"
 
-(: TODO store default db? problematic:
- : using xdmp:(get|set)-session-field breaks multiple cq windows|tabs,
- : because the user's session is locked while his query is running.
- : set with JavaScript instead? subrequest?
- : for now, we'll let the browser handle it.
- :)
-(: TODO add "useful queries" popup :)
-(: TODO add worksheets list: for $i in /cq_buffers return base-uri($i) :)
-define variable $g-worksheet-uri {
-  xdmp:get-request-field("worksheet-uri", "worksheet.xml")
+define variable $QUERY-BUFFERS as element(sess:query)* {
+  let $bufs := $c:SESSION/sess:query-buffers/sess:query
+  return
+    if (exists($bufs))
+    then $bufs
+    else
+      for $i in (1 to 10)
+      return <sess:query>(: buffer {$i} :)
+declare namespace html = "http://www.w3.org/1999/xhtml"
+{xdmp:quote(<p>hello world</p>)}</sess:query>
 }
 
-(: some deployments like to set their own default worksheet:
- : if it's in APP-SERVER-ROOT/CQ-LOCATION/worksheet.xml,
- : this code will find it.
- :)
-define variable $g-default-worksheet as element(cq_buffers)? {
-  (: look for a default worksheet in the current server's
-   : module-database (or filesystem)
-   :)
-  let $mdb := xdmp:modules-database()
-  let $root := data(
-    xdmp:read-cluster-config-file("groups.xml")
-    /mlgr:groups/mlgr:group/mlgr:http-servers
-    /mlgr:http-server[ mlgr:http-server-id = xdmp:server() ]
-    /mlgr:root
-  )
-  let $rpath := string-join(
-    tokenize(xdmp:get-request-path(), "[/]+")[1 to last() - 1],
-    "/"
-  )
-  (: Windows and backslashes? don't talk to me about backslashes... 
-   : Problem is, we're going to use '/' in db-resident module paths anyhow,
-   : so I'd prefer to use '/' everywhere. But what about SMB paths?
-   : Ultimately, it seems to work for all three cases if we just
-   : use whatever the user supplies.
-   :)
-  let $path := 
-    replace(concat($root, $rpath, "/", $g-worksheet-uri), '//+', '/')
-  let $worksheet :=
-    if ($mdb ne 0)
-    then
-      (: fetch the worksheet from the modules database :)
-      let $q  := 'define variable $path as xs:string external
-        doc($path)/cq_buffers'
-      return xdmp:eval-in($q, $mdb, (xs:QName("path"), $path))
-    else
-      (: fetch the worksheet from the filesystem :)
-      let $uri := substring-after($path, $root)
-      let $exists := xdmp:uri-is-file($uri)
-      let $d := c:debug(("default-worksheet: ", $mdb, $root, $path, $uri, $exists))
-      where $exists
-      return xdmp:document-get($path)/cq_buffers
-  let $d := c:debug(xdmp:describe($worksheet))
-  let $assert :=
-    if (exists($worksheet/cq_buffer/text())) then ()
-    else error("CQ-DEFAULT-WORKSHEET: cannot find default worksheet")
-  return $worksheet
+define variable $QUERY-HISTORY as element(sess:query)* {
+  $c:SESSION/sess:query-history/sess:query
 }
+
+(: TODO some deployments like to set their own default worksheet:
+ : if it's in APP-SERVER-ROOT/CQ-LOCATION/worksheet.xml, use it.
+ :)
 
 define function get-eval-selector() as element(html:select)
 {
@@ -151,18 +109,12 @@ define function get-eval-selector() as element(html:select)
 }
 
 c:check-debug(),
-xdmp:set-response-content-type("text/html; charset=utf-8"),
+c:set-content-type(),
 <html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <title>Query Form</title>
-    <script language="JavaScript" type="text/javascript" src="cq.js">
-    </script>
-    <link rel="stylesheet" type="text/css" href="cq.css">
-    </link>
-  </head>
+  { v:get-html-head() }
   <body onload="cqOnLoad()">
-    <form action="cq-eval.xqy" method="post"
-      id="cq_form" name="cq_form" target="cq_resultFrame">
+    <form action="eval.xqy" method="post" id="/cq:form"
+     target="/cq:resultFrame">
       <table summary="query form">
         <tr>
           <td nowrap="1">
@@ -171,53 +123,37 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
                 <td nowrap="1">Current XQuery</td>
               </tr>
             </table>
-            <div id="cq_import_export">
-              list: <a href="javascript:cqListDocuments()">all</a>
-              &nbsp;<a href="javascript:cqListWorksheets()">queries</a>
-              | <span class="instruction">save queries as:</span>
-              <input type="text" id="cqUri" value="{$g-worksheet-uri}"/>
-              <input type="button" class="input1"
-              onclick="cqExport(this.form);" value="Save"
-              title="Save queries and history to the current database. Shortcut: ctrl-shift-s"/>
-              <input type="button" class="input1"
-              onclick="cqImport(this.form);" value="Open"
-              title="Retrieve queries and history from the current database. Shortcut: ctrl-shift-o"/>
-              | <span class="instruction">resize:</span>
+            <div>
+              list:&#160;<a href="javascript:cqListDocuments()">all</a>
+              &#160;|&#160;<span class="instruction">
+              <a href="session.xqy" target="_parent">session</a>: {
+                $c:SESSION-NAME
+              }</span>
+              &#160;|&#160;<span class="instruction">resize:</span>
               <img src="darr.gif" class="resizable-s" width="13" height="10"
               title="increase the number of rows"
-              onclick="resizeBuffers(0, 1); return false;"/>
+              onclick="gBuffers.resize(0, 1); return false;"/>
               <img src="rarr.gif" class="resizable-e" width="10" height="13"
               title="increase the number of columns"
-              onclick="resizeBuffers(1, 0); return false;"/>
+              onclick="gBuffers.resize(1, 0); return false;"/>
               <img src="uarr.gif" class="resizable-n" width="13" height="10"
               title="reduce the number of rows"
-              onclick="resizeBuffers(0, -1); return false;"/>
+              onclick="gBuffers.resize(0, -1); return false;"/>
               <img src="larr.gif" class="resizable-w" width="10" height="13"
               title="reduce the number of columns"
-              onclick="resizeBuffers(-1, 0); return false;"/>
+              onclick="gBuffers.resize(-1, 0); return false;"/>
             </div>
-            <div nowrap="1" id="cq_buffers">
-{
- (:
-  : initialize the buffers:
-  : we're inside an html xmlns, so null is needed.
-  :)
-  for $b at $x in $g-default-worksheet/null:cq_buffer
-  let $bufid := concat("cq_buffer", string($x - 1))
-  return element textarea {
-    attribute id { $bufid },
-    attribute rows { ($g-default-worksheet/@rows, 16)[1] },
-    attribute cols { ($g-default-worksheet/@cols, 80)[1] },
-    (: preserve all whitespace :)
-    attribute xml:space { "preserve" },
-    xdmp:url-decode($b)
-  }
-}
-              <input id="/cq:query" name="/cq:query" type="hidden"/>
+            <div nowrap="1" id="queryBuffers">
+            <textarea id="/cq:input" name="/cq:input">{
+              (: dynamic buffer size :)
+              attribute rows { (data($c:SESSION/@rows), 16)[1] },
+              attribute cols { (data($c:SESSION/@cols), 80)[1] }
+            }</textarea>
+            <input type="hidden" id="/cq:query" name="/cq:query"/>
             <table width="100%">
               <tr>
                 <td width="100%" nowrap="1">
-                <span class="instruction">content source:</span>
+                <span class="instruction">content-source:</span>
                 { get-eval-selector() }
                 <span class="instruction">as</span>
                 <input type="button" class="input1"
@@ -230,10 +166,10 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
                 onclick="submitText(this.form);"
                 value="TEXT"
                 title="Submit query as text/plain. Shortcut: ctrl-shift-enter"/>
-                <input type="hidden" name="/cq:mime-type" id="/cq:mime-type"
-                value="text/xml"/>
+                <input type="hidden" value="text/xml"
+                id="/cq:mime-type" name="/cq:mime-type"/>
                 </td>
-                <td id="cq_textarea_status" nowrap="1"
+                <td id="/cq:textarea-status" nowrap="1"
                 title="Current position of the caret, as LINE,COLUMN."></td>
               </tr>
             </table>
@@ -241,21 +177,21 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
           </td>
           <td>
             <table>
-            <tr id="cq-buffer-tabs">
-              <td class="buffer-tab" id="cq-buffer-tabs-0"
+            <tr id="/cq:buffer-tabs">
+              <td class="buffer-tab" id="/cq:buffer-tabs-0"
               title="Select any of 10 queries. Shortcut: ctrl-0 to 9, or alt-0 to 9."
-               onclick="refreshBufferTabs(0)">Queries&nbsp;<span
+               onclick="refreshBufferTabs(0)">Queries&#160;<span
                class="instruction" nowrap="1">(<span
-               id="cq_buffer_accesskey_text">alt</span>)</span>
+               id="/cq:buffer-accesskey-text">alt</span>)</span>
               </td>
-              <td class="buffer-tab" id="cq-buffer-tabs-1"
+              <td class="buffer-tab" id="/cq:buffer-tabs-1"
               title="Query history, listing the 50 most recent queries."
                onclick="refreshBufferTabs(1)">History
               </td>
             </tr>
             </table>
-            <table id="cq_bufferlist" border="1"/>
-            <div id="/cq:history" name="/cq:history" class="query-history">
+            <table id="/cq:buffer-list" border="1"/>
+            <div id="/cq:history" class="query-history">
             <span><i>
             This is an empty query history list:
             populate it by submitting queries.</i></span>
@@ -267,8 +203,25 @@ xdmp:set-response-content-type("text/html; charset=utf-8"),
           </td>
         </tr>
       </table>
-      <input id="/cq:debug" name="/cq:debug" type="hidden"
-      value="{c:get-debug()}"/>
+      <input id="/cq:session-database" name="/cq:session-database"
+       type="hidden" value="{$c:SESSION-DB}"/>
+      <input id="debug" name="debug" type="hidden" value="{c:get-debug()}"/>
+    <div style="display: none" xml:space="preserve"
+     id="/cq:restore-session" name="/cq:restore-session">
+    {
+      (: Initial session state as hidden divs, for the onload method.
+       : Be careful to preserve all whitespace.
+       :)
+      element div {
+        attribute id { "/cq:restore-session-buffers" },
+        for $i in $QUERY-BUFFERS return element div { $i/node() }
+      },
+      element div {
+        attribute id { "/cq:restore-session-history" },
+        for $i in $QUERY-HISTORY return element div { $i/node() }
+      }
+    }
+    </div>
     </form>
   </body>
 </html>

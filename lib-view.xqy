@@ -20,22 +20,26 @@
  :
  :)
 
-module "com.marklogic.xqzone.cq.view"
+module "com.marklogic.developer.cq.view"
 
-declare namespace v = "com.marklogic.xqzone.cq.view"
+declare namespace v = "com.marklogic.developer.cq.view"
 
 default function namespace = "http://www.w3.org/2003/05/xpath-functions"
 
-import module namespace c = "com.marklogic.xqzone.cq.controller"
+declare namespace xh="http://www.w3.org/1999/xhtml"
+
+import module namespace c = "com.marklogic.developer.cq.controller"
   at "lib-controller.xqy"
 
-define variable $g-nbsp as xs:string { codepoints-to-string(160) }
-define variable $g-nl { fn:codepoints-to-string((10)) }
+define variable $v:NBSP as xs:string { codepoints-to-string(160) }
+define variable $v:NL { fn:codepoints-to-string((10)) }
 
-define function v:get-xml($x) {
+define function v:get-xml($x)
+ as element()
+{
   if (count($x) = 1
     and ($x instance of element() or $x instance of document-node())
-  ) then $x
+  ) then ($x/descendant-or-self::*)[1]
   else element results {
     attribute warning {
       if (empty($x)) then "empty list"
@@ -50,7 +54,9 @@ define function v:get-xml($x) {
   }
 }
 
-define function v:get-html($x) as element() {
+define function v:get-html($x)
+ as element(xh:html)
+{
   let $body :=
     for $i in $x
     return if ($i instance of document-node()) then $i/node() else $i
@@ -71,10 +77,16 @@ define function v:get-html($x) as element() {
 </html>
 }
 
-define function v:get-text($x) { $x }
+define function v:get-text($x as item()+)
+ as item()+
+{
+  $x
+}
 
-define function v:get-error-frame-html
-($f as element(err:frame), $query as xs:string) as node()* {
+define function v:get-error-frame-html(
+  $f as element(err:frame), $query as xs:string)
+ as element()*
+{
   if (exists($f/err:uri))
   then concat("in ", string($f/err:uri))
   else (),
@@ -121,11 +133,11 @@ define function v:get-error-frame-html
   <br/>
 }
 
-define function v:get-error-html
-($db as xs:unsignedLong, $modules as xs:unsignedLong,
- $root as xs:string, $ex as element(err:error),
- $query as xs:string)
- as element()
+define function v:get-error-html(
+  $db as xs:unsignedLong, $modules as xs:unsignedLong,
+  $root as xs:string, $ex as element(err:error),
+  $query as xs:string)
+ as element(xh:html)
 {
 <html xmlns="http://www.w3.org/1999/xhtml">
   <body bgcolor="white">
@@ -161,9 +173,9 @@ define function v:get-error-html
 </html>
 }
 
-define function v:get-eval-label
-($db as xs:unsignedLong, $modules as xs:unsignedLong?,
- $root as xs:string?, $name as xs:string?)
+define function v:get-eval-label(
+  $db as xs:unsignedLong, $modules as xs:unsignedLong?,
+  $root as xs:string?, $name as xs:string?)
  as xs:string
 {
   concat(
@@ -177,5 +189,36 @@ define function v:get-eval-label
   )
 }
 
+define function v:get-html-head()
+ as element(xh:head)
+{
+  v:get-html-head("")
+}
+
+define function v:get-html-head($label as xs:string)
+ as element(xh:head)
+{
+  (: we do not need the js and css here, but it makes reloads easier :)
+  <head xmlns="http://www.w3.org/1999/xhtml">
+    <title>{ $label, $c:TITLE-TEXT }</title>
+    <script language="JavaScript" type="text/javascript" src="prototype.js">
+    </script>
+    <script language="JavaScript" type="text/javascript" src="debug.js">
+    </script>
+    <script language="JavaScript" type="text/javascript" src="cookie.js">
+    </script>
+    <script language="JavaScript" type="text/javascript" src="session.js">
+    </script>
+    <script language="JavaScript" type="text/javascript" src="query.js">
+    </script>
+    <link rel="stylesheet" type="text/css" href="cq.css">
+    </link>
+    {
+      if (c:get-debug())
+      then <script>debug.setEnabled(true);</script>
+      else ()
+    }
+  </head>
+}
 
 (: lib-view.xqy :)

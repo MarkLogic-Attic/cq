@@ -194,4 +194,9 @@ select
   white-space: normal !important;
 }
 
+.hidden
+{
+  display: none;
+}
+
 /* end cq.css */

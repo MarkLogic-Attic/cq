@@ -143,7 +143,8 @@ define function io:exists-fs($path as xs:string)
     false(),
     if ($ex/err:code eq 'SVC-FILOPN')
     then ()
-    else xdmp:log(normalize-space(xdmp:quote($ex)))
+    else xdmp:log(text {
+      "io:exists-fs:", normalize-space(xdmp:quote($ex)) })
   }
 }
 

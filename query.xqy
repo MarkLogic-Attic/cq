@@ -120,7 +120,7 @@ c:set-content-type(),
           <td nowrap="1">
             <table class="head1">
               <tr>
-                <td nowrap="1">Current XQuery</td>
+                <td nowrap="1" id="/cq:title">Current XQuery</td>
               </tr>
             </table>
             <div>
@@ -204,7 +204,11 @@ c:set-content-type(),
         </tr>
       </table>
       <input id="debug" name="debug" type="hidden" value="{c:get-debug()}"/>
-      <div style="display: none" xml:space="preserve"
+      <input id="/cq:policy/title" type="hidden"
+       value="{$c:POLICY-TITLE}"/>
+      <input id="/cq:policy/accent-color" type="hidden"
+       value="{$c:POLICY-ACCENT-COLOR}"/>
+      <div class="hidden" xml:space="preserve"
        id="/cq:restore-session" name="/cq:restore-session">{
         attribute uri { $c:SESSION-URI },
         (: Initial session state as hidden divs, for the onload method.

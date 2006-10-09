@@ -21,17 +21,19 @@
  :)
 module "com.marklogic.developer.cq.controller"
 
+default function namespace = "http://www.w3.org/2003/05/xpath-functions"
+
 declare namespace c = "com.marklogic.developer.cq.controller"
 
 declare namespace sess="com.marklogic.developer.cq.session"
+
+declare namespace pol="com.marklogic.developer.cq.policy"
 
 import module namespace v = "com.marklogic.developer.cq.view"
   at "lib-view.xqy"
 
 import module namespace io = "com.marklogic.developer.cq.io"
   at "lib-io.xqy"
-
-default function namespace = "http://www.w3.org/2003/05/xpath-functions"
 
 define variable $c:ACCEPT-XML as xs:boolean {
   contains(xdmp:get-request-header('accept'), 'application/xhtml+xml') }
@@ -49,16 +51,34 @@ define variable $c:COOKIES as element(c:cookie)* {
 
 define variable $c:DEBUG as xs:boolean { false() }
 
-define variable $c:USER as xs:string { xdmp:get-current-user() }
+define variable $c:IS-SESSION-DELETE as xs:boolean {
+  $c:SESSION-DB ne 0 }
 
-define variable $c:USER-ID as xs:unsignedLong {
-  c:get-user-id($c:USER) }
+define variable $c:POLICY as element(pol:policy)? {
+  let $path := xdmp:get-request-path()
+  (: ensure that the path ends with "/" :)
+  let $path :=
+    if (ends-with($path, "/"))
+    then $path
+    else concat(
+      string-join(tokenize($path, "/")[ 1 to last() - 1], "/"), "/"
+    )
+  let $path := concat($path, "policy.xml")
+  where io:exists($path)
+  return io:read($path)/pol:policy
+}
+
+define variable $c:POLICY-TITLE as xs:string? {
+  c:debug(("policy:", $c:POLICY)),
+  $c:POLICY/pol:title
+}
+
+define variable $c:POLICY-ACCENT-COLOR as xs:string? {
+  $c:POLICY/pol:accent-color
+}
 
 define variable $c:SESSION-DB as xs:unsignedLong {
   $io:MODULES-DB }
-
-define variable $c:IS-SESSION-DELETE as xs:boolean {
-  $c:SESSION-DB ne 0 }
 
 define variable $c:SESSION-DIRECTORY as xs:string {
   let $path := xdmp:get-request-path()
@@ -122,6 +142,11 @@ define variable $c:TITLE-TEXT as xs:string {
     "-", xdmp:platform()
   }
 }
+
+define variable $c:USER as xs:string { xdmp:get-current-user() }
+
+define variable $c:USER-ID as xs:unsignedLong {
+  c:get-user-id($c:USER) }
 
 define function c:get-debug() as xs:boolean { $c:DEBUG }
 

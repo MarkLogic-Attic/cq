@@ -19,8 +19,6 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-(: TODO don't save, and don't bug me again - site policy :)
-
 import module namespace c="com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 

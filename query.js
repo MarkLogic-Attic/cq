@@ -49,6 +49,7 @@ var gBrowserIs = new BrowserIsClass();
 var gBuffers = null;
 var gHistory = null;
 var gSession = null;
+var gPolicy = null;
 
 // static functions
 // useful string functions
@@ -667,6 +668,77 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
 } // QueryBufferListClass
 
+// PolicyClass
+function PolicyClass(titleId, title, accentColor) {
+    debug.print("PolicyClass: " + "titleId = " + titleId)
+
+    this.titleNode = $(titleId);
+    this.title = title;
+    this.accentColor = accentColor;
+
+    this.getTitle = function() {
+        return this.title;
+    }
+
+    this.getAccentColor = function() {
+        return this.accentColor;
+    }
+
+    // see http://www.quirksmode.org/dom/w3c_css.html
+    // see http://www.quirksmode.org/dom/changess.html
+    this.enforce = function() {
+
+        var label = "PolicyClass.enforce: ";
+
+        debug.print(label + "titleNode = " + this.titleNode)
+        debug.print(label + "title = " + this.title)
+        if (null != this.titleNode
+            && null != this.title
+            && "" != this.title) {
+            // enforce title
+            Element.update(this.titleNode, '');
+            this.titleNode.appendChild(document.createTextNode(this.title));
+        }
+
+        debug.print(label + "accentColor = " + this.accentColor)
+        if (null != this.accentColor
+            && "" != this.accentColor) {
+            // enforce accentColor
+            var sheet;
+            var style;
+            var rules;
+            var doc = new Array(
+                                parent.document.getElementById(gQueryFrameId),
+                                parent.document.getElementById(gResultFrameId)
+                                );
+            for (var i = 0; i < doc.length; i++) {
+                debug.print(label + "doc " + i + " " + doc[i]);
+                var list = doc[i].contentDocument.styleSheets;
+                if (null != list) {
+                    for (var j = 0; j < list.length; j++) {
+                        sheet = list[j];
+                        rules = sheet.cssRules;
+                        // ie6
+                        if (null == rules) {
+                            rules = sheet.rules;
+                        }
+                        for (var k = 0; k < rules.length; k++) {
+                            style = rules[k].style;
+                            if (null != style.backgroundColor
+                                && "" != style.backgroundColor
+                                && "#FFFFFF" != style.backgroundColor
+                                && "white" != style.backgroundColor) {
+                                style.backgroundColor = this.accentColor;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+} // PolicyClass
+
 function cqOnLoad() {
     debug.print("cqOnLoad: begin");
 
@@ -686,6 +758,11 @@ function cqOnLoad() {
     gSession = new SessionClass(gBuffers, gHistory);
     gSession.restore("/cq:restore-session");
 
+    var title = $F("/cq:policy/title");
+    var accentColor = $F("/cq:policy/accent-color");
+    gPolicy = new PolicyClass("/cq:title", title, accentColor);
+    gPolicy.enforce();
+
     // expose the correct tabs
     refreshBufferTabs(0);
 
@@ -694,26 +771,6 @@ function cqOnLoad() {
 
     resizeFrameset();
 
-    // TODO policy test: remove bgcolor
-    if (false) {
-    var list = document.styleSheets;
-    var sheet;
-    var style;
-    var rules;
-    for (var i = 0; i < list.length; i++) {
-        sheet = list[i];
-        rules = sheet.cssRules;
-        for (var j = 0; j < rules.length; j++) {
-            style = rules[j].style;
-            if (null != style.backgroundColor
-                && "" != style.backgroundColor
-                && "#FFFFFF" != style.backgroundColor
-                && "white" != style.backgroundColor) {
-                style.backgroundColor = "#888888";
-            }
-        }
-    }
-    }
 }
 
 function setInstructionText() {
@@ -737,23 +794,8 @@ function setInstructionText() {
     instructionNode.appendChild(document.createTextNode(theText));
 }
 
-function getFrameset() {
-    // get it from the parent document
-    return parent.document.getElementById(gFramesetId);
-}
-
-function getQueryFrame() {
-    // get it from the parent document
-    return parent.document.getElementById(gQueryFrameId);
-}
-
-function getResultFrame() {
-    // get it from the parent document
-    return parent.document.getElementById(gResultFrameId);
-}
-
 function resizeFrameset() {
-    var frameset = getFrameset();
+    var frameset = parent.document.getElementById(gFramesetId);
     if (frameset == null) {
         debug.print("resizeFrameset: null frameset");
         return;

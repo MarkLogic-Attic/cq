@@ -44,9 +44,11 @@ define variable $new-history as element(sess:query-history) {
   /sess:query-history
 }
 
+(:
 c:debug-on(),
 c:debug(("BUFFERS", $BUFFERS)),
 c:debug(("HISTORY", $HISTORY)),
+:)
 c:update-session($new-buffers, $new-history)
 
 (: update-session.xqy :)

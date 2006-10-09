@@ -45,7 +45,7 @@ define variable $QUERY-HISTORY as element(sess:query)* {
 }
 
 (: TODO some deployments like to set their own default worksheet:
- : if it's in APP-SERVER-ROOT/CQ-LOCATION/worksheet.xml, use it.
+ : if it is in APP-SERVER-ROOT/CQ-LOCATION/worksheet.xml, use it.
  :)
 
 define function get-eval-selector() as element(html:select)

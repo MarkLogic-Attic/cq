@@ -17,6 +17,8 @@
 //
 //////////////////////////////////////////////////////////////////////
 
+// TODO persist tab state
+
 // TODO refactor more of this controller-style logic into classes:
 // QueryTabsClass, etc.
 
@@ -685,6 +687,26 @@ function cqOnLoad() {
 
     resizeFrameset();
 
+    // TODO policy test: remove bgcolor
+    if (false) {
+    var list = document.styleSheets;
+    var sheet;
+    var style;
+    var rules;
+    for (var i = 0; i < list.length; i++) {
+        sheet = list[i];
+        rules = sheet.cssRules;
+        for (var j = 0; j < rules.length; j++) {
+            style = rules[j].style;
+            if (null != style.backgroundColor
+                && "" != style.backgroundColor
+                && "#FFFFFF" != style.backgroundColor
+                && "white" != style.backgroundColor) {
+                style.backgroundColor = "#888888";
+            }
+        }
+    }
+    }
 }
 
 function setInstructionText() {

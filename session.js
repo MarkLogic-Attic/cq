@@ -146,7 +146,7 @@ function SessionClass(databaseId, buffers, history) {
 
     this.restore = function(id) {
         var restore = $(id);
-        debug.print("onload: restoring from "
+        debug.print("restore: from "
                     + restore + " " + restore.hasChildNodes());
         if (null != restore && restore.hasChildNodes()) {
             var children = restore.childNodes;
@@ -160,10 +160,10 @@ function SessionClass(databaseId, buffers, history) {
             this.buffers.setRows(buffers.getAttribute('rows'));
             this.buffers.setCols(buffers.getAttribute('cols'));
             queries = buffers.childNodes;
-            debug.print("onload: restoring buffers " + queries.length);
+            debug.print("restore: restoring buffers " + queries.length);
             for (var i = 0; i < queries.length; i++) {
                 query = queries[i].textContent;
-                //debug.print("onload: restoring " + i + " " + query);
+                //debug.print("restore: restoring " + i + " " + query);
                 // handle content-source (per buffer)
                 source = queries[i].getAttribute('content-source');
                 this.buffers.add(query, source);
@@ -172,11 +172,11 @@ function SessionClass(databaseId, buffers, history) {
             // second div is the history
             var history = children[1];
             queries = history.childNodes;
-            debug.print("onload: restoring history " + queries.length);
+            debug.print("restore: restoring history " + queries.length);
             // restore in reverse order
             for (var i = queries.length; i > 0; i--) {
                 query = queries[ i - 1 ].textContent;
-                //debug.print("onload: restoring " + i + " " + query);
+                //debug.print("restore: restoring " + i + " " + query);
                 this.history.add(query);
             }
         }

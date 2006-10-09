@@ -19,7 +19,6 @@
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 var gSessionUriCookie = "/cq:session-uri";
-var gSessionDatabaseId = "/cq:session-db";
 var gSessionDirectory = "/cq/sessions/";
 
 // GLOBAL VARIABLES
@@ -35,28 +34,24 @@ function reportError(req, resp) {
 function SessionList(id, target) {
     this.id = id;
     this.target = target;
-    this.databaseId = $F(this.id);
 
     var updateUrl = 'get-sessions-view.xqy';
     var deleteUrl = 'delete-session.xqy';
     var renameUrl = 'rename-session.xqy';
 
     this.updateSessions = function() {
-        this.databaseId = $F(this.id);
-        debug.print("updateSessions: " + this.databaseId);
+        debug.print("updateSessions: start");
         var updater = new Ajax.Updater({success:this.target},
                                        updateUrl,
             {
                 method:'get',
-                parameters:'ID=' + this.databaseId,
                 onFailure: reportError
             } );
     }
 
     this.newSession = function() {
         // start a new session and set the user cookie appropriately
-        debug.print("newSession: " + this.databaseId);
-        setCookie(gSessionDatabaseId, this.databaseId);
+        debug.print("newSession: start");
         // Now our request cookie should include the session db,
         // so if we call get-session.xqy we should get the new session.
         // We can then extract its id.
@@ -67,8 +62,7 @@ function SessionList(id, target) {
     }
 
     this.resumeSession = function(sessionUri) {
-        debug.print("newSession: " + this.databaseId);
-        setCookie(gSessionDatabaseId, this.databaseId);
+        debug.print("resumeSession: start");
         // set cookie to the new uri
         setCookie(gSessionUriCookie, sessionUri);
         // refresh should show the query view
@@ -98,8 +92,7 @@ function SessionList(id, target) {
         var req = new Ajax.Request(renameUrl,
             {
                 method: 'get',
-                parameters:
-                  'URI=' + uri + '&NAME=' + name + '&DB=' + this.databaseId,
+                parameters: 'URI=' + uri + '&NAME=' + name,
                 asynchronous: false,
                 onFailure: reportError
             });
@@ -110,8 +103,7 @@ function SessionList(id, target) {
 } // SessionListClass
 
 // this class is responsible for autosaving the session state
-function SessionClass(databaseId, buffers, history) {
-    this.databaseId = databaseId;
+function SessionClass(buffers, history) {
     this.buffers = buffers;
     this.history = history;
     this.lastSync = null;
@@ -120,34 +112,20 @@ function SessionClass(databaseId, buffers, history) {
 
     // TODO autosave if 60 sec old?
 
-    // TODO handle case where user doesn't have write permission
-
-    this.sync = function(lastModified) {
-        debug.print("SessionClass.sync: "
-                    + lastModified + " ? " + this.lastSync);
-        if (null != this.lastSync && lastModified < this.lastSync) {
-            return;
-        }
-
-        var buffers = encodeURIComponent(this.buffers.toXml());
-        var history = encodeURIComponent(this.history.toXml());
-        var params = ('DB=' + databaseId
-                      + '&BUFFERS=' + buffers + '&HISTORY=' + history);
-        debug.print("SessionClass.sync: " + params);
-        var req = new Ajax.Request(syncUrl,
-            {
-                method: 'post',
-                parameters: params,
-                onFailure: reportError
-            }
-                                   );
-        this.lastSync = new Date();
-    }
-
     this.restore = function(id) {
         var restore = $(id);
         debug.print("restore: from "
                     + restore + " " + restore.hasChildNodes());
+
+        // handle session uri cookie
+        var uri = restore.getAttribute('uri');
+        if (null != uri) {
+            setCookie(gSessionUriCookie, uri);
+            debug.print("set session cookie = " + uri);
+        } else {
+            debug.print("missing session uri!");
+        }
+
         if (null != restore && restore.hasChildNodes()) {
             var children = restore.childNodes;
             var queries = null;
@@ -180,6 +158,29 @@ function SessionClass(databaseId, buffers, history) {
                 this.history.add(query);
             }
         }
+    }
+
+    // TODO handle case where user doesn't have write permission
+
+    this.sync = function(lastModified) {
+        debug.print("SessionClass.sync: "
+                    + lastModified + " ? " + this.lastSync);
+        if (null != this.lastSync && lastModified < this.lastSync) {
+            return;
+        }
+
+        var buffers = encodeURIComponent(this.buffers.toXml());
+        var history = encodeURIComponent(this.history.toXml());
+        var params = ('BUFFERS=' + buffers + '&HISTORY=' + history);
+        debug.print("SessionClass.sync: " + params);
+        var req = new Ajax.Request(syncUrl,
+            {
+                method: 'post',
+                parameters: params,
+                onFailure: reportError
+            }
+                                   );
+        this.lastSync = new Date();
     }
 
 } // SessionClass

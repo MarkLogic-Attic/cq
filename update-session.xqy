@@ -20,9 +20,6 @@
  :
  :)
 
-define variable $DB as xs:unsignedLong {
-  xs:unsignedLong(xdmp:get-request-field("DB")) }
-
 define variable $BUFFERS as xs:string {
   xdmp:get-request-field("BUFFERS") }
 
@@ -50,13 +47,6 @@ define variable $new-history as element(sess:query-history) {
 c:debug-on(),
 c:debug(("BUFFERS", $BUFFERS)),
 c:debug(("HISTORY", $HISTORY)),
-let $opts :=
-  <options xmlns="xdmp:eval">
-    <database>{ $DB }</database>
-  </options>
-return
-  if (xdmp:database() eq $DB)
-  then c:update-session($DB, $new-buffers, $new-history)
-  else xdmp:invoke('update-session.xqy', (), $opts)
+c:update-session($new-buffers, $new-history)
 
 (: update-session.xqy :)

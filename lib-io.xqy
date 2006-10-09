@@ -25,18 +25,21 @@
  :)
 module "com.marklogic.developer.cq.io"
 
-declare namespace io = "com.marklogic.developer.cq.io"
-
 default function namespace = "http://www.w3.org/2003/05/xpath-functions"
 
+import module namespace c = "com.marklogic.developer.cq.controller"
+  at "lib-controller.xqy"
+
+declare namespace io = "com.marklogic.developer.cq.io"
 declare namespace gr = "http://marklogic.com/xdmp/group"
+declare namespace dir = "http://marklogic.com/xdmp/directory"
 
 (:~ @private :)
 define variable $io:MODULES-DB as xs:unsignedLong {
   xdmp:modules-database() }
 
 (:~ @private :)
-define variable $io:MODULES-ROOT as xs:unsignedLong {
+define variable $io:MODULES-ROOT as xs:string {
   (: life is easier if the root does not end in "/" :)
   let $root := xdmp:modules-root()
   return
@@ -74,12 +77,161 @@ define function io:write($path as xs:string, $new as document-node())
     else io:write-db(xs:anyURI($path), $new)
 }
 
+(:~ replace an existing node :)
+define function io:node-replace(
+  $uri as xs:anyURI, $doc as document-node(),
+  $old as node(), $new as node())
+ as empty()
+{
+  if ($io:MODULES-DB ne 0)
+  then xdmp:node-replace($old, $new)
+  else io:node-replace-fs($uri, $doc, $old, $new)
+}
+
+(:~ insert a new child node :)
+define function io:node-insert-child(
+  $uri as xs:anyURI, $doc as document-node(),
+  $parent as node(), $new as node())
+ as empty()
+{
+  if ($io:MODULES-DB ne 0)
+  then xdmp:node-insert-child($parent, $new)
+  else io:node-insert-child-fs($uri, $doc, $parent, $new)
+}
+
+(:~ list contents of a directory path :)
+define function io:list($path as xs:string)
+  as document-node()*
+{
+  (: TODO pagination :)
+  let $path := io:canonicalize($path)
+  return
+    if ($io:MODULES-DB ne 0)
+    then xdmp:directory($path, "infinity")
+    else io:list-fs($path)
+}
+
+(:~ delete a path :)
+define function io:delete($path as xs:string)
+ as empty()
+{
+  let $path := io:canonicalize($path)
+  return
+    if ($io:MODULES-DB ne 0)
+    then xdmp:document-delete($path)
+    else io:delete-fs($path)
+}
+
+(:~ return true if path exists :)
+define function io:exists($path as xs:string)
+ as xs:boolean
+{
+  let $path := io:canonicalize($path)
+  return
+    if ($io:MODULES-DB ne 0)
+    then xdmp:exists(doc($path))
+    else io:exists-fs($path)
+}
+
+(:~ @private :)
+define function io:exists-fs($path as xs:string)
+ as xs:boolean
+{
+  try {
+    exists(xdmp:document-get($path))
+  } catch ($ex) {
+    false(),
+    (: TODO :)
+    if ($ex/err:code eq 'SVC-FILOPN')
+    then ()
+    else xdmp:log(normalize-space(xdmp:quote($ex)))
+  }
+}
+
+(:~ @private :)
+define function io:delete-fs($path as xs:string)
+ as empty()
+{
+  (: TODO filesystem delete :)
+}
+
+(:~ @private :)
+define function io:node-insert-child-fs(
+  $uri as xs:anyURI, $doc as document-node(),
+  $parent as node(), $new as node())
+ as empty()
+{
+  io:write(
+    $uri,
+    document { io:node-insert-child-R($doc, $parent, $new) }
+  )
+}
+
+(:~ @private :)
+define function io:node-replace-fs(
+  $uri as xs:anyURI, $doc as document-node(),
+  $old as node(), $new as node())
+ as empty()
+{
+  io:write(
+    $uri,
+    document { io:node-replace-R($doc, $old, $new) }
+  )
+}
+
+(:~ @private :)
+define function io:node-insert-child-R(
+  $input as node()*, $parent as node(), $new as node())
+as node()*
+{
+  for $n in $input
+  return typeswitch ($n)
+    case element()
+    return
+      if ($n is $parent)
+      then element {node-name($parent)} {
+        $n/(@*|node()), $new
+      }
+      else element {node-name($n)} {
+        io:node-insert-child-R($n/(@*|node()), $parent, $new)
+      }
+    default return $n
+}
+
+(:~ @private :)
+define function io:node-replace-R(
+  $input as node()*, $old as node(), $new as node())
+as node()*
+{
+  for $n in $input
+  return typeswitch ($n)
+    case element()
+    return
+      if ($n is $old) then $new
+      else element {node-name($n)} {
+        io:node-replace-R($n/(@*|node()), $old, $new)
+      }
+    default return
+      if ($n is $old) then $new else $old
+}
+
+(:~ @private :)
+define function io:list-fs($path as xs:string)
+  as document-node()*
+{
+  for $p in data(xdmp:filesystem-directory($path)/dir:entry
+    [ dir:type eq "file" ]/dir:pathname)
+  return xdmp:document-get($p,
+    <options xmlns="xdmp:document-get">{
+      element format { 'xml' } }</options>)
+}
+
 (:~ @private :)
 define function io:canonicalize($path as xs:string)
   as xs:string
 {
   concat(
-    $io:MODULES-ROOT, "/"[not(starts-wth($path, "/"))], $path
+    $io:MODULES-ROOT, "/"[not(starts-with($path, "/"))], $path
   )
 }
 
@@ -99,7 +251,11 @@ define function io:read-db($uri as xs:anyURI)
 define function io:read-fs($path as xs:string)
   as document-node()?
 {
-  xdmp:document-get($path)
+  if (ends-with($path, "/")) then () else try {
+    xdmp:document-get($path)
+  } catch ($ex) {
+    c:debug($ex)
+  }
 }
 
 (:~ @private :)

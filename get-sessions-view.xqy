@@ -29,15 +29,12 @@ default element namespace = "http://www.w3.org/1999/xhtml"
 
 declare namespace sess="com.marklogic.developer.cq.session"
 
-define variable $ID as xs:unsignedLong {
-  xs:unsignedLong(xdmp:get-request-field("ID")) }
-
 (: List the available sessions, with widgets for resume and delete.
  : Also provide widget to rename.
  : TODO Provide pagination.
  :)
 c:check-debug(),
-let $sessions := c:get-available-sessions($ID)
+let $sessions := c:get-available-sessions()
 let $d := c:debug(("sessions:", $sessions))
 return
   if (exists($sessions))
@@ -84,7 +81,7 @@ return
   else
     <div class="instruction">
     There are no resumable sessions
-    in the contentbase "{xdmp:database-name($ID)}".
+    in the contentbase "{$c:SESSION-DB}".
     Please try a different contentbase,
     or create a new session.
     </div>

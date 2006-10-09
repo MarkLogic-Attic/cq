@@ -203,11 +203,10 @@ c:set-content-type(),
           </td>
         </tr>
       </table>
-      <input id="/cq:session-database" name="/cq:session-database"
-       type="hidden" value="{$c:SESSION-DB}"/>
       <input id="debug" name="debug" type="hidden" value="{c:get-debug()}"/>
       <div style="display: none" xml:space="preserve"
        id="/cq:restore-session" name="/cq:restore-session">{
+        attribute uri { $c:SESSION-URI },
         (: Initial session state as hidden divs, for the onload method.
          : Be careful to preserve all whitespace.
          :)

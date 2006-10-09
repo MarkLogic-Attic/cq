@@ -205,7 +205,7 @@ function QueryHistoryClass(id, buffers, size) {
     this.lastModified = new Date();
 
     this.add = function(query) {
-        //debug.print("QueryHistoryClass.add: " + query);
+        debug.print("QueryHistoryClass.add: " + query);
         if (query == null || query == "") {
             return;
         }
@@ -531,6 +531,9 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
     this.getQuery = function(n) {
         //debug.print("QueryBufferListClass.getBufferValue: " + n);
+        if (n == this.pos) {
+            return this.input.value;
+        }
         return this.getBuffer(n).getQuery();
     }
 
@@ -675,8 +678,7 @@ function cqOnLoad() {
     gBuffers.initHandlers();
     gHistory = new QueryHistoryClass("/cq:history", gBuffers);
 
-    var sessionDatabaseId = $F("/cq:session-database");
-    gSession = new SessionClass(sessionDatabaseId, gBuffers, gHistory);
+    gSession = new SessionClass(gBuffers, gHistory);
     gSession.restore("/cq:restore-session");
 
     // expose the correct tabs
@@ -951,9 +953,7 @@ function submitFormWrapper(theForm, mimeType) {
         return;
     }
 
-    var query = gBuffers.getQuery();
-
-    submitForm(theForm, query, mimeType, true);
+    submitForm(theForm, gBuffers.getQuery(), mimeType, true);
 }
 
 function cqListDocuments() {

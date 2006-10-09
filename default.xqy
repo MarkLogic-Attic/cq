@@ -51,12 +51,6 @@ return
 }
 </html>
 ,
-c:debug(("session-cookie-db:", $c:SESSION-COOKIE-DB)),
-(: If the user already has an active session in his cookie, use it.
- : Otherwise, send him to the session page.
- :)
-if (empty($c:SESSION-COOKIE-DB))
-then xdmp:invoke("session.xqy")
-else xdmp:invoke("frameset.xqy")
+xdmp:invoke("frameset.xqy")
 
 (: cq.xqy :)

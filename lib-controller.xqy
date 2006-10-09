@@ -28,6 +28,9 @@ declare namespace sess="com.marklogic.developer.cq.session"
 import module namespace v = "com.marklogic.developer.cq.view"
   at "lib-view.xqy"
 
+import module namespace io = "com.marklogic.developer.cq.io"
+  at "lib-io.xqy"
+
 default function namespace = "http://www.w3.org/2003/05/xpath-functions"
 
 define variable $c:ACCEPT-XML as xs:boolean {
@@ -51,68 +54,60 @@ define variable $c:USER as xs:string { xdmp:get-current-user() }
 define variable $c:USER-ID as xs:unsignedLong {
   c:get-user-id($c:USER) }
 
-define variable $c:SESSION-DIRECTORY as xs:string { "/cq/sessions/" }
+define variable $c:SESSION-DB as xs:unsignedLong {
+  $io:MODULES-DB }
 
-(: we expect JavaScript to set two cookies for us: uri and database-id :)
+define variable $c:SESSION-DIRECTORY as xs:string {
+  let $path := xdmp:get-request-path()
+  (: ensure that the path ends with "/" :)
+  let $path :=
+    if (ends-with($path, "/"))
+    then $path
+    else concat(
+      string-join(tokenize($path, "/")[ 1 to last() - 1], "/"), "/"
+    )
+  return concat($path, "sessions/")
+}
+
+(: we expect JavaScript to set a cookie for the session uri :)
 define variable $c:SESSION-URI as xs:anyURI? {
   c:debug(("cookies:", $c:COOKIES)),
   let $v := (
-    data($c:COOKIES[ @key eq "/cq:session-uri" ]/@value),
-    $c:SESSION-DIRECTORY
+    data($c:COOKIES[ @key eq "/cq:session-uri" ]/@value)
   )[starts-with(., $SESSION-DIRECTORY)][1]
   where $v
   return xs:anyURI($v)
-}
-
-define variable $c:SESSION-COOKIE-DB as xs:unsignedLong? {
-  data($c:COOKIES[@key eq "/cq:session-db"]/@value)
-}
-
-define variable $c:DEFAULT-DATABASE as xs:string { "Modules" }
-
-define variable $c:SESSION-DB as xs:unsignedLong {
-  (
-    $c:SESSION-COOKIE-DB,
-    (: the default-database might not exist :)
-    try { xdmp:database($c:DEFAULT-DATABASE) } catch ($ex) {},
-    xdmp:databases()
-  )[1]
-}
-
-define variable $c:SESSION-DB-OPTIONS {
-  <options xmlns="xdmp:eval">
-    <database>{$c:SESSION-DB}</database>
-  </options>
 }
 
 define variable $c:SESSION as element(sess:session)? {
   (: get the current session,
    : falling back to the last session or a new one.
    :)
-  if (empty($c:SESSION-URI)) then ()
-  else
-    let $d := c:debug(("$c:SESSION: uri=", $c:SESSION-URI))
-    let $session := c:get-session()
-    let $session :=
-      if (exists($session)) then $session
-      (: We were explicitly asked for a new session,
-       : so do not use the last session.
-       :)
-      else if ($c:SESSION-URI eq $c:SESSION-DIRECTORY) then ()
-      else c:get-last-session()
-    let $session :=
-      if (exists($session)) then $session
-      (: time for a new session :)
-      else c:new-session()
-    where $session
-    return
-      (: TODO set response headers to add cookie? :)
-      let $set := xdmp:set($c:SESSION-URI, $session/@uri)
-      return $session
+   let $d := c:debug(("$c:SESSION: uri =", $c:SESSION-URI))
+   let $session :=
+     if (exists($c:SESSION-URI))
+     then io:read($c:SESSION-URI)/sess:session
+     else ()
+   let $d := c:debug(("$c:SESSION: session =", $session))
+   let $session :=
+     if (exists($session)) then $session
+     (: We were explicitly asked for a new session,
+      : so do not use the last session.
+      :)
+     else if ($c:SESSION-URI eq $c:SESSION-DIRECTORY) then ()
+     else c:get-last-session()
+     let $session :=
+       if (exists($session)) then $session
+       (: time for a new session :)
+       else c:new-session()
+     where $session
+   return
+     let $set := xdmp:set($c:SESSION-URI, $session/@uri)
+     return $session
 }
 
 define variable $c:SESSION-NAME as xs:string {
-  ($c:SESSION/sess:name, "(unnamed session)")[1]
+  ($c:SESSION/sess:name, "New Session")[1]
 }
 
 define variable $c:TITLE-TEXT as xs:string {
@@ -160,48 +155,6 @@ define function c:set-content-type()
     "; charset=utf-8") )
 }
 
-define function c:get-available-sessions-node()
-  as element(c:available-sessions)
-{
-  element c:available-sessions {
-    let $query := 'declare namespace sess="com.marklogic.developer.cq.session"
-      define variable $URI as xs:string external
-      xdmp:estimate(xdmp:directory("/cq/sessions/")/sess:session)'
-    let $vars := (xs:QName('URI'), $c:SESSION-DIRECTORY)
-    for $id in xdmp:databases()
-    return element c:database {
-        attribute id { $id },
-        attribute name { xdmp:database-name($id) },
-        attribute estimate {
-          xdmp:eval(
-            $query, $vars,
-            <options xmlns="xdmp:eval"><database>{$id}</database></options>
-          )
-        }
-    }
-  }
-}
-
-define function c:get-available-sessions()
-  as element(sess:session)*
-{
-  (: TODO set limits :)
-  c:get-available-sessions($c:SESSION-DB)
-}
-
-define function c:get-available-sessions($id as xs:unsignedLong)
-  as element(sess:session)*
-{
-  (: TODO set limits :)
-  xdmp:eval(
-    'define variable $URI as xs:string external
-     declare namespace sess="com.marklogic.developer.cq.session"
-     xdmp:directory("/cq/sessions/")/sess:session',
-    (xs:QName('URI'), $c:SESSION-DIRECTORY),
-    <options xmlns="xdmp:eval"><database>{$id}</database></options>
-  )
-}
-
 define function c:get-user-id($username as xs:string)
 {
   xdmp:eval(
@@ -215,51 +168,29 @@ define function c:get-user-id($username as xs:string)
   )
 }
 
-define function c:get-session()
- as element(sess:session)?
+define function c:get-available-sessions()
+ as element(sess:session)*
 {
-  c:get-session($c:SESSION-URI)
-}
-
-define function c:get-session($uri as xs:anyURI)
- as element(sess:session)?
-{
-  c:get-session($uri, $c:SESSION-DB-OPTIONS)
-}
-
-define function c:get-session($uri as xs:anyURI, $options as element())
- as element(sess:session)?
-{
-  xdmp:eval(
-    'define variable $URI as xs:string external
-     declare namespace sess="com.marklogic.developer.cq.session"
-     doc($URI)/sess:session',
-    (xs:QName('URI'), $uri),
-    $options
-  )
+  for $i in io:list($c:SESSION-DIRECTORY)/sess:session
+  order by xs:dateTime($i/sess:last-modified) descending,
+  xs:dateTime($i/sess:created) descending,
+  $i/name
+  return $i
 }
 
 define function c:get-last-session()
  as element(sess:session)?
 {
-  xdmp:eval(
-    'define variable $URI as xs:string external
-     declare namespace sess="com.marklogic.developer.cq.session"
-     (
-       for $sess in xdmp:directory($URI)/sess:session
-       order by xs:dateTime($sess/sess:created)
-       return $sess
-     )[1]',
-    (xs:QName('URI'), $c:SESSION-DIRECTORY),
-    $c:SESSION-DB-OPTIONS
-  )
+  (c:get-available-sessions())[1]
 }
 
 define function c:generate-uri()
  as xs:anyURI
 {
-  let $uri := xs:anyURI(concat($c:SESSION-DIRECTORY, string(xdmp:random())))
-  return if (xdmp:exists(doc($uri))) then c:generate-uri() else $uri
+  let $uri :=
+    xs:anyURI(concat($c:SESSION-DIRECTORY, string(xdmp:random())))
+  return
+    if (io:exists($uri)) then c:generate-uri() else $uri
 }
 
 (:
@@ -270,19 +201,19 @@ define function c:new-session()
 {
   let $uri := c:generate-uri()
   let $d := c:debug(("new-session:", $uri))
-  let $new :=
+  let $new := document {
     <session xmlns="com.marklogic.developer.cq.session">
     {
       attribute uri { $uri },
       element sec:user { $c:USER },
       element sec:user-id { $c:USER-ID },
       element created { current-dateTime() },
+      element last-modified { current-dateTime() },
       element query-buffers {
-        (: TODO should this come from worksheet.xml, or what? :)
         for $i in (1 to 10) return element query {
           concat(
             '(: buffer ', string($i), ' :)', $v:NL,
-            'declare namespace html = "http://www.w3.org/1999/xhtml"', $v:NL,
+            'declare namespace html="http://www.w3.org/1999/xhtml"', $v:NL,
             '<p>hello world</p>'
           )
         }
@@ -290,68 +221,55 @@ define function c:new-session()
       <query-history/>
     }
     </session>
-  return xdmp:eval(
-    'define variable $URI as xs:anyURI external
-    define variable $NEW as element() external
-    xdmp:document-insert($URI, $NEW), $NEW',
-    (xs:QName('URI'), $uri, xs:QName('NEW'), $new),
-    $c:SESSION-DB-OPTIONS
-  )
+  }
+  let $action := io:write($uri, $new)
+  return $new/sess:session
 }
 
 define function c:delete-session($uri as xs:anyURI)
  as empty()
 {
   (: make sure it really is a session :)
-  let $session := c:get-session($uri)
+  let $session := io:read($uri)/sess:session
   where exists($session)
-  return xdmp:eval(
-    'define variable $URI as xs:anyURI external
-    xdmp:document-delete($URI)',
-    (xs:QName('URI'), $uri),
-    $c:SESSION-DB-OPTIONS
+  return io:delete($uri)
+}
+
+define function c:rename-session($uri as xs:anyURI, $name as xs:string)
+ as empty()
+{
+  let $new := element sess:name { $name }
+  let $names := node-name($new)
+  where $c:SESSION
+  return io:write(
+    $c:SESSION-URI,
+    document {
+      element {node-name($c:SESSION)} {
+        $c:SESSION/@*,
+        $c:SESSION/node()[ not(node-name(.) = $names) ],
+        $new
+      }
+    }
   )
 }
 
-define function c:rename-session($db as xs:unsignedLong,
-  $uri as xs:anyURI, $name as xs:string)
- as empty()
-{
-  if (xdmp:database() ne $db)
-  then error("CQ-WRONGDB", text { xdmp:database(), "ne", $db })
-  else (),
-
-  let $session := doc($uri)/sess:session
-  let $old := $session/sess:name
-  let $new := element sess:name { $name }
-  where $session
-  return
-    if (exists($old))
-    then xdmp:node-replace($old, $new)
-    else xdmp:node-insert-child($session, $new)
-}
-
-define function c:update-session($db as xs:unsignedLong,
+define function c:update-session(
   $buffers as element(sess:query-buffers),
   $history as element(sess:query-history))
  as empty()
 {
-  if (xdmp:database() ne $db)
-  then error("CQ-WRONGDB", text { xdmp:database(), "ne", $db })
-  else (),
-
-  let $session := doc($c:SESSION-URI)/sess:session
-  let $old-buffers := $session/sess:query-buffers
-  let $old-history := $session/sess:query-history
-  where $session
-  return (
-    if ($old-buffers)
-    then xdmp:node-replace($old-buffers, $buffers)
-    else xdmp:node-insert-child($session, $buffers)
-    ,
-    if ($old-history)
-    then xdmp:node-replace($old-history, $history)
-    else xdmp:node-insert-child($session, $history)
+  let $names := (node-name($buffers), node-name($history))
+  where $c:SESSION
+  return io:write(
+    $c:SESSION-URI,
+    document {
+      element {node-name($c:SESSION)} {
+        $c:SESSION/@*,
+        $c:SESSION/node()[ not(node-name(.) = $names) ],
+        $buffers,
+        $history
+      }
+    }
   )
 }
 

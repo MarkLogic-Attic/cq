@@ -19,9 +19,6 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-define variable $DB as xs:unsignedLong {
-  xs:unsignedLong(xdmp:get-request-field("DB")) }
-
 define variable $URI as xs:anyURI {
   xs:anyURI(xdmp:get-request-field("URI")) }
 
@@ -31,13 +28,6 @@ define variable $NAME as xs:string {
 import module namespace c="com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
-let $opts :=
-  <options xmlns="xdmp:eval">
-    <database>{ $DB }</database>
-  </options>
-return
-  if (xdmp:database() eq $DB)
-  then c:rename-session($DB, $URI, $NAME)
-  else xdmp:invoke('rename-session.xqy', (), $opts)
+c:rename-session($URI, $NAME)
 
 (: rename-session.xqy :)

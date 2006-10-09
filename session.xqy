@@ -29,9 +29,6 @@ import module namespace v="com.marklogic.developer.cq.view"
 
 declare namespace sess="com.marklogic.developer.cq.session"
 
-define variable $DATABASES as element(c:database)+ {
-  c:get-available-sessions-node()/c:database }
-
 c:check-debug(),
 c:set-content-type(),
 
@@ -40,13 +37,14 @@ c:set-content-type(),
   v:get-html-head(),
   <body>
     <form action="" method="post" id="/cq:session-form">
-    <h1 class="head1">Welcome to cq.</h1>
-    <p class="instruction">This is Mark Logic cq,
-    a web-based query tool for MarkLogic Server 3.1 and later.
-    You can find out more about MarkLogic Server and cq
-    at <a href="http://developer.marklogic.com/" tabindex="-2">developer.marklogic.com</a>.
-    </p>
-    <p>On this page you can start a new session,
+      <h1 class="head1">Welcome to cq.</h1>
+      <p class="instruction">This is Mark Logic cq,
+      a web-based query tool for MarkLogic Server 3.1 and later.
+      You can find out more about MarkLogic Server and cq
+      at <a href="http://developer.marklogic.com/" tabindex="-2"
+      >developer.marklogic.com</a>.
+      </p>
+      <p>On this page you can start a new session,
       or resume any saved session.
       Your sessions will be stored in a contentbase on this server,
       {xdmp:get-request-header("Host")}. By default, your sessions
@@ -56,29 +54,19 @@ c:set-content-type(),
       for the uri <code>/cq/sessions/</code> in order to create sessions.
       If you do not have read permission for a session,
       you will not be able to view it.
-    </p>
-    <div>Active session contentbase:
-    <select onchange="list.updateSessions()"
-     id="session-db" name="session-db" tabindex="5">
-    {
-      (: TODO update counts when sessions are deleted :)
-      for $db in $DATABASES
-      return element option {
-        attribute value { $db/@id },
-        attribute selected { true() }[ $db/@id eq $c:SESSION-DB ],
-        data($db/@name),
-        concat(" (", data($db/@estimate), " resumable sessions)")
-      }
-    }
-    </select>
-    <br/>
-    <input type="button" class="input1" value="New Session" tabindex="3"
-     id="newSession1" name="newSession1" onclick="list.newSession()"/>
-    </div>
-    <br/>
-    <div id="sessions"/>
-    <input type="button" class="input1" value="New Session" tabindex="7"
-     id="newSession2" name="newSession2" onclick="list.newSession()"/>
+      </p>
+      <p>Active sessions are listed from: {
+        if ($c:SESSION-DB eq 0)
+        then "server filesystem"
+        else xdmp:database-name($c:SESSION-DB)
+      }</p>
+      <br/>
+      <input type="button" class="input1" value="New Session" tabindex="3"
+      id="newSession1" name="newSession1" onclick="list.newSession()"/>
+      <br/>
+      <div id="sessions"/>
+      <input type="button" class="input1" value="New Session" tabindex="7"
+      id="newSession2" name="newSession2" onclick="list.newSession()"/>
     </form>
     <script>
       // pseudo-onload

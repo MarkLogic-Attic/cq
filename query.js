@@ -531,7 +531,10 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
     this.getQuery = function(n) {
         //debug.print("QueryBufferListClass.getBufferValue: " + n);
-        if (n == this.pos) {
+        if (null == n || this.pos == n) {
+            debug.print("QueryBufferListClass.getQuery: using textarea "
+                        + this.input.value);
+            this.getBuffer(n).setQuery(this.input.value);
             return this.input.value;
         }
         return this.getBuffer(n).getQuery();
@@ -904,12 +907,12 @@ function handleKeyPress(e) {
 } // handleKeyPress
 
 function submitForm(theForm, query, theMimeType, saveHistory) {
+    debug.print("submitForm: " + query);
+
     if (! theForm) {
         alert("null form in submitForm!");
         return;
     }
-
-    gBuffers.activate();
 
     if (saveHistory) {
         gHistory.add(query);

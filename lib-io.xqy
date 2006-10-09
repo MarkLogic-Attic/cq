@@ -265,7 +265,7 @@ define function io:write-db($uri as xs:anyURI, $new as document-node())
   xdmp:eval(
     'define variable $URI as xs:anyURI external
      define variable $NEW as document-node() external
-     define variable $EXISTS as xs:boolean { xdmp:exists($URI) }
+     define variable $EXISTS as xs:boolean { xdmp:exists(doc($URI)) }
      xdmp:document-insert(
        $URI, $NEW,
        if ($EXISTS) then xdmp:document-get-permissions($URI)
@@ -275,7 +275,7 @@ define function io:write-db($uri as xs:anyURI, $new as document-node())
        if ($EXISTS) then xdmp:document-get-quality($URI)
        else 0
      )',
-    (xs:QName('URI'), $uri),
+    (xs:QName('URI'), $uri, xs:QName('NEW'), $new),
     $io:EVAL-OPTIONS
   )
 }

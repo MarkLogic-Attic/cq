@@ -114,7 +114,8 @@ define variable $c:SESSION as element(sess:session)? {
      if (exists($c:SESSION-URI))
      then io:read($c:SESSION-URI)/sess:session
      else ()
-   let $d := c:debug(("$c:SESSION: session =", $session))
+   let $d := c:debug((
+     "$c:SESSION: session =", data($session/sess:last-modified)))
    let $session :=
      if (exists($session)) then $session
      (: We were explicitly asked for a new session,
@@ -293,13 +294,11 @@ define function c:rename-session($uri as xs:anyURI, $name as xs:string)
   )
 }
 
-define function c:update-session(
-  $buffers as element(sess:query-buffers),
-  $history as element(sess:query-history))
+define function c:update-session($nodes as element()*)
  as empty()
 {
   let $names := (
-    node-name($buffers), node-name($history),
+    for $n in $nodes return node-name($n),
     node-name(<sess:last-modified/>)
   )
   where $c:SESSION
@@ -310,8 +309,7 @@ define function c:update-session(
         $c:SESSION/@*,
         $c:SESSION/node()[ not(node-name(.) = $names) ],
         element sess:last-modified { current-dateTime() },
-        $buffers,
-        $history
+        $nodes
       }
     }
   )

@@ -17,11 +17,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-// TODO persist tab state
-
-// TODO refactor more of this controller-style logic into classes:
-// QueryTabsClass, etc.
-
 // TODO test for IE6 compatibility
 // TODO test for memory leaks
 
@@ -29,12 +24,9 @@
 var gFramesetId = "/cq:frameset";
 var gQueryFrameId = "/cq:queryFrame";
 var gResultFrameId = "/cq:resultFrame";
-var gQueryInput = "/cq:query";
-var gUri = "/cq:worksheet-uri";
 var gQueryFormId = "/cq:form";
+var gQueryInput = "/cq:query";
 var gQueryMimeType = "/cq:mime-type";
-var gBufferAccesskeyText = "/cq:buffer-accesskey-text";
-var gBufferTabsNode = "/cq:buffer-tabs";
 // is there some *optional* linebreak character we could use?
 // yes: http://www.quirksmode.org/oddsandends/wbr.html
 // but I don't want to muck with the wbr element in a string...
@@ -44,12 +36,11 @@ var gBufferTabsNode = "/cq:buffer-tabs";
 var gBreakChar = "\u00ad"; //"\u200b";
 
 // GLOBAL VARIABLES
-var gBufferTabsCurrent = null;
 var gBrowserIs = new BrowserIsClass();
+var gBufferTabs = null;
 var gBuffers = null;
 var gHistory = null;
 var gSession = null;
-var gPolicy = null;
 
 // static functions
 // useful string functions
@@ -186,6 +177,82 @@ function BrowserIsClass() {
     this.win = (agt.indexOf("windows") != -1);
 }
 
+function BufferTabsClass(id, buffers, history) {
+    this.node = $(id);
+    this.buffers = buffers;
+    this.history = history;
+    this.buffersTitle = $(id + "-0");
+    this.historyTitle = $(id + "-1");
+    this.current = null;
+
+    this.getCurrent = function() {
+        this.current
+    }
+
+    this.getBuffers = function() {
+        return this.buffers;
+    }
+
+    this.getHistory = function() {
+        return this.history;
+    }
+
+    this.refresh = function(n) {
+        var label = "BufferTabsClass.refresh: ";
+        debug.print(label + n + ", " + this.current);
+
+        if (this.current == n) {
+            return;
+        }
+
+        if (isNaN(n)) {
+            return this.refresh();
+        }
+
+        this.current = null == n ? 0 : n;
+
+        // focus on the textarea
+        this.buffers.focus();
+
+        var buffersNode = this.buffers.labelList;
+        var historyNode = this.history.node;
+
+        // simple for now: node 0 is buffer list, 1 is history
+        // TODO move the instruction text too?
+        if (this.current == 0) {
+            debug.print(label + "displaying buffers");
+            // highlight the active tab
+            this.buffersTitle.className = "buffer-tab-active";
+            this.historyTitle.className = "buffer-tab";
+            // hide and show the appropriate list
+            Element.show(buffersNode);
+            Element.hide(historyNode);
+            return;
+        }
+
+        debug.print(label + "displaying history");
+        // highlight the active tab
+        this.buffersTitle.className = "buffer-tab";
+        this.historyTitle.className = "buffer-tab-active";
+
+        // match the buffer height, to reduce frame-redraw
+        historyNode.style.minHeight = buffersNode.clientHeight + "px";
+
+        // set the history and queries to have the same width
+        historyNode.style.minWidth = buffersNode.clientWidth + "px";
+
+        // hide and show the appropriate list
+        Element.hide(buffersNode);
+        Element.show(historyNode);
+    }
+
+    this.toXml = function() {
+        var name = "active-tab";
+        return "<" + name + ">" + this.current + "</" + name + ">";
+    }
+
+} // BufferTabsClass
+
 // The history will act something like a stack,
 // and something like an array.
 // This requires a two-fold structure:
@@ -271,7 +338,8 @@ function QueryHistoryClass(id, buffers, size) {
     this.setQuery = function(e) {
         // we don't know which query was clicked,
         // but we know that the click was on a span element
-        var node = Event.findElement(e, "span");
+        //var node = Event.findElement(e, "span");
+        var node = Event.element(e);
         node.setAttribute("xml:space", "preserve");
         debug.print("QueryHistoryClass.setQuery: " + node);
         var query = node.firstChild.nodeValue;
@@ -427,6 +495,10 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
                       this.setLineNumberStatus.bindAsEventListener(this));
     }
 
+    this.focus = function() {
+        this.input.focus();
+    }
+
     this.add = function(query, source) {
         var n = this.buffers.length;
         this.buffers[n] = new QueryBufferClass(query);
@@ -476,7 +548,8 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             label.title = "Click to activate this query buffer.";
         }
 
-        theNum.appendChild(document.createTextNode("" + (1+n) + "."));
+        // sometimes 1 + "1" = "11"
+        theNum.appendChild(document.createTextNode((1 + Number(n)) + "."));
         label.appendChild(theNum);
 
         // Update the label text from the query
@@ -570,7 +643,11 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
         var buf = this.getBuffer();
 
-        if (null == n || this.pos == n) {
+        if (null == n
+            || isNaN(n)
+            || this.pos == n
+            || 0 > n
+            || this.buffers.length <= n) {
             // make sure our state is correct
             buf.setQuery(this.input.value);
             buf.setContentSource(this.eval.value);
@@ -591,7 +668,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
         // activate the new buffer and restore its state
         this.pos = n;
-        buf = this.getBuffer();
+        buf = this.getBuffer(n);
         this.input.value = buf.getQuery();
         this.setContentSource(buf.getContentSource());
         this.setLabel(this.pos, true);
@@ -651,9 +728,14 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
     this.toXml = function() {
         var name = "query-buffers";
-        var xml = "<" + name
-        xml += " rows=\"" + this.input.rows + "\""
-        xml += " cols=\"" + this.input.cols + "\""
+        var xml = "<" + name;
+        // persist active buffer
+        if (this.pos) {
+            xml += " active=\"" + this.pos + "\"";
+        }
+        // persist textarea dimensions
+        xml += " rows=\"" + this.input.rows + "\"";
+        xml += " cols=\"" + this.input.cols + "\"";
         xml += ">\n";
 
         for (var i = 0; i < this.buffers.length; i++) {
@@ -749,22 +831,25 @@ function cqOnLoad() {
     setInstructionText();
 
     // set up the UI objects
-    gBuffers = new QueryBufferListClass("/cq:input", "/cq:eval-in",
+    gBuffers = new QueryBufferListClass("/cq:input",
+                                        "/cq:eval-in",
                                         "/cq:buffer-list",
                                         "/cq:textarea-status");
     gBuffers.initHandlers();
-    gHistory = new QueryHistoryClass("/cq:history", gBuffers);
+    gHistory = new QueryHistoryClass("/cq:history",
+                                     gBuffers);
 
-    gSession = new SessionClass(gBuffers, gHistory);
-    gSession.restore("/cq:restore-session");
+    gBufferTabs = new BufferTabsClass("/cq:buffer-tabs",
+                                      gBuffers,
+                                      gHistory);
+
+    gSession = new SessionClass(gBufferTabs, "/cq:restore-session");
+    gSession.restore();
 
     var title = $F("/cq:policy/title");
     var accentColor = $F("/cq:policy/accent-color");
-    gPolicy = new PolicyClass("/cq:title", title, accentColor);
-    gPolicy.enforce();
-
-    // expose the correct tabs
-    refreshBufferTabs(0);
+    var policy = new PolicyClass("/cq:title", title, accentColor);
+    policy.enforce();
 
     // display the buffer list, exposing buffer 0, and focus
     gBuffers.activate();
@@ -774,6 +859,7 @@ function cqOnLoad() {
 }
 
 function setInstructionText() {
+    var gBufferAccesskeyText = "/cq:buffer-accesskey-text";
     var instructionNode = $(gBufferAccesskeyText);
     if (!instructionNode) {
         alert("no instruction text node!");
@@ -824,64 +910,6 @@ function resizeFrameset() {
     rows = 17 + visible.offsetTop + visible.offsetHeight;
     frameset.rows = rows + ",*";
 } // resizeFrameset
-
-function refreshBufferTabs(n) {
-    if (n == null || n == gBufferTabsCurrent)
-        return;
-
-    debug.print("refreshBufferTabs: " + n + ", " + gBufferTabsCurrent);
-    gBufferTabsCurrent = n;
-
-    var tabsNode = $(gBufferTabsNode);
-    if (tabsNode == null) {
-        debug.print("refreshBufferTabs: null tabsNode");
-        return;
-    }
-
-    // check gBufferTabsCurrent against each child span
-    var buffersTitleNode =
-        $(gBufferTabsNode + "-0");
-    var historyTitleNode =
-        $(gBufferTabsNode + "-1");
-    if (!buffersTitleNode || ! historyTitleNode) {
-        debug.print("refreshBufferTabs: null title node(s)");
-        return;
-    }
-
-    var buffersNode = gBuffers.labelList;
-    var historyNode = gHistory.node;
-
-    // set the history and queries to have the same width
-    historyNode.style.minWidth = buffersNode.clientWidth + "px";
-
-    // simple for now: node 0 is buffer list, 1 is history
-    // TODO move the instruction text too?
-    if (gBufferTabsCurrent == 0) {
-        debug.print("refreshBufferTabs: displaying buffer list");
-        // highlight the active tab
-        buffersTitleNode.className = "buffer-tab-active";
-        historyTitleNode.className = "buffer-tab";
-        // hide and show the appropriate list
-        Element.show(buffersNode);
-        Element.hide(historyNode);
-        return;
-    }
-
-    debug.print("refreshBufferTabs: displaying history");
-    // highlight the active tab
-    buffersTitleNode.className = "buffer-tab";
-    historyTitleNode.className = "buffer-tab-active";
-
-    // match the buffer height, to reduce frame-redraw
-    debug.print("resizeBufferTabs: " + buffersNode.offsetTop + ", "
-                + buffersNode.offsetHeight);
-    historyNode.height = buffersNode.offsetHeight;
-
-    // hide and show the appropriate list
-    Element.hide(buffersNode);
-    Element.show(historyNode);
-
-}
 
 // keycode support:
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain

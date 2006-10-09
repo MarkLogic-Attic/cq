@@ -101,9 +101,13 @@ function SessionList(id, target) {
 } // SessionListClass
 
 // this class is responsible for autosaving the session state
-function SessionClass(buffers, history) {
-    this.buffers = buffers;
-    this.history = history;
+function SessionClass(tabs, id) {
+    this.tabs = tabs;
+    this.restoreId = id;
+    this.buffers = this.tabs.getBuffers();
+    debug.print("SessionClass: buffers = " + this.buffers);
+    this.history = this.tabs.getHistory();
+    debug.print("SessionClass: history = " + this.history);
     this.lastSync = null;
 
     // enable sync if and only if we see a session URI
@@ -113,8 +117,8 @@ function SessionClass(buffers, history) {
 
     // TODO autosave if 60 sec old?
 
-    this.restore = function(id) {
-        var restore = $(id);
+    this.restore = function() {
+        var restore = $(this.restoreId);
         debug.print("restore: from "
                     + restore + " " + restore.hasChildNodes());
 
@@ -128,6 +132,10 @@ function SessionClass(buffers, history) {
             debug.print("missing session uri!");
             this.syncDisabled = true;
         }
+
+        // handle exposed tab
+        var activeTab = restore.getAttribute('active-tab');
+        this.tabs.refresh(activeTab);
 
         if (null != restore && restore.hasChildNodes()) {
             var children = restore.childNodes;
@@ -149,6 +157,10 @@ function SessionClass(buffers, history) {
                 source = queries[i].getAttribute('content-source');
                 this.buffers.add(query, source);
             }
+            // reactivate active buffer
+            var active = buffers.getAttribute('active');
+            debug.print("restore: buffers active = " + active);
+            this.buffers.activate(active);
 
             // second div is the history
             var history = children[1];
@@ -177,7 +189,10 @@ function SessionClass(buffers, history) {
 
         var buffers = encodeURIComponent(this.buffers.toXml());
         var history = encodeURIComponent(this.history.toXml());
-        var params = ('BUFFERS=' + buffers + '&HISTORY=' + history);
+        var tabs = encodeURIComponent(this.tabs.toXml());
+        var params = ('BUFFERS=' + buffers
+                      + '&HISTORY=' + history
+                      + '&TABS=' + tabs);
         debug.print("SessionClass.sync: " + params);
         var req = new Ajax.Request(syncUrl,
             {

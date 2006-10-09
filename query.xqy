@@ -176,13 +176,13 @@ c:set-content-type(),
             <tr id="/cq:buffer-tabs">
               <td class="buffer-tab" id="/cq:buffer-tabs-0"
               title="Select any of 10 queries. Shortcut: ctrl-0 to 9, or alt-0 to 9."
-               onclick="refreshBufferTabs(0)">Queries&#160;<span
+               onclick="gBufferTabs.refresh(0)">Queries&#160;<span
                class="instruction" nowrap="1">(<span
                id="/cq:buffer-accesskey-text">alt</span>)</span>
               </td>
               <td class="buffer-tab" id="/cq:buffer-tabs-1"
               title="Query history, listing the 50 most recent queries."
-               onclick="refreshBufferTabs(1)">History
+               onclick="gBufferTabs.refresh(1)">History
               </td>
             </tr>
             </table>
@@ -206,7 +206,13 @@ c:set-content-type(),
        value="{$c:POLICY-ACCENT-COLOR}"/>
       <div class="hidden" xml:space="preserve"
        id="/cq:restore-session" name="/cq:restore-session">{
+
         if ($c:SESSION-URI) then attribute uri { $c:SESSION-URI } else (),
+
+        let $active := data($c:SESSION/sess:active-tab)
+        where $active
+        return attribute active-tab { $active },
+
         (: Initial session state as hidden divs, for the onload method.
          : Be careful to preserve all whitespace.
          :)
@@ -215,6 +221,7 @@ c:set-content-type(),
           $c:SESSION/sess:query-buffers/@*,
           for $i in $QUERY-BUFFERS return element div { $i/@*, $i/node() }
         },
+
         element div {
           attribute id { "/cq:restore-session-history" },
           for $i in $QUERY-HISTORY return element div { $i/node() }

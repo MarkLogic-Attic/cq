@@ -26,6 +26,9 @@ define variable $BUFFERS as xs:string {
 define variable $HISTORY as xs:string {
   xdmp:get-request-field("HISTORY") }
 
+define variable $TABS as xs:string {
+  xdmp:get-request-field("TABS") }
+
 import module namespace c="com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
@@ -44,11 +47,17 @@ define variable $new-history as element(sess:query-history) {
   /sess:query-history
 }
 
-(:
+define variable $new-tabs as element(sess:active-tab) {
+  xdmp:unquote($TABS, namespace-uri(<sess:x/>), $unquote-opts)
+  /sess:active-tab
+}
+
 c:debug-on(),
-c:debug(("BUFFERS", $BUFFERS)),
-c:debug(("HISTORY", $HISTORY)),
+(:
+c:debug(("BUFFERS", $BUFFERS, $new-buffers)),
+c:debug(("HISTORY", $HISTORY, $new-history)),
 :)
-c:update-session($new-buffers, $new-history)
+c:debug(("TABS", $TABS, $new-tabs)),
+c:update-session(($new-buffers, $new-history, $new-tabs))
 
 (: update-session.xqy :)

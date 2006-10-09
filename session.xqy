@@ -42,35 +42,69 @@ c:set-content-type(),
       at <a href="http://developer.marklogic.com/" tabindex="-2"
       >developer.marklogic.com</a>.
       </p>
-      <p>On this page you can start a new session,
-      or resume any saved session.
-      Your sessions will be stored in a contentbase on this server,
-      {xdmp:get-request-header("Host")}. By default, your sessions
-      will be stored in the <code>Modules</code> contentbase.
-      However, you can choose to store your sessions in any contentbase.
-      Note that you must have write permission
-      for the uri <code>/cq/sessions/</code> in order to create sessions.
-      If you do not have read permission for a session,
-      you will not be able to view it.
-      </p>
-      <p>Active sessions are listed from: {
-        if ($c:SESSION-DB eq 0)
-        then "server filesystem"
-        else xdmp:database-name($c:SESSION-DB)
-      }</p>
-      <br/>
-      <input type="button" class="input1" value="New Session" tabindex="3"
-      id="newSession1" name="newSession1" onclick="list.newSession()"/>
-      <br/>
-      <div id="sessions"/>
-      <input type="button" class="input1" value="New Session" tabindex="7"
-      id="newSession2" name="newSession2" onclick="list.newSession()"/>
+      {
+        if (not($c:SESSION) or exists($c:SESSION-EXCEPTION))
+        then <div>
+          <h1>WARNING: sessions have been disabled, because of an error.</h1>
+          <p>
+          Perhaps you have disabled sessions for this instance of cq.
+          If so, you can ignore this and <a href=".">return to cq</a>.
+          </p>
+          {
+            if ($c:SESSION-DB eq 0)
+            then
+            <p>
+            You are running cq from the filesystem.
+            Make sure that the directory <code>{$c:SESSION-DIRECTORY}</code>
+            exists, and that MarkLogic Server can write to it.
+            </p>
+            else
+            <p>
+            You are running cq from a modules database,
+            <code>{ xdmp:database-name($c:SESSION-DB) }</code>.
+            You are logged in as <code>{ $c:USER }</code>.
+            Make sure that the directory <code>{$c:SESSION-DIRECTORY}</code>
+            exists, and that your login can write to it.
+            </p>
+          }
+          <p>The complete error message follows:</p>
+          <hr/>
+          <pre>{
+            xdmp:quote($c:SESSION-EXCEPTION)
+          }</pre>
+          <hr/>
+        </div> else <div>
+          <p>On this page you can start a new session,
+          or resume any saved session.
+          Your sessions will be stored in a contentbase on this server,
+          {xdmp:get-request-header("Host")}. By default, your sessions
+          will be stored in the <code>Modules</code> contentbase.
+          However, you can choose to store your sessions in any contentbase.
+          Note that you must have write permission
+          for the uri <code>/cq/sessions/</code> in order to create sessions.
+          If you do not have read permission for a session,
+          you will not be able to view it.
+          </p>
+          <p>Active sessions are listed from: {
+            if ($c:SESSION-DB eq 0)
+            then "server filesystem"
+            else xdmp:database-name($c:SESSION-DB)
+          }</p>
+          <br/>
+          <input type="button" class="input1" value="New Session" tabindex="3"
+          id="newSession1" name="newSession1" onclick="list.newSession()"/>
+          <br/>
+          <div id="sessions"/>
+          <input type="button" class="input1" value="New Session" tabindex="7"
+          id="newSession2" name="newSession2" onclick="list.newSession()"/>
+          <script>
+          // pseudo-onload
+          var list = new SessionList('session-db', 'sessions');
+          list.updateSessions();
+          </script>
+        </div>
+      }
     </form>
-    <script>
-      // pseudo-onload
-      var list = new SessionList('session-db', 'sessions');
-      list.updateSessions();
-    </script>
   </body>
 }
 </html>

@@ -80,6 +80,8 @@ define variable $c:POLICY-ACCENT-COLOR as xs:string? {
 define variable $c:SESSION-DB as xs:unsignedLong {
   $io:MODULES-DB }
 
+define variable $c:SESSION-RELPATH as xs:string { "sessions/" }
+
 define variable $c:SESSION-DIRECTORY as xs:string {
   let $path := xdmp:get-request-path()
   (: ensure that the path ends with "/" :)
@@ -89,16 +91,17 @@ define variable $c:SESSION-DIRECTORY as xs:string {
     else concat(
       string-join(tokenize($path, "/")[ 1 to last() - 1], "/"), "/"
     )
-  return concat($path, "sessions/")
+  return concat($path, $c:SESSION-RELPATH)
 }
+
+define variable $c:SESSION-EXCEPTION as element(err:error)? { () }
 
 (: we expect JavaScript to set a cookie for the session uri :)
 define variable $c:SESSION-URI as xs:anyURI? {
   c:debug(("cookies:", $c:COOKIES)),
-  let $v := (
-    data($c:COOKIES[ @key eq "/cq:session-uri" ]/@value)
-  )[starts-with(., $SESSION-DIRECTORY)][1]
-  where $v
+  c:debug(("session-dir:", $c:SESSION-RELPATH)),
+  let $v := data($c:COOKIES[ @key eq "/cq:session-uri" ]/@value)
+  where $v and (ends-with($v, ".xml") or $v eq $c:SESSION-RELPATH)
   return xs:anyURI($v)
 }
 
@@ -117,21 +120,20 @@ define variable $c:SESSION as element(sess:session)? {
      (: We were explicitly asked for a new session,
       : so do not use the last session.
       :)
-     else if ($c:SESSION-URI eq $c:SESSION-DIRECTORY) then ()
+     else if (ends-with($c:SESSION-URI, "/")) then ()
      else c:get-last-session()
-     let $session :=
-       if (exists($session)) then $session
-       (: time for a new session :)
-       else c:new-session()
-     where $session
+   let $session :=
+     if (exists($session)) then $session
+     (: time for a new session :)
+     else c:new-session()
+   where $session
    return
      let $set := xdmp:set($c:SESSION-URI, $session/@uri)
      return $session
 }
 
-define variable $c:SESSION-NAME as xs:string {
-  ($c:SESSION/sess:name, "New Session")[1]
-}
+define variable $c:SESSION-NAME as xs:string? {
+  $c:SESSION/sess:name }
 
 define variable $c:TITLE-TEXT as xs:string {
   (: show the user what platform and host we're querying :)
@@ -199,11 +201,18 @@ define function c:get-user-id($username as xs:string)
 define function c:get-available-sessions()
  as element(sess:session)*
 {
-  for $i in io:list($c:SESSION-DIRECTORY)/sess:session
-  order by xs:dateTime($i/sess:last-modified) descending,
-  xs:dateTime($i/sess:created) descending,
-  $i/name
-  return $i
+  try {
+    for $i in io:list($c:SESSION-DIRECTORY)/sess:session
+    order by xs:dateTime($i/sess:last-modified) descending,
+    xs:dateTime($i/sess:created) descending,
+    $i/name
+    return $i
+  } catch ($ex) {
+    (: looks like we have a problem :)
+    let $action := xdmp:set($c:SESSION-EXCEPTION, $ex)
+    let $action := xdmp:set($c:SESSION-URI, ())
+    return ()
+  }
 }
 
 define function c:get-last-session()
@@ -216,7 +225,7 @@ define function c:generate-uri()
  as xs:anyURI
 {
   let $uri :=
-    xs:anyURI(concat($c:SESSION-DIRECTORY, string(xdmp:random())))
+    xs:anyURI(concat($c:SESSION-DIRECTORY, string(xdmp:random()), ".xml"))
   return
     if (io:exists($uri)) then c:generate-uri() else $uri
 }
@@ -227,12 +236,14 @@ define function c:generate-uri()
 define function c:new-session()
  as element(sess:session)
 {
-  let $uri := c:generate-uri()
+  let $uri :=
+    if ($c:SESSION-EXCEPTION) then () else c:generate-uri()
   let $d := c:debug(("new-session:", $uri))
   let $new := document {
     <session xmlns="com.marklogic.developer.cq.session">
     {
-      attribute uri { $uri },
+      if ($uri) then attribute uri { $uri } else (),
+      element name { "New Session" },
       element sec:user { $c:USER },
       element sec:user-id { $c:USER-ID },
       element created { current-dateTime() },
@@ -250,7 +261,8 @@ define function c:new-session()
     }
     </session>
   }
-  let $action := io:write($uri, $new)
+  let $action :=
+    if ($c:SESSION-EXCEPTION) then () else io:write($uri, $new)
   return $new/sess:session
 }
 
@@ -286,7 +298,10 @@ define function c:update-session(
   $history as element(sess:query-history))
  as empty()
 {
-  let $names := (node-name($buffers), node-name($history))
+  let $names := (
+    node-name($buffers), node-name($history),
+    node-name(<sess:last-modified/>)
+  )
   where $c:SESSION
   return io:write(
     $c:SESSION-URI,
@@ -294,6 +309,7 @@ define function c:update-session(
       element {node-name($c:SESSION)} {
         $c:SESSION/@*,
         $c:SESSION/node()[ not(node-name(.) = $names) ],
+        element sess:last-modified { current-dateTime() },
         $buffers,
         $history
       }

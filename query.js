@@ -930,8 +930,8 @@ function handleKeyPress(e) {
     var theForm = $(gQueryFormId);
     if (shiftKey && ctrlKey && theCode == 83) {
         // sync the session to the database
-        gSession.sync();
-        return false;
+        // if sync fails, return true so that the event will bubble
+        return ! gSession.sync();
     }
 
     if (theCode == Event.KEY_RETURN) {
@@ -957,6 +957,9 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
         alert("null form in submitForm!");
         return;
     }
+
+    // this causes the label to update
+    gBuffers.activate();
 
     if (saveHistory) {
         gHistory.add(query);

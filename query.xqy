@@ -29,20 +29,10 @@ import module namespace c = "com.marklogic.developer.cq.controller"
   at "lib-controller.xqy"
 
 define variable $QUERY-BUFFERS as element(sess:query)* {
-  let $bufs := $c:SESSION/sess:query-buffers/sess:query
-  return
-    if (exists($bufs))
-    then $bufs
-    else
-      for $i in (1 to 10)
-      return <sess:query>(: buffer {$i} :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
-{xdmp:quote(<p>hello world</p>)}</sess:query>
-}
+  $c:SESSION/sess:query-buffers/sess:query }
 
 define variable $QUERY-HISTORY as element(sess:query)* {
-  $c:SESSION/sess:query-history/sess:query
-}
+  $c:SESSION/sess:query-history/sess:query }
 
 (: TODO some deployments like to set their own default worksheet:
  : if it is in APP-SERVER-ROOT/CQ-LOCATION/worksheet.xml, use it.
@@ -126,8 +116,14 @@ c:set-content-type(),
             <div>
               list:&#160;<a href="javascript:cqListDocuments()">all</a>
               &#160;|&#160;<span class="instruction">
-              <a href="session.xqy" target="_parent">session</a>: {
-                $c:SESSION-NAME
+              <a href="session.xqy" target="_parent">session{
+                if ($c:SESSION and empty($c:SESSION-EXCEPTION))
+                then ()
+                else " disabled"
+              }</a>{
+                if ($c:SESSION and empty($c:SESSION-EXCEPTION))
+                then concat(": ", $c:SESSION-NAME)
+                else ()
               }</span>
               &#160;|&#160;<span class="instruction">resize:</span>
               <img src="darr.gif" class="resizable-s" width="13" height="10"
@@ -210,7 +206,7 @@ c:set-content-type(),
        value="{$c:POLICY-ACCENT-COLOR}"/>
       <div class="hidden" xml:space="preserve"
        id="/cq:restore-session" name="/cq:restore-session">{
-        attribute uri { $c:SESSION-URI },
+        if ($c:SESSION-URI) then attribute uri { $c:SESSION-URI } else (),
         (: Initial session state as hidden divs, for the onload method.
          : Be careful to preserve all whitespace.
          :)

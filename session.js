@@ -19,7 +19,7 @@
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 var gSessionUriCookie = "/cq:session-uri";
-var gSessionDirectory = "/cq/sessions/";
+var gSessionDirectory = "sessions/";
 
 // GLOBAL VARIABLES
 
@@ -52,10 +52,8 @@ function SessionList(id, target) {
     this.newSession = function() {
         // start a new session and set the user cookie appropriately
         debug.print("newSession: start");
-        // Now our request cookie should include the session db,
-        // so if we call get-session.xqy we should get the new session.
-        // We can then extract its id.
-        // Thus, we don't need the session uri at all.
+        // setting the session uri to gSessionDirectory signals
+        // lib-controller.xqy to build a new session.
         setCookie(gSessionUriCookie, gSessionDirectory);
         // refresh should show the query view
         window.location.replace( "." );
@@ -108,6 +106,9 @@ function SessionClass(buffers, history) {
     this.history = history;
     this.lastSync = null;
 
+    // enable sync if and only if we see a session URI
+    this.syncDisabled = true;
+
     var syncUrl = "update-session.xqy";
 
     // TODO autosave if 60 sec old?
@@ -120,10 +121,12 @@ function SessionClass(buffers, history) {
         // handle session uri cookie
         var uri = restore.getAttribute('uri');
         if (null != uri) {
+            this.syncDisabled = false;
             setCookie(gSessionUriCookie, uri);
             debug.print("set session cookie = " + uri);
         } else {
             debug.print("missing session uri!");
+            this.syncDisabled = true;
         }
 
         if (null != restore && restore.hasChildNodes()) {
@@ -160,9 +163,12 @@ function SessionClass(buffers, history) {
         }
     }
 
-    // TODO handle case where user doesn't have write permission
-
     this.sync = function(lastModified) {
+        if (this.syncDisabled) {
+            debug.print("SessionClass.sync: disabled");
+            return false;
+        }
+
         debug.print("SessionClass.sync: "
                     + lastModified + " ? " + this.lastSync);
         if (null != this.lastSync && lastModified < this.lastSync) {
@@ -181,6 +187,8 @@ function SessionClass(buffers, history) {
             }
                                    );
         this.lastSync = new Date();
+
+        return true;
     }
 
 } // SessionClass

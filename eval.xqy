@@ -54,13 +54,11 @@ define variable $g-eval-in as xs:string+ {
 }
 
 define variable $g-db as xs:unsignedLong {
-  xs:unsignedLong($g-eval-in[1])
-}
+  xs:unsignedLong($g-eval-in[1]) }
 
 (: default to current server module :)
 define variable $g-modules as xs:unsignedLong {
-  xs:unsignedLong(($g-eval-in[2], xdmp:modules-database())[1])
-}
+  xs:unsignedLong(($g-eval-in[2], xdmp:modules-database())[1]) }
 
 (: default to root :)
 define variable $g-root as xs:string {
@@ -88,7 +86,15 @@ try {
   (: set the mime-type inside the try-catch block,
    : so errors can override it.
    :)
-  let $x := xdmp:eval-in($g-query, $g-db, (), $g-modules, $g-root)
+  let $options := <options xmlns="xdmp:eval">
+  {
+    element database { $g-db },
+    element modules { $g-modules },
+    element root { $g-root },
+    element isolation { "different-transaction" }
+  }
+  </options>
+  let $x := xdmp:eval($g-query, (), $options)
   let $g-mime-type := if (empty($x)) then "text/html" else $g-mime-type
   let $set :=
     xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8"))

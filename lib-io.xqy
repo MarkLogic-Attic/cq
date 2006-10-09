@@ -141,8 +141,7 @@ define function io:exists-fs($path as xs:string)
     exists(xdmp:document-get($path))
   } catch ($ex) {
     false(),
-    if ($ex/err:code eq 'SVC-FILOPN')
-    then ()
+    if ($ex/err:code eq 'SVC-FILOPN') then ()
     else xdmp:log(text {
       "io:exists-fs:", normalize-space(xdmp:quote($ex)) })
   }
@@ -226,9 +225,11 @@ define function io:list-fs($path as xs:string)
 {
   for $p in data(xdmp:filesystem-directory($path)/dir:entry
     [ dir:type eq "file" ]/dir:pathname)
-  return xdmp:document-get($p,
+  return xdmp:document-get(
+    $p,
     <options xmlns="xdmp:document-get">{
-      element format { 'xml' } }</options>)
+      element format { 'xml' } }</options>
+  )
 }
 
 (:~ @private :)
@@ -259,7 +260,9 @@ define function io:read-fs($path as xs:string)
   if (ends-with($path, "/")) then () else try {
     xdmp:document-get($path)
   } catch ($ex) {
-    c:debug($ex)
+    if ($ex/err:code eq 'SVC-FILOPN') then ()
+    else xdmp:log(text {
+      "io:exists-fs:", normalize-space(xdmp:quote($ex)) })
   }
 }
 

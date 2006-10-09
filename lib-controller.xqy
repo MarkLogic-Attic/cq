@@ -57,6 +57,9 @@ define variable $c:USER-ID as xs:unsignedLong {
 define variable $c:SESSION-DB as xs:unsignedLong {
   $io:MODULES-DB }
 
+define variable $c:IS-SESSION-DELETE as xs:boolean {
+  $c:SESSION-DB ne 0 }
+
 define variable $c:SESSION-DIRECTORY as xs:string {
   let $path := xdmp:get-request-path()
   (: ensure that the path ends with "/" :)

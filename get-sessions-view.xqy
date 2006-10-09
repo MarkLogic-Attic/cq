@@ -67,13 +67,16 @@ return
           attribute onclick { concat("list.resumeSession('", $uri, "')") },
           "resume"
         },
-        $v:NBSP, "|", $v:NBSP,
-        element span {
-          attribute class { "bufferlabel" },
-          attribute title { "permanently delete this session" },
-          attribute onclick { concat("list.deleteSession('", $uri, "')") },
-          "delete"
-        }
+        if ($c:IS-SESSION-DELETE)
+        then (
+          $v:NBSP, "|", $v:NBSP,
+          element span {
+            attribute class { "bufferlabel" },
+            attribute title { "permanently delete this session" },
+            attribute onclick { concat("list.deleteSession('", $uri, "')") },
+            "delete"
+          }
+        ) else ()
       }
       (:,element td { xdmp:describe($i), xdmp:quote($i) }:)
     }

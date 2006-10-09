@@ -141,7 +141,6 @@ define function io:exists-fs($path as xs:string)
     exists(xdmp:document-get($path))
   } catch ($ex) {
     false(),
-    (: TODO :)
     if ($ex/err:code eq 'SVC-FILOPN')
     then ()
     else xdmp:log(normalize-space(xdmp:quote($ex)))
@@ -153,6 +152,7 @@ define function io:delete-fs($path as xs:string)
  as empty()
 {
   (: TODO filesystem delete :)
+  error("UNIMPLEMENTED")
 }
 
 (:~ @private :)
@@ -184,6 +184,8 @@ define function io:node-insert-child-R(
   $input as node()*, $parent as node(), $new as node())
 as node()*
 {
+  (: TODO node-insert-child-fs :)
+  error("UNIMPLEMENTED"),
   for $n in $input
   return typeswitch ($n)
     case element()
@@ -203,6 +205,8 @@ define function io:node-replace-R(
   $input as node()*, $old as node(), $new as node())
 as node()*
 {
+  (: TODO node-replace-fs :)
+  error("UNIMPLEMENTED"),
   for $n in $input
   return typeswitch ($n)
     case element()

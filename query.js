@@ -534,7 +534,9 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         if (null == n || this.pos == n) {
             debug.print("QueryBufferListClass.getQuery: using textarea "
                         + this.input.value);
-            this.getBuffer(n).setQuery(this.input.value);
+            var buf = this.getBuffer(n);
+            buf.setQuery(this.input.value);
+            buf.setContentSource(this.eval.value);
             return this.input.value;
         }
         return this.getBuffer(n).getQuery();

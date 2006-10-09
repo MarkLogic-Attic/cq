@@ -91,9 +91,6 @@ c:set-content-type(),
             else xdmp:database-name($c:SESSION-DB)
           }</p>
           <br/>
-          <input type="button" class="input1" value="New Session" tabindex="3"
-          id="newSession1" name="newSession1" onclick="list.newSession()"/>
-          <br/>
           <div id="sessions"/>
           <input type="button" class="input1" value="New Session" tabindex="7"
           id="newSession2" name="newSession2" onclick="list.newSession()"/>

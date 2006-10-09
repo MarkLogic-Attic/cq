@@ -122,9 +122,8 @@ select
 {  
   border: 1px solid black;
   overflow: auto;
-  /* would be better if this was dynamic,
-   * but 22em should be font-independent.
-   * the idea is to match the height of the query-buffers area.
+  /* initial value only:
+   * JavaScript will match the height of the query-buffers area.
    */
   height: 21em;
 }

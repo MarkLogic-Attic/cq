@@ -235,10 +235,13 @@ function BufferTabsClass(id, buffers, history) {
         this.buffersTitle.className = "buffer-tab";
         this.historyTitle.className = "buffer-tab-active";
 
-        // match the buffer height, to reduce frame-redraw
-        historyNode.style.minHeight = buffersNode.clientHeight + "px";
+        // match the textarea height
+        historyNode.style.minHeight = (this.buffers.input.clientHeight
+                                       + this.buffers.input.offsetTop
+                                       - this.history.node.offsetTop
+                                       ) + "px";
 
-        // set the history and queries to have the same width
+        // set the history and buffers to have the same width
         historyNode.style.minWidth = buffersNode.clientWidth + "px";
 
         // hide and show the appropriate list

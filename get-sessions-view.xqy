@@ -65,16 +65,16 @@ return
           attribute class { "bufferlabel" },
           attribute title { data($i/sess:query-buffers/sess:query[1]) },
           attribute onclick { concat("list.resumeSession('", $uri, "')") },
-          "resume"
+          "(resume)"
         },
         if ($c:IS-SESSION-DELETE)
         then (
           $v:NBSP, "|", $v:NBSP,
           element span {
-            attribute class { "bufferlabel" },
+            attribute class { "bufferlabel query-delete" },
             attribute title { "permanently delete this session" },
             attribute onclick { concat("list.deleteSession('", $uri, "')") },
-            "delete"
+            "(delete)"
           }
         ) else ()
       }

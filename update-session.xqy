@@ -52,12 +52,12 @@ define variable $new-tabs as element(sess:active-tab) {
   /sess:active-tab
 }
 
-c:debug-on(),
 (:
+c:debug-on(),
 c:debug(("BUFFERS", $BUFFERS, $new-buffers)),
 c:debug(("HISTORY", $HISTORY, $new-history)),
-:)
 c:debug(("TABS", $TABS, $new-tabs)),
+:)
 c:update-session(($new-buffers, $new-history, $new-tabs))
 
 (: update-session.xqy :)

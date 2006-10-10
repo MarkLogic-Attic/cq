@@ -115,9 +115,9 @@ function SessionClass(tabs, id) {
     // enable sync if and only if we see a session URI
     this.syncDisabled = true;
 
-    var syncUrl = "update-session.xqy";
+    this.autosave = null;
 
-    // TODO autosave if 60 sec old?
+    var syncUrl = "update-session.xqy";
 
     this.restore = function() {
         var restore = $(this.restoreId);
@@ -190,15 +190,21 @@ function SessionClass(tabs, id) {
         }
     }
 
-    this.sync = function(lastModified) {
+    this.sync = function() {
         if (this.syncDisabled) {
             debug.print("SessionClass.sync: disabled");
             return false;
         }
 
+        var lastModified = this.history.getLastModified();
+
         debug.print("SessionClass.sync: "
                     + lastModified + " ? " + this.lastSync);
-        if (null != this.lastSync && lastModified < this.lastSync) {
+        if (null != this.lastSync
+            && lastModified < this.lastSync
+            && (new Date() - this.lastSync) < (1000
+                                               * this.autosave.frequency))
+        {
             return;
         }
 
@@ -219,6 +225,20 @@ function SessionClass(tabs, id) {
         this.lastSync = new Date();
 
         return true;
+    }
+
+    this.setAutoSave = function(sec) {
+        if (this.syncDisabled) {
+          debug.print("SessionClass.setAutoSave: sync is disabled");
+          return;
+        }
+
+        sec = Number(sec)
+        sec = (null == sec || isNaN(sec)) ? 60 : sec;
+
+        this.autosave = new PeriodicalExecuter(this.sync
+                                               .bindAsEventListener(this),
+                                               sec);
     }
 
 } // SessionClass

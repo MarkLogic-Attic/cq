@@ -392,6 +392,10 @@ function QueryHistoryClass(id, buffers, size) {
         this.lastModified = new Date();
     }
 
+    this.getLastModified = function() {
+        return this.lastModified;
+    }
+
     this.setQuery = function(e) {
         // we don't know which query was clicked,
         // but we know that the click was on a span element
@@ -561,7 +565,6 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
                         + this.input.value);
             var buf = this.getBuffer(n);
             buf.setQuery(this.input.value);
-            buf.setContentSource(this.eval.value);
             return this.input.value;
         }
         return this.getBuffer(n).getQuery();
@@ -709,11 +712,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             || 0 > n
             || this.buffers.length <= n) {
             // make sure our state is correct
-            buf.setQuery(this.input.value);
-            buf.setContentSource(this.eval.value);
-            this.setLabel(this.pos, true);
-            simulateSelectionStart(this.input);
-            buf.setSelectionStart(this.input.selectionStart);
+            this.setQuery(this.input.value);
             return;
         }
 
@@ -741,7 +740,16 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             return;
         }
         this.input.value = query;
-        this.getBuffer().setQuery(query);
+
+        // propagate everything to the active buffer object
+        var buf = this.getBuffer();
+        buf.setQuery(query);
+        buf.setContentSource(this.eval.value);
+        simulateSelectionStart(this.input);
+        buf.setSelectionStart(this.input.selectionStart);
+
+        // update the label
+        this.setLabel(this.pos, true);
     }
 
     this.setContentSource = function(v) {
@@ -802,6 +810,9 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         xml += ">\n";
 
         for (var i = 0; i < this.buffers.length; i++) {
+            if (this.pos == i) {
+                this.setQuery(this.input.value);
+            }
             xml += this.buffers[i].toXml();
         }
 
@@ -885,6 +896,7 @@ function cqOnLoad() {
 
     gSession = new SessionClass(gBufferTabs, "/cq:restore-session");
     gSession.restore();
+    gSession.setAutoSave();
 
     gBufferTabs.setSession(gSession);
 
@@ -1022,7 +1034,7 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
     }
 
     // sync the session, if it has changed
-    gSession.sync(gHistory.lastModified);
+    gSession.sync();
 
     // TODO would like to disable buttons during post
     // TODO it would be nice to grey out the target frame, if possible

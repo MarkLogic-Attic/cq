@@ -15,7 +15,8 @@ DIRNAME=`pwd`/$CQDIRNAME/..
    */cq.css \
    */?arr.gif \
    */*.txt \
-   */*.html 
+   */*.html \
+   */sessions
 )
 
 # end

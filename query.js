@@ -122,7 +122,7 @@ function simulateSelectionStart(n) {
         return true;
     }
 
-    if (n.selectionStart) {
+    if (n && n.selectionStart) {
         // looks like gecko: selectionStart should work
         //debug.print(label + "found " + n.selectionStart);
         return true;
@@ -182,16 +182,18 @@ function BrowserIsClass() {
     this.win = (agt.indexOf("windows") != -1);
 }
 
-function BufferTabsClass(id, buffers, history) {
-    this.node = $(id);
+function BufferTabsClass(nodeId, instructionId, buffers, history) {
+    this.node = $(nodeId);
+    this.instructionNode = $(instructionId);
     this.buffers = buffers;
     this.history = history;
-    this.buffersTitle = $(id + "-0");
-    this.historyTitle = $(id + "-1");
+    this.buffersTitle = $(nodeId + "-0");
+    this.historyTitle = $(nodeId + "-1");
     this.current = null;
+    this.session = null;
 
     this.getCurrent = function() {
-        this.current
+        return this.current;
     }
 
     this.getBuffers = function() {
@@ -200,6 +202,31 @@ function BufferTabsClass(id, buffers, history) {
 
     this.getHistory = function() {
         return this.history;
+    }
+
+    this.getSession = function() {
+        return this.session;
+    }
+
+    this.setSession = function(s) {
+        this.session = s;
+    }
+
+    this.setInstructionText = function() {
+        if (!this.instructionNode) {
+            return;
+        }
+        // if this seems to be IE6, hide the text entirely (keys do not work)
+        if (gBrowserIs.ie) {
+            debug.print("BufferTabsClass.setInstructionText: skipping IE");
+            Element.hide(this.instructionNode.parentNode);
+            return;
+        }
+        // we only need to worry about X11 (see the comment in handleKeyPress)
+        var theText = gBrowserIs.x11 ? "ctrl" : "alt";
+        debug.print("setInstructionText: " + theText);
+        Element.update(this.instructionNode, '');
+        this.instructionNode.appendChild(document.createTextNode(theText));
     }
 
     this.refresh = function(n) {
@@ -262,6 +289,18 @@ function BufferTabsClass(id, buffers, history) {
         // hide and show the appropriate list
         Element.hide(buffersNode);
         Element.show(historyNode);
+    }
+
+    this.unload = function(e) {
+        //alert("BufferTabsClass: unload "
+        //      + e + ", " + this.buffers + ", " + this.session);
+        // sync the input
+        if (null != this.buffers) {
+            this.buffers.activate();
+            if (null != this.session) {
+                this.session.sync();
+            }
+        }
     }
 
     this.toXml = function() {
@@ -356,7 +395,6 @@ function QueryHistoryClass(id, buffers, size) {
     this.setQuery = function(e) {
         // we don't know which query was clicked,
         // but we know that the click was on a span element
-        //var node = Event.findElement(e, "span");
         var node = Event.element(e);
         node.setAttribute("xml:space", "preserve");
         debug.print("QueryHistoryClass.setQuery: " + node);
@@ -370,7 +408,6 @@ function QueryHistoryClass(id, buffers, size) {
         var queryNode = document.createElement("span");
         queryNode.appendChild(document.createTextNode(query));
         // onclick, copy to current textarea
-        // we need to both bind(query) and bindAsEventListener(this.buffers)
         Event.observe(queryNode, "click",
                       this.setQuery.bindAsEventListener(this));
 
@@ -540,7 +577,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         if (n == this.pos) {
             // lazy init
             this.input.value = query;
-            debug.print("QueryBufferListClass.add: input.value = " 
+            debug.print("QueryBufferListClass.add: input.value = "
                         + this.input.value);
             if (source != null) {
                 this.eval.value = source;
@@ -700,6 +737,9 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
     }
 
     this.setQuery = function(query) {
+        if (null == query) {
+            return;
+        }
         this.input.value = query;
         this.getBuffer().setQuery(query);
     }
@@ -850,25 +890,29 @@ function cqOnLoad() {
     // register for key-presses
     Event.observe(this, "keypress", handleKeyPress);
 
-    // set the OS-specific instruction text
-    setInstructionText();
-
     // set up the UI objects
     gBuffers = new QueryBufferListClass("/cq:input",
                                         "/cq:eval-in",
                                         "/cq:buffer-list",
                                         "/cq:textarea-status");
     gBuffers.initHandlers();
+
     gHistory = new QueryHistoryClass("/cq:history",
                                      gBuffers);
 
     gBufferTabs = new BufferTabsClass("/cq:buffer-tabs",
+                                      "/cq:buffer-accesskey-text",
                                       gBuffers,
                                       gHistory);
+    // set the OS-specific instruction text
+    gBufferTabs.setInstructionText();
 
     gSession = new SessionClass(gBufferTabs, "/cq:restore-session");
     gSession.restore();
 
+    gBufferTabs.setSession(gSession);
+
+    // enforce local policy, if any
     var title = $F("/cq:policy/title");
     var accentColor = $F("/cq:policy/accent-color");
     var policy = new PolicyClass("/cq:title", title, accentColor);
@@ -882,28 +926,11 @@ function cqOnLoad() {
 
     resizeFrameset();
 
-}
-
-function setInstructionText() {
-    var gBufferAccesskeyText = "/cq:buffer-accesskey-text";
-    var instructionNode = $(gBufferAccesskeyText);
-    if (!instructionNode) {
-        alert("no instruction text node!");
-        return;
-    }
-    // if this is IE6, hide the text entirely (keys do not work)
-    if (gBrowserIs.ie) {
-        Element.hide(instructionNode.parentNode);
-        return;
-    }
-    var theText = "alt";
-    // we only need to worry about X11 (see the comment in handleKeyPress)
-    if (gBrowserIs.x11) {
-        theText = "ctrl";
-    }
-    debug.print("setInstructionText: " + theText);
-    Element.update(instructionNode, '');
-    instructionNode.appendChild(document.createTextNode(theText));
+    // TODO save on unload
+    // looks like we need prototype 1.5 for this:
+    // "$A is not defined" at line 48, in the bind() code....
+    //Event.observe(parent.window, "unload",
+    //              gBufferTabs.unload.bindAsEventListener(gBufferTabs));
 }
 
 function resizeFrameset() {

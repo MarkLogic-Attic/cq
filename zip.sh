@@ -9,14 +9,14 @@ DIRNAME=`pwd`/$CQDIRNAME/..
  && pwd \
  && rm -f cq.zip \
  && zip -9 cq.zip \
-   */[a-su-z]*.xqy \
-   */*.xml \
-   */*.js \
-   */cq.css \
-   */?arr.gif \
-   */*.txt \
-   */*.html \
-   */sessions
+   cq/[a-su-z]*.xqy \
+   cq/*.xml \
+   cq/*.js \
+   cq/cq.css \
+   cq/?arr.gif \
+   cq/*.txt \
+   cq/*.html \
+   cq/sessions
 )
 
 # end

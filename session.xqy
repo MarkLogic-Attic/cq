@@ -39,7 +39,7 @@ c:set-content-type(),
       <p class="instruction">This is Mark Logic cq,
       a web-based query tool for MarkLogic Server 3.1 and later.
       You can find out more about MarkLogic Server and cq
-      at <a href="http://developer.marklogic.com/" tabindex="-2"
+      at <a href="http://developer.marklogic.com/" tabindex="-1"
       >developer.marklogic.com</a>.
       </p>
       {
@@ -92,7 +92,7 @@ c:set-content-type(),
           }</p>
           <br/>
           <div id="sessions"/>
-          <input type="button" class="input1" value="New Session" tabindex="7"
+          <input type="button" class="input1" value="New Session"
           id="newSession2" name="newSession2" onclick="list.newSession()"/>
           <script>
           // pseudo-onload

@@ -62,11 +62,12 @@ return
       element td { data($i/sess:created) },
       element td { data($i/sess:last-modified) },
       element td {
-        element span {
-          attribute class { "bufferlabel" },
+        element input {
+          attribute type { "button" },
+          attribute class { "input1" },
           attribute title { data($i/sess:query-buffers/sess:query[1]) },
           attribute onclick { concat("list.resumeSession('", $uri, "')") },
-          "(resume)"
+          attribute value { "Resume" }
         },
         if ($c:IS-SESSION-DELETE)
         then (

@@ -814,11 +814,12 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 } // QueryBufferListClass
 
 // PolicyClass
-function PolicyClass(titleId, title, accentColor) {
+function PolicyClass(titleId, title, accentClass, accentColor) {
     debug.print("PolicyClass: " + "titleId = " + titleId)
 
     this.titleNode = $(titleId);
     this.title = title;
+    this.accentClass = accentClass;
     this.accentColor = accentColor;
 
     this.getTitle = function() {
@@ -839,45 +840,20 @@ function PolicyClass(titleId, title, accentColor) {
         debug.print(label + "title = " + this.title)
         if (null != this.titleNode
             && null != this.title
-            && "" != this.title) {
+            && "" != this.title)
+        {
             // enforce title
             Element.update(this.titleNode, '');
             this.titleNode.appendChild(document.createTextNode(this.title));
         }
 
-        debug.print(label + "accentColor = " + this.accentColor)
-        if (null != this.accentColor
-            && "" != this.accentColor) {
-            // enforce accentColor
-            var sheet;
-            var style;
-            var rules;
-            var doc = new Array(
-                                parent.document.getElementById(gQueryFrameId),
-                                parent.document.getElementById(gResultFrameId)
-                                );
-            for (var i = 0; i < doc.length; i++) {
-                debug.print(label + "doc " + i + " " + doc[i]);
-                var list = doc[i].contentDocument.styleSheets;
-                if (null != list) {
-                    for (var j = 0; j < list.length; j++) {
-                        sheet = list[j];
-                        rules = sheet.cssRules;
-                        // ie6
-                        if (null == rules) {
-                            rules = sheet.rules;
-                        }
-                        for (var k = 0; k < rules.length; k++) {
-                            style = rules[k].style;
-                            if (null != style.backgroundColor
-                                && "" != style.backgroundColor
-                                && "#FFFFFF" != style.backgroundColor
-                                && "white" != style.backgroundColor) {
-                                style.backgroundColor = this.accentColor;
-                            }
-                        }
-                    }
-                }
+        if (null != this.accentColor && "" != this.accentColor) {
+            // enforce accentColor, on accent class only
+            var nodes = document.getElementsByClassName(accentClass);
+            for (var i = 0; i < nodes.length; i++) {
+                debug.print(label + " node for accent-color = "
+                            + nodes[i].nodeName);
+                nodes[i].style.backgroundColor = this.accentColor;
             }
         }
     }
@@ -913,9 +889,8 @@ function cqOnLoad() {
     gBufferTabs.setSession(gSession);
 
     // enforce local policy, if any
-    var title = $F("/cq:policy/title");
-    var accentColor = $F("/cq:policy/accent-color");
-    var policy = new PolicyClass("/cq:title", title, accentColor);
+    var policy = new PolicyClass("/cq:title", $F("/cq:policy/title"),
+                                 "head1", $F("/cq:policy/accent-color"));
     policy.enforce();
 
     // display the buffer list, exposing buffer 0, and focus

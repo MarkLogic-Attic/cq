@@ -2,17 +2,20 @@
 #
 set -x
 
-DIRNAME=`dirname $0`
-DIRNAME=`pwd`/$DIRNAME/..
+CQDIRNAME=`dirname $0`
+DIRNAME=`pwd`/$CQDIRNAME/..
 (
  cd $DIRNAME \
  && pwd \
- && rm -f releases/cq.zip \
- && zip -9 releases/cq.zip \
-   cq/[^t]*.xqy \
-   cq/[^t]*.js cq/[^t]*.css \
-   cq/[^t]?arr.gif cq/[^t]*.txt \
-   cq/worksheet.xml cq/cq-result.html 
+ && rm -f cq.zip \
+ && zip -9 cq.zip \
+   */[a-su-z]*.xqy \
+   */*.xml \
+   */*.js \
+   */cq.css \
+   */?arr.gif \
+   */*.txt \
+   */*.html 
 )
 
 # end

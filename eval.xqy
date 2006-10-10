@@ -99,7 +99,10 @@ try {
   let $set :=
     xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8"))
   return
-    if ($g-mime-type eq "text/xml") then v:get-xml($x)
+    (: it is dangerous to view a sequence of attributes: XDMP-DUPATTR :)
+    if ($x[1] instance of attribute() and count($x) gt 1)
+    then (xdmp:set-response-content-type("text/plain"), v:get-text($x))
+    else if ($g-mime-type eq "text/xml") then v:get-xml($x)
     else if ($g-mime-type eq "text/html") then v:get-html($x)
     else v:get-text($x)
 } catch ($ex) {

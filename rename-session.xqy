@@ -28,6 +28,9 @@ define variable $NAME as xs:string {
 import module namespace c="com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
+(:
+c:debug-on(),
+:)
 c:rename-session($URI, $NAME)
 
 (: rename-session.xqy :)

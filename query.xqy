@@ -140,7 +140,7 @@ c:set-content-type(),
               onclick="gBuffers.resize(-1, 0); return false;"/>
             </div>
             <div nowrap="1" id="queryBuffers">
-            <textarea id="/cq:input" name="/cq:input">{
+            <textarea id="/cq:input" name="/cq:input" xml:space="preserve">{
               (: dynamic buffer size :)
               attribute rows { (data($c:SESSION/@rows), 16)[1] },
               attribute cols { (data($c:SESSION/@cols), 80)[1] }
@@ -215,16 +215,20 @@ c:set-content-type(),
 
         (: Initial session state as hidden divs, for the onload method.
          : Be careful to preserve all whitespace.
+         : For IE6, this means we must use pre elements.
          :)
         element div {
           attribute id { "/cq:restore-session-buffers" },
           $c:SESSION/sess:query-buffers/@*,
-          for $i in $QUERY-BUFFERS return element div { $i/@*, $i/node() }
+          for $i in $QUERY-BUFFERS return element pre {
+            $i/@*, $i/node() }
         },
 
         element div {
           attribute id { "/cq:restore-session-history" },
-          for $i in $QUERY-HISTORY return element div { $i/node() }
+          $c:SESSION/sess:query-history/@*,
+          for $i in $QUERY-HISTORY return element pre {
+            $i/@*, $i/node() }
         }
       }</div>
     </form>

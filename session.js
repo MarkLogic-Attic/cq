@@ -17,6 +17,8 @@
 //
 //////////////////////////////////////////////////////////////////////////
 
+// NOTE: to defeat IE6 caching, always use method=POST
+
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 var gSessionUriCookie = "/cq:session-uri";
 var gSessionDirectory = "sessions/";
@@ -44,7 +46,7 @@ function SessionList(id, target) {
         var updater = new Ajax.Updater({success:this.target},
                                        updateUrl,
             {
-                method:'get',
+                method: 'post',
                 onFailure: reportError
             } );
     }
@@ -74,7 +76,7 @@ function SessionList(id, target) {
             // call session-delete
             var req = new Ajax.Request(deleteUrl,
                 {
-                    method: 'get',
+                    method: 'post',
                     parameters: 'URI=' + uri,
                     asynchronous: false,
                     onFailure: reportError
@@ -89,7 +91,7 @@ function SessionList(id, target) {
         // call the rename xqy
         var req = new Ajax.Request(renameUrl,
             {
-                method: 'get',
+                method: 'post',
                 parameters: 'URI=' + uri + '&NAME=' + name,
                 asynchronous: false,
                 onFailure: reportError
@@ -119,17 +121,24 @@ function SessionClass(tabs, id) {
 
     this.restore = function() {
         var restore = $(this.restoreId);
-        debug.print("restore: from "
-                    + restore + " " + restore.hasChildNodes());
+        var label = "SessionClass.restore: ";
+        debug.print(label + restore + " " + restore.hasChildNodes());
+        //alert(label + restore + " " + restore.hasChildNodes());
+
+        if (null == restore) {
+          debug.print(label + "null restore");
+          this.tabs.refresh();
+          return;
+        }
 
         // handle session uri cookie
         var uri = restore.getAttribute('uri');
         if (null != uri) {
             this.syncDisabled = false;
             setCookie(gSessionUriCookie, uri);
-            debug.print("set session cookie = " + uri);
+            debug.print(label + "set session cookie = " + uri);
         } else {
-            debug.print("missing session uri!");
+            debug.print(label + "missing session uri!");
             this.syncDisabled = true;
         }
 
@@ -137,39 +146,45 @@ function SessionClass(tabs, id) {
         var activeTab = restore.getAttribute('active-tab');
         this.tabs.refresh(activeTab);
 
-        if (null != restore && restore.hasChildNodes()) {
+        if (restore.hasChildNodes()) {
             var children = restore.childNodes;
+            debug.print(label + "children = " + children);
+
             var queries = null;
             var query = null;
             var source = null;
 
             // first div is the buffers
             var buffers = children[0];
+            debug.print(label + "buffers = " + buffers);
             // handle rows and cols (global)
             this.buffers.setRows(buffers.getAttribute('rows'));
             this.buffers.setCols(buffers.getAttribute('cols'));
             queries = buffers.childNodes;
-            debug.print("restore: restoring buffers " + queries.length);
+            debug.print(label + "queries = " + queries);
+            debug.print(label + "restoring buffers " + queries.length);
             for (var i = 0; i < queries.length; i++) {
-                query = queries[i].textContent;
-                //debug.print("restore: restoring " + i + " " + query);
+                //debug.print(label + "restoring " + i + " " + queries[i]);
+                query = queries[i].firstChild.nodeValue;
+                debug.print(label + "restoring " + i + " " + query);
                 // handle content-source (per buffer)
                 source = queries[i].getAttribute('content-source');
+                debug.print(label + "restoring " + i + " source = " + query);
                 this.buffers.add(query, source);
             }
             // reactivate active buffer
             var active = buffers.getAttribute('active');
-            debug.print("restore: buffers active = " + active);
+            debug.print(label + "buffers active = " + active);
             this.buffers.activate(active);
 
             // second div is the history
             var history = children[1];
             queries = history.childNodes;
-            debug.print("restore: restoring history " + queries.length);
+            debug.print(label + "restoring history " + queries.length);
             // restore in reverse order
             for (var i = queries.length; i > 0; i--) {
-                query = queries[ i - 1 ].textContent;
-                //debug.print("restore: restoring " + i + " " + query);
+                query = queries[ i - 1 ].firstChild.nodeValue;
+                debug.print(label + "restoring " + i + " " + query);
                 this.history.add(query);
             }
         }

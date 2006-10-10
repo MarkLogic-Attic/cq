@@ -76,13 +76,13 @@ function escapeXml(s) {
 // Returns a boolean if successful.
 function simulateSelectionStart(n) {
     var label = "simulateSelectionStart: ";
-    debug.print(label + "buf = " + n);
+    //debug.print(label + "buf = " + n);
     if (null == n) {
-        debug.print(label + "null buf!");
+        //debug.print(label + "null buf!");
         return false;
     }
     if (n.style.display == 'none') {
-        debug.print(label + "hidden buf");
+        //debug.print(label + "hidden buf");
         return false;
     }
 
@@ -92,24 +92,29 @@ function simulateSelectionStart(n) {
     // but I'd rather avoid calling gBrowserIs.opera()
     if (!window.getSelection && !document.getSelection
         && document.selection && document.selection.createRange) {
-        debug.print(label + "document.selection ok");
+        //debug.print(label + "document.selection ok");
         // set it up, using IE5+ API
         // http://msdn.microsoft.com/workshop/author/dhtml/reference
         //   /objects/obj_textrange.asp
         // first, make sure we have the focus
-        debug.print(label + "focus on " + n);
+        //debug.print(label + "focus on " + n);
         n.focus();
         var range = document.selection.createRange();
-        debug.print(label + "range = " + range);
+        //debug.print(label + "range = " + range);
         var storedRange = range.duplicate();
+        if (null == storedRange) {
+          debug.print(label + "null storedRange");
+          n.selectionStart = 0;
+          return;
+        }
         storedRange.moveToElementText(n);
         storedRange.setEndPoint('EndToEnd', range);
-        debug.print(label + "storedRange.text = '"
-                    + storedRange.text + "'"
-                    + " (" + storedRange.text.length
-                    + "," + range.text.length
-                    + "," + n.value.length
-                    + ")");
+        //debug.print(label + "storedRange.text = '"
+        //          + storedRange.text + "'"
+        //          + " (" + storedRange.text.length
+        //          + "," + range.text.length
+        //          + "," + n.value.length
+        //          + ")");
         // set start and end points, ala gecko
         n.selectionStart = (storedRange.text.length
                                      - range.text.length);
@@ -119,12 +124,12 @@ function simulateSelectionStart(n) {
 
     if (n.selectionStart) {
         // looks like gecko: selectionStart should work
-        debug.print(label + "found " + n.selectionStart);
+        //debug.print(label + "found " + n.selectionStart);
         return true;
     }
 
     // unsupported, or at the start of buffer: either way, pretend 0
-    debug.print(label + "no selection information: setting 0");
+    //debug.print(label + "no selection information: setting 0");
     n.selectionStart = 0;
     return true;
 }
@@ -201,12 +206,8 @@ function BufferTabsClass(id, buffers, history) {
         var label = "BufferTabsClass.refresh: ";
         debug.print(label + n + ", " + this.current);
 
-        if (this.current == n) {
-            return;
-        }
-
         if (isNaN(n)) {
-            return this.refresh();
+            return this.refresh(this.current);
         }
 
         this.current = null == n ? 0 : n;
@@ -216,6 +217,29 @@ function BufferTabsClass(id, buffers, history) {
 
         var buffersNode = this.buffers.labelList;
         var historyNode = this.history.node;
+
+        // must ensure that buffers are visible for this to work.
+        Element.show(buffersNode);
+        Element.hide(historyNode);
+        var bufferHeight = this.buffers.input.clientHeight;
+        var bufferOffset = this.buffers.input.offsetTop;
+        var bufferWidth = buffersNode.clientWidth;
+        debug.print(label + "buffer width = " + buffersNode.clientWidth);
+
+        // must ensure that history is visible for this to work.
+        Element.hide(buffersNode);
+        Element.show(historyNode);
+        var historyOffset = historyNode.offsetTop;
+
+        // match the textarea height
+        var height = bufferHeight + bufferOffset - historyOffset;
+        debug.print(label + "new height = " + height);
+        historyNode.style.minHeight = height + "px";
+
+        // set the history and buffers to have the same width
+        // this works with IE6 and gecko
+        historyNode.style.width = bufferWidth + "px";
+        debug.print(label + "history width = " + historyNode.clientWidth);
 
         // simple for now: node 0 is buffer list, 1 is history
         // TODO move the instruction text too?
@@ -234,15 +258,6 @@ function BufferTabsClass(id, buffers, history) {
         // highlight the active tab
         this.buffersTitle.className = "buffer-tab";
         this.historyTitle.className = "buffer-tab-active";
-
-        // match the textarea height
-        historyNode.style.minHeight = (this.buffers.input.clientHeight
-                                       + this.buffers.input.offsetTop
-                                       - this.history.node.offsetTop
-                                       ) + "px";
-
-        // set the history and buffers to have the same width
-        historyNode.style.minWidth = buffersNode.clientWidth + "px";
 
         // hide and show the appropriate list
         Element.hide(buffersNode);
@@ -402,8 +417,8 @@ function QueryHistoryClass(id, buffers, size) {
         var nodes = this.listNode.childNodes;
         var query = null;
         for (var i = 0; i < nodes.length; i++) {
-            // XPath would be data($query/span/text())
-            query = nodes[i].firstChild.textContent;
+            // XPath would be data($query/*[1]/text()[1])
+            query = nodes[i].firstChild.firstChild.nodeValue;
             if (null != query && "" != query) {
                 // I'm tempted to wrap each query in a CDATA,
                 // but the query might use CDATA sections too.
@@ -502,7 +517,22 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.input.focus();
     }
 
+    this.getQuery = function(n) {
+        //debug.print("QueryBufferListClass.getBufferValue: " + n);
+        if (null == n || this.pos == n) {
+            debug.print("QueryBufferListClass.getQuery: using textarea "
+                        + this.input.value);
+            var buf = this.getBuffer(n);
+            buf.setQuery(this.input.value);
+            buf.setContentSource(this.eval.value);
+            return this.input.value;
+        }
+        return this.getBuffer(n).getQuery();
+    }
+
     this.add = function(query, source) {
+        debug.print("QueryBufferListClass.add: query = " + query);
+        debug.print("QueryBufferListClass.add: source = " + source);
         var n = this.buffers.length;
         this.buffers[n] = new QueryBufferClass(query);
         this.buffers[n].setContentSource(source);
@@ -510,6 +540,8 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         if (n == this.pos) {
             // lazy init
             this.input.value = query;
+            debug.print("QueryBufferListClass.add: input.value = " 
+                        + this.input.value);
             if (source != null) {
                 this.eval.value = source;
             }
@@ -557,7 +589,8 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
         // Update the label text from the query
         // ...make sure it doesn't break for huge strings
-        var query = this.getQuery(n).substr(0, 1024);
+        var query = this.getQuery(n);
+        query = query.substr(0, 1024);
         // ...let the css handle text that's too large for the buffer
         // ...we shouldn't have to normalize spaces, but IE6 is broken
         // ...and so we have to hint word-breaks to both browsers.
@@ -604,19 +637,6 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         }
 
         return this.buffers[n]
-    }
-
-    this.getQuery = function(n) {
-        //debug.print("QueryBufferListClass.getBufferValue: " + n);
-        if (null == n || this.pos == n) {
-            debug.print("QueryBufferListClass.getQuery: using textarea "
-                        + this.input.value);
-            var buf = this.getBuffer(n);
-            buf.setQuery(this.input.value);
-            buf.setContentSource(this.eval.value);
-            return this.input.value;
-        }
-        return this.getBuffer(n).getQuery();
     }
 
     this.resize = function(x, y) {
@@ -856,6 +876,9 @@ function cqOnLoad() {
 
     // display the buffer list, exposing buffer 0, and focus
     gBuffers.activate();
+
+    // once more, to fix widths
+    gBufferTabs.refresh();
 
     resizeFrameset();
 

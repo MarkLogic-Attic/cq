@@ -46,11 +46,12 @@ return
       return element th { $i }
     },
     for $i in $sessions
-    let $uri := base-uri($i)
+    let $uri := $i/@uri
     return element tr {
       element td {
         element input {
           attribute type { "text" },
+          attribute autocomplete { "off" },
           attribute value { ($i/sess:name, "(unnamed)")[1] },
           attribute onchange {
             concat("list.renameSession('", $uri, "', this.value)")

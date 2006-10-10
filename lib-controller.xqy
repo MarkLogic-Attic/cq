@@ -279,11 +279,12 @@ define function c:delete-session($uri as xs:anyURI)
 define function c:rename-session($uri as xs:anyURI, $name as xs:string)
  as empty()
 {
+  c:debug(("c:rename-session:", $uri, "to", $name)),
   let $new := element sess:name { $name }
   let $names := node-name($new)
-  where $c:SESSION
+  where $uri
   return io:write(
-    $c:SESSION-URI,
+    $uri,
     document {
       element {node-name($c:SESSION)} {
         $c:SESSION/@*,

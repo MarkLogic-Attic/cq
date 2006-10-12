@@ -191,20 +191,21 @@ function SessionClass(tabs, id) {
     }
 
     this.sync = function() {
+        label = "SessionClass.sync: ";
         if (this.syncDisabled) {
-            debug.print("SessionClass.sync: disabled");
+            debug.print(label + "disabled");
             return false;
         }
 
         var lastModified = this.history.getLastModified();
+        var lastLineStatus = this.buffers.getLastLineStatus();
 
-        debug.print("SessionClass.sync: "
-                    + lastModified + " ? " + this.lastSync);
+        debug.print(label + lastModified + " ? " + this.lastSync);
         if (null != this.lastSync
             && lastModified < this.lastSync
-            && (new Date() - this.lastSync) < (1000
-                                               * this.autosave.frequency))
+            && lastLineStatus < this.lastSync)
         {
+            // nothing has changed
             return;
         }
 
@@ -214,7 +215,7 @@ function SessionClass(tabs, id) {
         var params = ('BUFFERS=' + buffers
                       + '&HISTORY=' + history
                       + '&TABS=' + tabs);
-        debug.print("SessionClass.sync: " + params);
+        //debug.print(label + "" + params);
         var req = new Ajax.Request(syncUrl,
             {
                 method: 'post',

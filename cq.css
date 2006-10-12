@@ -86,9 +86,13 @@ select
   vertical-align: middle;
 }
 
+.accent-color
+{ 
+  background-color: #FFCC33;
+}
+
 .head1 
 {
-  background-color: #FFCC33;
   font-size: medium;
   font-weight: bold;
   margin-bottom: 3px;
@@ -108,7 +112,6 @@ select
 
 .buffer-tab-active
 {  
-  background-color: #FFCC33;
   font-size: medium;
   font-weight: bold;
   margin: 0 1em 0 1em;
@@ -128,9 +131,10 @@ select
   height: 21em;
 }
 
-.query-delete
+.delete-widget
 {
   color: red;
+  cursor: crosshair;
 }
 
 .instruction
@@ -168,7 +172,7 @@ select
   cursor: pointer;
 }
 
-.bufferlabelactive 
+.bufferlabel-active 
 {
   overflow: hidden !important;
 /*  text-overflow: clip !important; */
@@ -182,7 +186,6 @@ select
 
   line-height: 1.5;
   height: 3em;
-  background-color: #FFCC33;
 }
 
 /* IE6 hack, to allow 'white-space: nowrap' for gecko browsers. 

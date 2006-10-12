@@ -34,6 +34,7 @@ var gQueryMimeType = "/cq:mime-type";
 // another candiate is #8203 (0x200b), but it isn't as nice.
 // not perfect, but seems to be ok...
 var gBreakChar = "\u00ad"; //"\u200b";
+var kDeleteWidget = " \u2715 ";
 
 // GLOBAL VARIABLES
 var gBrowserIs = new BrowserIsClass();
@@ -229,6 +230,11 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         this.instructionNode.appendChild(document.createTextNode(theText));
     }
 
+    this.toggle = function() {
+        debug.print("BufferTabsClass.toggle: this.current");
+        this.refresh((0 == this.current) ? 1 : 0);
+    }
+
     this.refresh = function(n) {
         var label = "BufferTabsClass.refresh: ";
         debug.print(label + n + ", " + this.current);
@@ -244,6 +250,24 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
 
         var buffersNode = this.buffers.labelList;
         var historyNode = this.history.node;
+
+        // simple for now: node 0 is buffer list, 1 is history
+        // TODO move the instruction text too?
+        if (this.current == 0) {
+            debug.print(label + "displaying buffers");
+            // highlight the active tab
+            this.buffersTitle.className = "buffer-tab-active accent-color";
+            this.historyTitle.className = "buffer-tab";
+            // hide and show the appropriate list
+            Element.show(buffersNode);
+            Element.hide(historyNode);
+            return;
+        }
+
+        debug.print(label + "displaying history");
+        // highlight the active tab
+        this.buffersTitle.className = "buffer-tab";
+        this.historyTitle.className = "buffer-tab-active accent-color";
 
         // must ensure that buffers are visible for this to work.
         Element.show(buffersNode);
@@ -267,24 +291,6 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         // this works with IE6 and gecko
         historyNode.style.width = bufferWidth + "px";
         debug.print(label + "history width = " + historyNode.clientWidth);
-
-        // simple for now: node 0 is buffer list, 1 is history
-        // TODO move the instruction text too?
-        if (this.current == 0) {
-            debug.print(label + "displaying buffers");
-            // highlight the active tab
-            this.buffersTitle.className = "buffer-tab-active";
-            this.historyTitle.className = "buffer-tab";
-            // hide and show the appropriate list
-            Element.show(buffersNode);
-            Element.hide(historyNode);
-            return;
-        }
-
-        debug.print(label + "displaying history");
-        // highlight the active tab
-        this.buffersTitle.className = "buffer-tab";
-        this.historyTitle.className = "buffer-tab-active";
 
         // hide and show the appropriate list
         Element.hide(buffersNode);
@@ -317,10 +323,10 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
 //   - listNode: an ol element with li children
 // The hash provides de-duplication of queries,
 // while the listNode acts like a fixed-size stack.
-function QueryHistoryClass(id, buffers, size) {
+function QueryHistoryClass(id, buffers, limit) {
     // init history list node
     this.node = $(id);
-    this.size = size ? size : 50;
+    this.limit = limit ? limit : 50;
     this.buffers = buffers;
     debug.print("QueryHistoryClass.init: node = " + this.node
                 + ", buffers = " + buffers);
@@ -330,18 +336,19 @@ function QueryHistoryClass(id, buffers, size) {
     this.lastModified = new Date();
 
     this.add = function(query) {
-        debug.print("QueryHistoryClass.add: " + query);
+        var label = "QueryHistoryClass.add: ";
+        debug.print(label + query);
         if (query == null || query == "") {
             return;
         }
 
         // the whitespace-normalized query acts as the hash key
-        var key = normalizeSpace(query);
+        var key = this.getKey(query);
         if (key == null || key == "") {
             return;
         }
 
-        //debug.print("QueryHistoryClass.add: " + ": " + key);
+        //debug.print(label + "key = " + key);
 
         // lazy initialization
         if (null == this.listNode.parentNode) {
@@ -355,40 +362,52 @@ function QueryHistoryClass(id, buffers, size) {
         if (null != listItem) {
             // new query has a duplicate: replace the existing item.
             Element.remove(listItem);
+            this.hash[key] = null;
         }
         // build a new listItem
         listItem = this.newListItem(key, query);
-
-        // place the new listItem at the top of the listNode children
-        if (this.listNode.hasChildNodes()) {
-            this.listNode.insertBefore(listItem, this.listNode.firstChild);
-        } else {
-            debug.print("QueryHistoryClass.add: first entry");
-            this.listNode.appendChild(listItem);
-        }
 
         // update the hash
         this.hash[key] = listItem;
         this.lastModified = new Date();
 
-        // check size limit, and truncate if needed
-        var values = this.hash.values();
-        if (values.length > this.size) {
-            debug.print("QueryHistoryClass.add: truncating "
-                        + values.length + " > " + this.size);
-            for (i = this.size; i < values.length; i++) {
-                debug.print("QueryHistoryClass.add: truncating " + i);
-                this.remove(values[i]);
-            }
+        if (!this.listNode.hasChildNodes()) {
+            debug.print(label + "first entry");
+            this.listNode.appendChild(listItem);
+            return;
         }
+
+        // place the new listItem at the top of the listNode children
+        this.listNode.insertBefore(listItem, this.listNode.firstChild);
+
+        // check size limit, and truncate if needed
+        var overflow = $A(this.listNode.childNodes).slice(this.limit);
+
+        if (null == overflow || overflow.length < 1) {
+            return;
+        }
+
+        debug.print(label + "truncating " + overflow.length);
+        // TODO we have values, but this.remove() takes a key
+        // a key is just the normalized query, though
+        var key = null;
+        for (i = 0; i < overflow.length; i++) {
+            key = this.getKey(this.getListItemValue(overflow[i]));
+            debug.print(label + "truncating " + i + " = " + key);
+            this.remove(key);
+        }
+    }
+
+    this.getKey = function(value) {
+        return normalizeSpace(value);
     }
 
     this.remove = function(key) {
         // remove this listItem and its corresponding hash entry
-        var node = this.hash[key]
         // will this work? relying on garbage collection?
-        this.hash[key] = null;
+        var node = this.hash[key];
         Element.remove(node);
+        this.hash[key] = null;
         this.lastModified = new Date();
     }
 
@@ -409,6 +428,22 @@ function QueryHistoryClass(id, buffers, size) {
 
     this.newListItem = function(key, query) {
         var newItem = document.createElement("li");
+
+        // delete widget
+        var deleteLink = document.createElement("span");
+        newItem.appendChild(deleteLink);
+        deleteLink.className = "delete-widget";
+        Event.observe(deleteLink, "click",
+                      function() {
+            if (confirm("Are you sure you want to delete this query?")) {
+                this.remove(key);
+            }
+        }.bindAsEventListener(this)
+                      );
+        deleteLink.title = "Click to delete this query from your history.";
+        deleteLink.appendChild(document.createTextNode(kDeleteWidget));
+
+        // query text - all of it
         var queryNode = document.createElement("span");
         queryNode.appendChild(document.createTextNode(query));
         // onclick, copy to current textarea
@@ -418,20 +453,6 @@ function QueryHistoryClass(id, buffers, size) {
         // tool-tip
         queryNode.title = "Click to copy this into the active buffer.";
         newItem.appendChild(queryNode);
-
-        // delete widget
-        var deleteLink = document.createElement("span");
-        newItem.appendChild(deleteLink);
-        deleteLink.className = "query-delete";
-        Event.observe(deleteLink, "click",
-                      function() {
-            if (confirm("Are you sure you want to delete this query?")) {
-                this.remove(key);
-            }
-        }.bindAsEventListener(this)
-                      );
-        deleteLink.title = "Click to delete this query from your history.";
-        deleteLink.appendChild(document.createTextNode(" (x) "));
 
         // spacing: css padding, margin don't seem to work with ol
         newItem.appendChild(document.createElement("hr"));
@@ -447,6 +468,17 @@ function QueryHistoryClass(id, buffers, size) {
         Element.hide(this.node);
     }
 
+    this.getListItemValue = function(node) {
+        // skip over the delete widget
+        // XPath would be something like:
+        // data($query/*[@class ne 'delete-widget'][1]/text()[1])
+        var query = node.firstChild;
+        while (query.className == "delete-widget") {
+            query = query.nextSibling;
+        }
+        return query.firstChild.nodeValue;
+    }
+
     this.toXml = function() {
         var parentName = "query-history";
         var queryName = "query";
@@ -455,11 +487,10 @@ function QueryHistoryClass(id, buffers, size) {
 
         // values() yields an unstable order,
         // so we use listNode.childNodes instead.
-        var nodes = this.listNode.childNodes;
+        var nodes = $A(this.listNode.childNodes);
         var query = null;
         for (var i = 0; i < nodes.length; i++) {
-            // XPath would be data($query/*[1]/text()[1])
-            query = nodes[i].firstChild.firstChild.nodeValue;
+            query = this.getListItemValue(nodes[i]);
             if (null != query && "" != query) {
                 // I'm tempted to wrap each query in a CDATA,
                 // but the query might use CDATA sections too.
@@ -470,7 +501,7 @@ function QueryHistoryClass(id, buffers, size) {
         }
 
         xml += "</" + parentName + ">\n";
-        //debug.print("QueryHistory.toXml: " + xml);
+        debug.print("QueryHistory.toXml: " + xml);
 
         return xml;
     }
@@ -538,6 +569,8 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
     this.labelList = $(labelsId);
     // ...and the caret line-column status
     this.lineStatus = $(statusId);
+    this.lastLineStatus = null;
+    this.last = null;
 
     // Create a wrapper for the labels: table layout.
     // This tbody is needed by gecko, and doesn't hurt IE6
@@ -561,13 +594,31 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
     this.getQuery = function(n) {
         //debug.print("QueryBufferListClass.getBufferValue: " + n);
         if (null == n || this.pos == n) {
-            debug.print("QueryBufferListClass.getQuery: using textarea "
-                        + this.input.value);
+            //debug.print("QueryBufferListClass.getQuery: using textarea "
+            //            + this.input.value);
             var buf = this.getBuffer(n);
             buf.setQuery(this.input.value);
             return this.input.value;
         }
         return this.getBuffer(n).getQuery();
+    }
+
+    this.setQuery = function(query) {
+        debug.print("QueryBufferListClass.setQuery " + this.pos);
+        if (null == query) {
+            return;
+        }
+        this.input.value = query;
+
+        // propagate everything to the active buffer object
+        var buf = this.getBuffer();
+        buf.setQuery(query);
+        buf.setContentSource(this.eval.value);
+        simulateSelectionStart(this.input);
+        buf.setSelectionStart(this.input.selectionStart);
+
+        // update the label
+        this.setLabel(this.pos, true);
     }
 
     this.add = function(query, source) {
@@ -591,41 +642,56 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.setLabel(n, active);
     }
 
+    this.remove = function(n) {
+        if (this.buffers.length <= n) {
+            return;
+        }
+
+        if (n == this.pos) {
+            this.activate(this.last);
+            this.last = null;
+        }
+
+        this.buffers[n] = null;
+        this.buffers = this.buffers.compact();
+        var label = this.getLabel(n);
+        debug.print("QueryBufferListClass.remove: " + n
+                    + ", label = " + label);
+        if (null != label) {
+            // we actually want the table row
+            label = label.parentNode.parentNode;
+            debug.print("QueryBufferListClass.remove: " + n
+                        + ", label = " + label.nodeName);
+            Element.remove(label);
+        }
+
+        for (var i = n; i < this.buffers.length; i++) {
+            this.setLabel(i, i == this.pos);
+        }
+
+    }
+
     this.setLabel = function(n, active) {
         debug.print("QueryBufferListClass.setLabel: " + n + ", " + active);
         n = (null == n) ? this.pos : n;
         active = active || false;
 
         var label = this.getLabel(n);
+        if (null == label) {
+            debug.print("QueryBufferListClass.setLabel: null label");
+            return;
+        }
 
         // update the active status
-        var theNum = null;
-        if (active) {
-            // show the current index in bold, with no link
-            theNum = document.createElement('b');
-            // use highlighting
-            label.className = 'bufferlabelactive';
-            // deactivate any onclick
-            label.onclick = null;
-            // set tooltip
-            label.title = null;
-        } else {
-            // provide a link to load the buffer
-            theNum = document.createElement('a');
-            theNum.setAttribute('href', '#');
-            // inactive class
-            label.className = 'bufferlabel';
-            // make the whole node active
-            Event.observe(label, "click",
-                          function() { this.activate(n) }
-                          .bindAsEventListener(this));
-            // set tooltip
-            label.title = "Click to activate this query buffer.";
-        }
+        var theNum = this.setLabelNumber(n, label, active);
 
         // sometimes 1 + "1" = "11"
         theNum.appendChild(document.createTextNode((1 + Number(n)) + "."));
         label.appendChild(theNum);
+
+        if (active) {
+            this.addLabelDeleteWidget(label);
+        }
 
         // Update the label text from the query
         // ...make sure it doesn't break for huge strings
@@ -642,14 +708,64 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         // TODO mouseover for fully formatted text contents as tooltip?
     }
 
+    this.setLabelNumber = function(n, label, active) {
+        var theNum = null;
+
+        if (active) {
+            // show the current index in bold, with no link
+            theNum = document.createElement('b');
+            // use highlighting
+            label.className = 'bufferlabel-active accent-color';
+            // deactivate any onclick
+            label.onclick = null;
+            // set tooltip
+            label.title = null;
+            return theNum;
+        }
+
+        // provide a link to load the buffer
+        theNum = document.createElement('a');
+        theNum.setAttribute('href', '#');
+        // inactive class
+        label.className = 'bufferlabel';
+        // make the whole node active
+        Event.observe(label, "click",
+                      function() { this.activate(n) }
+                      .bindAsEventListener(this));
+        // set tooltip
+        label.title = "Click to activate this query buffer.";
+        return theNum;
+    }
+
+    this.addLabelDeleteWidget = function(label) {
+        // delete widget
+        var deleteLink = document.createElement("span");
+        label.appendChild(deleteLink);
+        deleteLink.className = "delete-widget";
+        Event.observe(deleteLink, "click",
+                      function() {
+            if (confirm("Are you sure you want to delete this query?")) {
+                this.remove(this.pos);
+            }
+        }.bindAsEventListener(this)
+                      );
+        deleteLink.title = "Click to delete this query from your list.";
+        deleteLink.appendChild(document.createTextNode(kDeleteWidget));
+    }
+
     this.getLabel = function(n) {
 
         // it will be the n-th div below this.labelsBody
         var labels = this.labelsBody.getElementsByTagName('div');
         var label = labels[n];
 
-        // if there isn't a label for n, create one
+        // what if there isn't a label for n?
         if (null == label) {
+            // if it isn't a valid buffer, skip it
+            if (this.buffers.length <= n) {
+                return null;
+            }
+            // otherwise, create one
             var row = document.createElement('tr');
             this.labelsBody.appendChild(row);
             var cell = document.createElement('td');
@@ -699,7 +815,25 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.input.cols = y;
     }
 
-    // TODO reduce the flashing
+    this.nextBuffer = function() {
+        if (this.pos >= this.buffers.length - 1) {
+            this.activate(0);
+            return;
+        }
+
+        this.activate(1 + Number(this.pos));
+    }
+
+    this.previousBuffer = function() {
+        if (this.pos < 1) {
+            this.activate(this.buffers.length - 1);
+            return;
+        }
+
+        this.activate(this.pos - 1);
+    }
+
+    // TODO can we reduce the flashing?
     this.activate = function(n) {
         label = "QueryBufferListClass.activate: ";
         debug.print(label + this.pos + " to " + n);
@@ -710,7 +844,8 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             || isNaN(n)
             || this.pos == n
             || 0 > n
-            || this.buffers.length <= n) {
+            || this.buffers.length <= n)
+        {
             // make sure our state is correct
             this.setQuery(this.input.value);
             return;
@@ -726,38 +861,29 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         }
 
         // activate the new buffer and restore its state
+        this.last = this.pos;
         this.pos = n;
         buf = this.getBuffer(n);
         this.input.value = buf.getQuery();
         this.setContentSource(buf.getContentSource());
         this.setLabel(this.pos, true);
+
         this.input.focus();
         setSelectionStart(this.input, buf.getSelectionStart());
-    }
-
-    this.setQuery = function(query) {
-        if (null == query) {
-            return;
-        }
-        this.input.value = query;
-
-        // propagate everything to the active buffer object
-        var buf = this.getBuffer();
-        buf.setQuery(query);
-        buf.setContentSource(this.eval.value);
-        simulateSelectionStart(this.input);
-        buf.setSelectionStart(this.input.selectionStart);
-
-        // update the label
-        this.setLabel(this.pos, true);
     }
 
     this.setContentSource = function(v) {
         this.eval.value = v;
     }
 
+    this.getLastLineStatus = function() {
+        return this.lastLineStatus;
+    }
+
     this.setLineNumberStatus = function(e) {
         var label = "QueryBufferListClass.setLineNumberStatus: ";
+        this.lastLineStatus = new Date();
+
         //debug.print(label + e);
         if (this.lineStatus == null) {
             debug.print(label + "null textareaStatus!");
@@ -771,6 +897,9 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         }
 
         var start = buf.selectionStart;
+        if (null == start) {
+            debug.print(label + "null start");
+        }
         var textToStart = null;
         var linesArray = null;
         var lineNumber = 1;
@@ -860,11 +989,19 @@ function PolicyClass(titleId, title, accentClass, accentColor) {
 
         if (null != this.accentColor && "" != this.accentColor) {
             // enforce accentColor, on accent class only
-            var nodes = document.getElementsByClassName(accentClass);
-            for (var i = 0; i < nodes.length; i++) {
-                debug.print(label + " node for accent-color = "
-                            + nodes[i].nodeName);
-                nodes[i].style.backgroundColor = this.accentColor;
+            var frames = new Array(document,
+                                   parent.frames[1].document
+                                   );
+            var nodes;
+            debug.print(label + "frames " + frames.length);
+            for (var i = 0; i < frames.length; i++) {
+                debug.print(label + "frame " + i + " = " + frames[i]);
+                nodes = frames[i].getElementsByClassName(accentClass);
+                for (var j = 0; j < nodes.length; j++) {
+                    debug.print(label + "node for accent-color = "
+                                + nodes[j].nodeName);
+                    nodes[j].style.backgroundColor = this.accentColor;
+                }
             }
         }
     }
@@ -901,8 +1038,10 @@ function cqOnLoad() {
     gBufferTabs.setSession(gSession);
 
     // enforce local policy, if any
-    var policy = new PolicyClass("/cq:title", $F("/cq:policy/title"),
-                                 "head1", $F("/cq:policy/accent-color"));
+    var policy = new PolicyClass("/cq:title",
+                                 $F("/cq:policy/title"),
+                                 "head1",
+                                 $F("/cq:policy/accent-color"));
     policy.enforce();
 
     // display the buffer list, exposing buffer 0, and focus
@@ -954,6 +1093,9 @@ function resizeFrameset() {
 // keycode support:
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
 //   alt-1 to alt-0 exposes the corresponding buffer (really 0-9)
+//   next buffer: alt-> (46)
+//   previous buffer: alt-< (44)
+//   NB: the modifer changes according to platform
 function handleKeyPress(e) {
     var theCode = e.keyCode;
     // see http://www.mozilla.org/editor/key-event-spec.html
@@ -973,14 +1115,15 @@ function handleKeyPress(e) {
         return true;
     }
 
-    // in case we need debug info...
-    var keyInfo = "win=" + gBrowserIs.win
-        + " x11=" + gBrowserIs.x11
-        + " mac=" + gBrowserIs.mac + ", "
-        + (metaKey ? "meta " : "")
-        + (ctrlKey ? "ctrl " : "") + (shiftKey ? "shift " : "")
-        + (altKey ? "alt " : "") + theCode;
-    debug.print("handleKeyPress: " + keyInfo);
+    if (debug.isEnabled()) {
+        var keyInfo = "win=" + gBrowserIs.win
+            + " x11=" + gBrowserIs.x11
+            + " mac=" + gBrowserIs.mac + ", "
+            + (metaKey ? "meta " : "")
+            + (ctrlKey ? "ctrl " : "") + (shiftKey ? "shift " : "")
+            + (altKey ? "alt " : "") + theCode;
+        debug.print("handleKeyPress: " + keyInfo);
+    }
 
     // handle buffers: 1 = 49, 9 = 57, 0 = 48
     // ick: firefox-linux decided to use alt 0-9 for tabs
@@ -994,8 +1137,25 @@ function handleKeyPress(e) {
         return false;
     }
 
+    // next buffer: alt-> (46)
+    if (46 == theCode) {
+        gBuffers.nextBuffer();
+        return false;
+    }
+
+    // previous buffer: alt-< (44)
+    if (44 == theCode) {
+        gBuffers.previousBuffer();
+        return false;
+    }
+
+    // toggle tab: alt-` (96)
+    if (96 == theCode) {
+        gBufferTabs.toggle();
+        return false;
+    }
+
     // treat ctrl-shift-s (83) as session-sync
-    var theForm = $(gQueryFormId);
     if (shiftKey && ctrlKey && theCode == 83) {
         // sync the session to the database
         // if sync fails, return true so that the event will bubble
@@ -1003,6 +1163,7 @@ function handleKeyPress(e) {
     }
 
     if (theCode == Event.KEY_RETURN) {
+        var theForm = $(gQueryFormId);
         if (ctrlKey && shiftKey) {
             submitText(theForm);
         } else if (altKey) {

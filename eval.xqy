@@ -1,7 +1,7 @@
 (:
  : cq-eval.xqy
  :
- : Copyright (c)2002-2005 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c)2002-2006 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -34,9 +34,13 @@ import module namespace c = "com.marklogic.developer.cq.controller"
 define variable $g-query as xs:string {
   xdmp:get-request-field("/cq:query", "") }
 
-(: split into database, modules location, and root :)
-define variable $g-eval-in as xs:string+ {
+(: split into database, modules location, and root:
+ : if the first tok is not "as", then it is a raw database, with all info.
+ : otherwise it is an app server:
+ : we need to look up the database, modules-database, and module-root.
+ :)
 (: get appserver info in real-time, so we can support admin changes :)
+define variable $g-eval-in as xs:string+ {
   let $toks := tokenize(xdmp:get-request-field(
     "/cq:eval-in", string(xdmp:database())), ":")
   return if ($toks[1] ne "as") then $toks else (

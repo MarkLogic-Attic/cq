@@ -201,6 +201,10 @@ define function v:get-html-head($label as xs:string)
   (: we do not need the js and css here, but it makes reloads easier :)
   <head xmlns="http://www.w3.org/1999/xhtml">
     <title>{ $label, $c:TITLE-TEXT }</title>
+    <link rel="stylesheet" type="text/css" href="cq.css">
+    </link>
+    <link rel="Shortcut Icon" href="favicon.ico" type="image/x-icon">
+    </link>
     <script language="JavaScript" type="text/javascript" src="prototype.js">
     </script>
     <script language="JavaScript" type="text/javascript" src="debug.js">
@@ -211,8 +215,6 @@ define function v:get-html-head($label as xs:string)
     </script>
     <script language="JavaScript" type="text/javascript" src="query.js">
     </script>
-    <link rel="stylesheet" type="text/css" href="cq.css">
-    </link>
     {
       if (c:get-debug())
       then <script>debug.setEnabled(true);</script>

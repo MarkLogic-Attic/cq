@@ -108,7 +108,7 @@ c:set-content-type(),
       <table summary="query form">
         <tr>
           <td nowrap="1">
-            <table class="head1">
+            <table class="head1 accent-color">
               <tr>
                 <td nowrap="1" id="/cq:title">Current XQuery</td>
               </tr>
@@ -140,8 +140,11 @@ c:set-content-type(),
               onclick="gBuffers.resize(-1, 0); return false;"/>
             </div>
             <div nowrap="1" id="queryBuffers">
-            <textarea id="/cq:input" name="/cq:input" xml:space="preserve">{
-              (: dynamic buffer size :)
+            <textarea id="/cq:input" name="/cq:input"
+             xml:space="preserve" spellcheck="false">{
+              (: NB @spellcheck above turns off gecko inline spellcheck.
+               : Dynamic buffer size, restored from session state.
+               :)
               attribute rows { (data($c:SESSION/@rows), 16)[1] },
               attribute cols { (data($c:SESSION/@cols), 80)[1] }
             }</textarea>
@@ -175,13 +178,16 @@ c:set-content-type(),
             <table>
             <tr id="/cq:buffer-tabs">
               <td class="buffer-tab" id="/cq:buffer-tabs-0"
-              title="Select any of 10 queries. Shortcut: ctrl-0 to 9, or alt-0 to 9."
+              title="Select any query buffer. Shortcut: ctrl-0 to 9, or alt-0 to 9."
                onclick="gBufferTabs.refresh(0)">Queries&#160;<span
                class="instruction" nowrap="1">(<span
                id="/cq:buffer-accesskey-text">alt</span>)</span>
+              <span id="/cq:buffers-add"
+               title="Add another buffer to the list."
+               onclick="gBuffers.add('(: new query :)\n1')">&#x2722;</span>
               </td>
               <td class="buffer-tab" id="/cq:buffer-tabs-1"
-              title="Query history, listing the 50 most recent queries."
+              title="Query history, listing the most recent queries."
                onclick="gBufferTabs.refresh(1)">History
               </td>
             </tr>

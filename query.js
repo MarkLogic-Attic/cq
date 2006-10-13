@@ -125,7 +125,7 @@ function simulateSelectionStart(n) {
 
     if (n && n.selectionStart) {
         // looks like gecko: selectionStart should work
-        //debug.print(label + "found " + n.selectionStart);
+        debug.print(label + "found " + n.selectionStart);
         return true;
     }
 
@@ -136,8 +136,14 @@ function simulateSelectionStart(n) {
 }
 
 // Given a node and a new caret position, set it.
-function setSelectionStart(n, start) {
-    var label = "setSelectionStart: ";
+function setPosition(n, start, top, left) {
+    var label = "setPosition: ";
+
+    if (null == start) {
+        start = n.value.length;
+    }
+
+    // IE6 - is that you?
     if (document.selection) {
         debug.print(label + "document.selection, cannot set selectionStart");
         // TODO use IE5+ API
@@ -151,13 +157,17 @@ function setSelectionStart(n, start) {
         //storedRange.setEndPoint('EndToEnd', range);
         //n.selectionStart =
         //  storedRange.text.length - range.text.length;
+        n.scrollTop = top;
+        n.scrollLeft = left;
         return;
     }
 
     // gecko
-    debug.print(label + "gecko, setting " + start);
+    debug.print(label + "gecko, setting " + start + ", " + top + ", " + left);
     n.selectionStart = start;
     n.selectionEnd = start;
+    n.scrollTop = top;
+    n.scrollLeft = left;
 }
 
 // classes
@@ -314,6 +324,24 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         return "<" + name + ">" + this.current + "</" + name + ">";
     }
 
+    this.enableButtons = function() {
+        var list = document.getElementsByTagName("input");
+        for (var i = 0; i< list.length; i++) {
+            if (list[i].getAttribute('type') == 'button') {
+                list[i].disabled = false;
+            }
+        }
+    }
+
+    this.disableButtons = function() {
+        var list = document.getElementsByTagName("input");
+        for (var i = 0; i< list.length; i++) {
+            if (list[i].getAttribute('type') == 'button') {
+                list[i].disabled = true;
+            }
+        }
+    }
+
 } // BufferTabsClass
 
 // The history will act something like a stack,
@@ -337,7 +365,7 @@ function QueryHistoryClass(id, buffers, limit) {
 
     this.add = function(query) {
         var label = "QueryHistoryClass.add: ";
-        debug.print(label + query);
+        //debug.print(label + query);
         if (query == null || query == "") {
             return;
         }
@@ -388,10 +416,10 @@ function QueryHistoryClass(id, buffers, limit) {
         }
 
         debug.print(label + "truncating " + overflow.length);
-        // TODO we have values, but this.remove() takes a key
-        // a key is just the normalized query, though
         var key = null;
         for (i = 0; i < overflow.length; i++) {
+            // we have values, but this.remove() takes a key
+            // a key is just the normalized query, though
             key = this.getKey(this.getListItemValue(overflow[i]));
             debug.print(label + "truncating " + i + " = " + key);
             this.remove(key);
@@ -501,7 +529,7 @@ function QueryHistoryClass(id, buffers, limit) {
         }
 
         xml += "</" + parentName + ">\n";
-        debug.print("QueryHistory.toXml: " + xml);
+        //debug.print("QueryHistory.toXml: " + xml);
 
         return xml;
     }
@@ -511,9 +539,12 @@ function QueryHistoryClass(id, buffers, limit) {
 // this class maintains the contents and context of a query buffer
 function QueryBufferClass(query, selectionStart, contentSource) {
     this.query = query;
-    // start at the end
+    // start at the top
     this.selectionStart = (null == selectionStart)
-        ? selectionStart : textArea.length;
+        ? selectionStart : query.length;
+    // also track the scrollTop, scrollWidth
+    this.scrollTop = this.selectionStart;
+    this.scrollLeft = 0;
     // also track the contentbase and app-server
     this.contentSource = contentSource;
 
@@ -525,12 +556,32 @@ function QueryBufferClass(query, selectionStart, contentSource) {
         this.query = query;
     }
 
+    this.getScrollTop = function() {
+        return this.scrollTop;
+    }
+
+    this.setScrollTop = function(v) {
+        this.scrollTop = v;
+    }
+
+    this.getScrollLeft = function() {
+        return this.scrollLeft;
+    }
+
+    this.setScrollLeft = function(v) {
+        this.scrollLeft = v;
+    }
+
     this.getSelectionStart = function() {
         return this.selectionStart;
     }
 
-    this.setSelectionStart = function(start) {
+    this.setPosition = function(start, top, left) {
+        debug.print("QueryBufferClass.setPosition: "
+                    + start + ", " + top + ", " + left);
         this.selectionStart = start;
+        this.scrollTop = top;
+        this.scrollLeft = left;
     }
 
     this.getContentSource = function() {
@@ -598,7 +649,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             //            + this.input.value);
             var buf = this.getBuffer(n);
             buf.setQuery(this.input.value);
-            return this.input.value;
+            return buf.getQuery();
         }
         return this.getBuffer(n).getQuery();
     }
@@ -608,21 +659,28 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         if (null == query) {
             return;
         }
-        this.input.value = query;
 
-        // propagate everything to the active buffer object
+        // first, propagate everything to the active buffer object
         var buf = this.getBuffer();
+        simulateSelectionStart(this.input);
+        buf.setPosition(this.input.selectionStart,
+                        this.input.scrollTop,
+                        this.input.scrollLeft);
         buf.setQuery(query);
         buf.setContentSource(this.eval.value);
-        simulateSelectionStart(this.input);
-        buf.setSelectionStart(this.input.selectionStart);
+
+        // update the input, if it changed:
+        // checking this avoids re-setting the input.value caret.
+        if (this.input.value != query) {
+            this.input.value = query;
+        }
 
         // update the label
         this.setLabel(this.pos, true);
     }
 
     this.add = function(query, source) {
-        debug.print("QueryBufferListClass.add: query = " + query);
+        //debug.print("QueryBufferListClass.add: query = " + query);
         debug.print("QueryBufferListClass.add: source = " + source);
         var n = this.buffers.length;
         this.buffers[n] = new QueryBufferClass(query);
@@ -631,8 +689,8 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         if (n == this.pos) {
             // lazy init
             this.input.value = query;
-            debug.print("QueryBufferListClass.add: input.value = "
-                        + this.input.value);
+            //debug.print("QueryBufferListClass.add: input.value = "
+            //            + this.input.value);
             if (source != null) {
                 this.eval.value = source;
             }
@@ -840,25 +898,25 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
         var buf = this.getBuffer();
 
+        // save any state from the current buffer
+        if (null != buf) {
+            this.setQuery(this.input.value);
+        }
+
         if (null == n
             || isNaN(n)
-            || this.pos == n
             || 0 > n
             || this.buffers.length <= n)
         {
-            // make sure our state is correct
-            this.setQuery(this.input.value);
             return;
         }
 
-        // save any state from the current buffer, and deactivate it.
-        if (null != buf) {
-            buf.setQuery(this.input.value);
-            buf.setContentSource(this.eval.value);
-            this.setLabel(this.pos, false);
-            simulateSelectionStart(this.input);
-            buf.setSelectionStart(this.input.selectionStart);
+        if (this.pos == n) {
+            return;
         }
+
+        // deactivate the current buffer
+        this.setLabel(this.pos, false);
 
         // activate the new buffer and restore its state
         this.last = this.pos;
@@ -868,8 +926,9 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.setContentSource(buf.getContentSource());
         this.setLabel(this.pos, true);
 
+        setPosition(this.input, buf.getSelectionStart(),
+                    buf.getScrollTop(), buf.getScrollLeft());
         this.input.focus();
-        setSelectionStart(this.input, buf.getSelectionStart());
     }
 
     this.setContentSource = function(v) {
@@ -990,8 +1049,7 @@ function PolicyClass(titleId, title, accentClass, accentColor) {
         if (null != this.accentColor && "" != this.accentColor) {
             // enforce accentColor, on accent class only
             var frames = new Array(document,
-                                   parent.frames[1].document
-                                   );
+                                   parent.frames[1].document);
             var nodes;
             debug.print(label + "frames " + frames.length);
             for (var i = 0; i < frames.length; i++) {
@@ -1033,6 +1091,7 @@ function cqOnLoad() {
 
     gSession = new SessionClass(gBufferTabs, "/cq:restore-session");
     gSession.restore();
+    // TODO enable autosave
     gSession.setAutoSave();
 
     gBufferTabs.setSession(gSession);
@@ -1187,9 +1246,6 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
         return;
     }
 
-    // this causes the label to update
-    gBuffers.activate();
-
     if (saveHistory) {
         gHistory.add(query);
     }
@@ -1197,21 +1253,29 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
     // sync the session, if it has changed
     gSession.sync();
 
-    // TODO would like to disable buttons during post
-    // TODO it would be nice to grey out the target frame, if possible
-
     // copy query to the hidden element
     $(gQueryInput).value = query;
-    debug.print("submitForm: " + $F(gQueryInput));
+    //debug.print("submitForm: " + $F(gQueryInput));
 
     // set the mime type
-    if (theMimeType != null) {
+    if (null != theMimeType) {
         debug.print("submitForm: mimeType = " + theMimeType);
         $(gQueryMimeType).value = theMimeType;
     }
 
+    // TODO it would be nice to grey out the target frame, if possible
+
     // post the form
     theForm.submit();
+
+    // would like to disable buttons during post
+    // TODO what if the user hits the stop button?
+    // IE6 supports onstop, gecko does not
+    // onabort is not useful for this.
+    //gBufferTabs.disableButtons();
+    //Event.observe(parent.frames[1].window, "unload",
+    //function(e) { this.enableButtons(); }
+    //.bindAsEventListener(gBufferTabs));
 }
 
 function submitXML(theForm) {

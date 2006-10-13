@@ -164,12 +164,11 @@ function SessionClass(tabs, id) {
             debug.print(label + "queries = " + queries);
             debug.print(label + "restoring buffers " + queries.length);
             for (var i = 0; i < queries.length; i++) {
-                //debug.print(label + "restoring " + i + " " + queries[i]);
                 query = queries[i].firstChild.nodeValue;
-                debug.print(label + "restoring " + i + " " + query);
+                //debug.print(label + "restoring " + i + " " + query);
                 // handle content-source (per buffer)
                 source = queries[i].getAttribute('content-source');
-                debug.print(label + "restoring " + i + " source = " + query);
+                debug.print(label + "restoring " + i + " source = " + source);
                 this.buffers.add(query, source);
             }
             // reactivate active buffer
@@ -184,7 +183,7 @@ function SessionClass(tabs, id) {
             // restore in reverse order
             for (var i = queries.length; i > 0; i--) {
                 query = queries[ i - 1 ].firstChild.nodeValue;
-                debug.print(label + "restoring " + i + " " + query);
+                //debug.print(label + "restoring " + i + " " + query);
                 this.history.add(query);
             }
         }

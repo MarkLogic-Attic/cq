@@ -92,7 +92,7 @@ c:set-content-type(),
           }</p>
           <br/>
           <div id="sessions"/>
-          <input type="button" class="input1" value="New Session"
+          <input type="button" value="New Session"
           id="newSession2" name="newSession2" onclick="list.newSession()"/>
           <script>
           // pseudo-onload

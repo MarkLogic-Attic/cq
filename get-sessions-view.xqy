@@ -64,7 +64,6 @@ return
       element td {
         element input {
           attribute type { "button" },
-          attribute class { "input1" },
           attribute title { data($i/sess:query-buffers/sess:query[1]) },
           attribute onclick { concat("list.resumeSession('", $uri, "')") },
           attribute value { "Resume" }

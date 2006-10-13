@@ -52,6 +52,13 @@ select
   margin-left: 5px;
 }
 
+input[type = "button"]
+{
+  font-family: sans-serif;
+  margin-left: 5px;
+  margin-left: 5px;
+}
+
 #cq-textarea-status
 {
   font-weight: normal;
@@ -143,13 +150,6 @@ select
   font-size: small;
   font-style: italic;
   margin-right: .5em;
-}
-
-.input1 
-{
-  font-family: sans-serif;
-  margin-left: 5px;
-  margin-left: 5px;
 }
 
 /* clipping doesn't work quite how I'd like it to:

@@ -155,14 +155,13 @@ c:set-content-type(),
                 <span class="instruction">content-source:</span>
                 { get-eval-selector() }
                 <span class="instruction">as</span>
-                <input type="button" class="input1"
-                onclick="submitXML(this.form);" value="XML"
+                <input type="button" onclick="submitXML(this.form);"
+                value="XML"
                 title="Submit query as text/xml. Shortcut: ctrl-enter"/>
-                <input type="button" class="input1"
-                onclick="submitHTML(this.form);" value="HTML"
+                <input type="button" onclick="submitHTML(this.form);"
+                value="HTML"
                 title="Submit query as text/html. Shortcut: alt-enter"/>
-                <input type="button" class="input1"
-                onclick="submitText(this.form);"
+                <input type="button" onclick="submitText(this.form);"
                 value="TEXT"
                 title="Submit query as text/plain. Shortcut: ctrl-shift-enter"/>
                 <input type="hidden" value="text/xml"

@@ -21,20 +21,21 @@
 // TODO test for memory leaks
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
-var gFramesetId = "/cq:frameset";
-var gQueryFrameId = "/cq:queryFrame";
-var gResultFrameId = "/cq:resultFrame";
-var gQueryFormId = "/cq:form";
-var gQueryInput = "/cq:query";
-var gQueryMimeType = "/cq:mime-type";
+var kFramesetId = "/cq:frameset";
+var kQueryFrameId = "/cq:queryFrame";
+var kResultFrameId = "/cq:resultFrame";
+var kQueryFormId = "/cq:form";
+var kQueryInput = "/cq:query";
+var kQueryMimeType = "/cq:mime-type";
 // is there some *optional* linebreak character we could use?
 // yes: http://www.quirksmode.org/oddsandends/wbr.html
 // but I don't want to muck with the wbr element in a string...
 // solution: "&shy;" (#173, 0xAD) seems to work for IE and gecko
 // another candiate is #8203 (0x200b), but it isn't as nice.
 // not perfect, but seems to be ok...
-var gBreakChar = "\u00ad"; //"\u200b";
-var kDeleteWidget = " \u2715 ";
+var kBreakChar = "\u00ad"; //"\u200b";
+// I would prefer something like \u2715, but many systems don't display it.
+var kDeleteWidget = " (x) ";
 
 // GLOBAL VARIABLES
 var gBrowserIs = new BrowserIsClass();
@@ -55,10 +56,10 @@ function nudge(s) {
     if (null == s) {
         return;
     }
-    s = s.replace("/(/g", "(" + gBreakChar);
-    s = s.replace("/)/g", gBreakChar + ")");
-    s = s.replace("/,/g", "," + gBreakChar);
-    s = s.replace("/=/g", gBreakChar + "=" + gBreakChar);
+    s = s.replace("/(/g", "(" + kBreakChar);
+    s = s.replace("/)/g", kBreakChar + ")");
+    s = s.replace("/,/g", "," + kBreakChar);
+    s = s.replace("/=/g", kBreakChar + "=" + kBreakChar);
     return normalizeSpace(s);
 }
 
@@ -282,6 +283,7 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         // must ensure that buffers are visible for this to work.
         Element.show(buffersNode);
         Element.hide(historyNode);
+        // TODO use the form, instead?
         var bufferHeight = this.buffers.input.clientHeight;
         var bufferOffset = this.buffers.input.offsetTop;
         var bufferWidth = buffersNode.clientWidth;
@@ -1119,7 +1121,7 @@ function cqOnLoad() {
 }
 
 function resizeFrameset() {
-    var frameset = parent.document.getElementById(gFramesetId);
+    var frameset = parent.document.getElementById(kFramesetId);
     if (frameset == null) {
         debug.print("resizeFrameset: null frameset");
         return;
@@ -1130,11 +1132,11 @@ function resizeFrameset() {
     // figure out where some well-known element ended up
     // in this case we'll use the total height of the query form
     // this might be called from the queryframe or from the parent frameset
-    var visible = $(gQueryFormId);
+    var visible = $(kQueryFormId);
     if (visible == null) {
         // hackish
         var documentNode = window.frames[0].window.document;
-        visible = documentNode.getElementById(gQueryFormId);
+        visible = documentNode.getElementById(kQueryFormId);
     }
     if (visible == null) {
         debug.print("nothing to resize from!");
@@ -1222,7 +1224,7 @@ function handleKeyPress(e) {
     }
 
     if (theCode == Event.KEY_RETURN) {
-        var theForm = $(gQueryFormId);
+        var theForm = $(kQueryFormId);
         if (ctrlKey && shiftKey) {
             submitText(theForm);
         } else if (altKey) {
@@ -1254,13 +1256,13 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
     gSession.sync();
 
     // copy query to the hidden element
-    $(gQueryInput).value = query;
-    //debug.print("submitForm: " + $F(gQueryInput));
+    $(kQueryInput).value = query;
+    //debug.print("submitForm: " + $F(kQueryInput));
 
     // set the mime type
     if (null != theMimeType) {
         debug.print("submitForm: mimeType = " + theMimeType);
-        $(gQueryMimeType).value = theMimeType;
+        $(kQueryMimeType).value = theMimeType;
     }
 
     // TODO it would be nice to grey out the target frame, if possible
@@ -1301,7 +1303,7 @@ function submitFormWrapper(theForm, mimeType) {
 
 function cqListDocuments() {
     // TODO create a link to display each document?
-    var theForm = $(gQueryFormId);
+    var theForm = $(kQueryFormId);
     var theQuery =
         "let $est := xdmp:estimate(doc()) "
         + "return ("

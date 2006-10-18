@@ -27,9 +27,11 @@ var gSessionDirectory = "sessions/";
 
 // static functions
 function reportError(req, resp) {
+    var old = debug.isEnabled();
     debug.setEnabled(true);
-    debug.print("reportError: " + req);
-    debug.print("reportError: " + resp);
+    debug.print("reportError: req = " + req);
+    debug.print("reportError: resp = " + resp);
+    debug.setEnabled(old);
 }
 
 // SessionList class

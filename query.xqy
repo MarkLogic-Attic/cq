@@ -183,7 +183,7 @@ c:set-content-type(),
                id="/cq:buffer-accesskey-text">alt</span>)</span>
               <span id="/cq:buffers-add"
                title="Add another buffer to the list."
-               onclick="gBuffers.add('(: new query :)\n1')">&#x2722;</span>
+               onclick="gBuffers.add('(: new query :)\n1')"> + </span>
               </td>
               <td class="buffer-tab" id="/cq:buffer-tabs-1"
               title="Query history, listing the most recent queries."

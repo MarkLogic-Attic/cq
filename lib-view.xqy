@@ -63,7 +63,7 @@ define function v:get-html($x)
   return
     if (count($body) eq 1
       and ($body instance of element())
-      and local-name($body) eq 'html')
+      and node-name($body) eq xs:QName('xh:html'))
     then $body
     else
 <html xmlns="http://www.w3.org/1999/xhtml">

@@ -99,15 +99,26 @@ try {
   }
   </options>
   let $x := xdmp:eval($g-query, (), $options)
-  let $g-mime-type := if (empty($x)) then "text/html" else $g-mime-type
+  let $g-mime-type :=
+    (: Sometimes we override the user's request,
+     : and display the results as text/plain instead
+     :
+     : Default to text/plain.
+     : It is dangerous to view a sequence of attributes: XDMP-DUPATTR.
+     : Binaries should not be viewed as html or text.
+     :)
+    if (empty($x)
+      or ($x[1] instance of attribute() and count($x) gt 1)
+      or (exists($x/self::binary())) )
+    then "text/plain"
+    else $g-mime-type
   let $set :=
     xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8"))
   return
-    (: it is dangerous to view a sequence of attributes: XDMP-DUPATTR :)
-    if ($x[1] instance of attribute() and count($x) gt 1)
-    then (xdmp:set-response-content-type("text/plain"), v:get-text($x))
-    else if ($g-mime-type eq "text/xml") then v:get-xml($x)
-    else if ($g-mime-type eq "text/html") then v:get-html($x)
+    if ($g-mime-type eq "text/xml")
+    then v:get-xml($x)
+    else if ($g-mime-type eq "text/html")
+    then v:get-html($x)
     else v:get-text($x)
 } catch ($ex) {
   (: errors are always displayed as html :)

@@ -84,6 +84,8 @@ define variable $g-mime-type as xs:string {
 }
 
 c:check-debug(),
+(: does this fix the IE6 text/plain helper-app issue? :)
+xdmp:add-response-header('Content-Disposition', 'inline; filename=eval.txt'),
 c:debug(("cq-eval:", $g-mime-type)),
 c:debug(("cq-eval:", $g-db, $g-modules, $g-root, $g-query)),
 try {
@@ -103,13 +105,18 @@ try {
     (: Sometimes we override the user's request,
      : and display the results as text/plain instead
      :
-     : Default to text/plain.
+     : Problem: sometimes IE6 insists on using a helper app for text/plain.
+     : The 'Content-Disposition: inline' header trick does not fix this.
+     : So can we use html and pre instead? Not for binary....
+     : Note that there's a registry fix: isTextPlainHonored.
+     : http://support.microsoft.com/default.aspx?scid=kb;EN-US;q239750
+     :
      : It is dangerous to view a sequence of attributes: XDMP-DUPATTR.
      : Binaries should not be viewed as html or text.
      :)
-    if (empty($x)
-      or ($x[1] instance of attribute() and count($x) gt 1)
-      or (exists($x/self::binary())) )
+    if (empty($x)) then "text/html"
+    else if (($x[1] instance of attribute() and count($x) gt 1)
+      or exists($x[ . instance of binary()]) )
     then "text/plain"
     else $g-mime-type
   let $set :=

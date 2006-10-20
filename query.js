@@ -1302,17 +1302,20 @@ function submitFormWrapper(theForm, mimeType) {
 }
 
 function cqListDocuments() {
+    // I would rather use text/plain, but it causes problems for IE6
     // TODO create a link to display each document?
-    var theForm = $(kQueryFormId);
     var theQuery =
         "let $est := xdmp:estimate(doc()) "
         + "return ("
-        + "( text { 'Too many documents to display!' },"
-        + " text { 'First 1000 documents of', $est, 'total:' },"
-        + " text{})[$est gt 1000],"
-        + "  for $i in doc()[1 to 1000] return text { base-uri($i) }"
+        + "( element p { 'Too many documents to display!',"
+        + "  'First 10000 documents of', $est, 'total:' }"
+        + ")[$est gt 10000],"
+        + " for $i in doc()[1 to 10000]"
+        + " let $uri := base-uri($i)"
+        + " order by $uri"
+        + " return ( $uri, <br/> )"
         + ")";
-    submitForm(theForm, theQuery, "text/plain", false);
+    submitForm($(kQueryFormId), theQuery, "text/html", false);
 }
 
 // query.js

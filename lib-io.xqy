@@ -258,7 +258,8 @@ define function io:read-fs($path as xs:string)
   as document-node()?
 {
   if (ends-with($path, "/")) then () else try {
-    xdmp:document-get($path)
+    (: hack - possibly a problem with ntfs streams? :)
+    xdmp:document-get($path)[1]
   } catch ($ex) {
     if ($ex/err:code eq 'SVC-FILOPN') then ()
     else xdmp:log(text {

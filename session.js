@@ -166,7 +166,10 @@ function SessionClass(tabs, id) {
             debug.print(label + "queries = " + queries);
             debug.print(label + "restoring buffers " + queries.length);
             for (var i = 0; i < queries.length; i++) {
-                query = queries[i].firstChild.nodeValue;
+                debug.print(label + "restoring " + i + queries[i]);
+                query = queries[i].hasChildNodes()
+                    ? queries[i].firstChild.nodeValue
+                    : null;
                 //debug.print(label + "restoring " + i + " " + query);
                 // handle content-source (per buffer)
                 source = queries[i].getAttribute('content-source');

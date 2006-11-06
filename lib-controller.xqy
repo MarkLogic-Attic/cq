@@ -25,15 +25,18 @@ default function namespace = "http://www.w3.org/2003/05/xpath-functions"
 
 declare namespace c = "com.marklogic.developer.cq.controller"
 
-declare namespace sess="com.marklogic.developer.cq.session"
+declare namespace sess = "com.marklogic.developer.cq.session"
 
-declare namespace pol="com.marklogic.developer.cq.policy"
+declare namespace pol = "com.marklogic.developer.cq.policy"
 
 import module namespace v = "com.marklogic.developer.cq.view"
   at "lib-view.xqy"
 
 import module namespace io = "com.marklogic.developer.cq.io"
   at "lib-io.xqy"
+
+import module namespace su = "com.marklogic.developer.cq.security"
+  at "lib-security-utils.xqy"
 
 define variable $c:ACCEPT-XML as xs:boolean {
   contains(xdmp:get-request-header('accept'), 'application/xhtml+xml') }
@@ -50,9 +53,6 @@ define variable $c:COOKIES as element(c:cookie)* {
 }
 
 define variable $c:DEBUG as xs:boolean { false() }
-
-define variable $c:IS-SESSION-DELETE as xs:boolean {
-  $c:SESSION-DB ne 0 }
 
 define variable $c:POLICY as element(pol:policy)? {
   let $path := xdmp:get-request-path()
@@ -105,6 +105,12 @@ define variable $c:SESSION-URI as xs:anyURI? {
   return xs:anyURI($v)
 }
 
+define variable $c:SESSION-OWNER as xs:string {
+  concat($su:USER, "@", xdmp:get-request-client-address()) }
+
+define variable $c:SESSION-TIMEOUT as xs:unsignedLong {
+  xs:unsignedLong(300) }
+
 define variable $c:SESSION as element(sess:session)? {
   (: get the current session,
    : falling back to the last session or a new one.
@@ -127,9 +133,15 @@ define variable $c:SESSION as element(sess:session)? {
      if (exists($session)) then $session
      (: time for a new session :)
      else c:new-session()
+   let $d := c:debug(("$c:SESSION: session =", $session/sess:created))
+   let $uri := data($session/@uri)
    where $session
    return
      let $set := xdmp:set($c:SESSION-URI, $session/@uri)
+     let $lock := io:lock-acquire(
+       $c:SESSION-URI, "exclusive", "0",
+       $c:SESSION-OWNER, $c:SESSION-TIMEOUT
+     )
      return $session
 }
 
@@ -140,16 +152,11 @@ define variable $c:TITLE-TEXT as xs:string {
   (: show the user what platform and host we're querying :)
   text {
     "cq -",
-    concat($c:USER, "@", xdmp:get-request-header("Host")),
+    concat($su:USER, "@", xdmp:get-request-header("Host")),
     "-", xdmp:product-name(), xdmp:version(),
     "-", xdmp:platform()
   }
 }
-
-define variable $c:USER as xs:string { xdmp:get-current-user() }
-
-define variable $c:USER-ID as xs:unsignedLong {
-  c:get-user-id($c:USER) }
 
 define function c:get-debug() as xs:boolean { $c:DEBUG }
 
@@ -186,33 +193,56 @@ define function c:set-content-type()
     "; charset=utf-8") )
 }
 
-define function c:get-user-id($username as xs:string)
+define function c:get-conflicting-locks($uri as xs:string)
+ as element(lock:active-lock)*
 {
-  xdmp:eval(
-    'define variable $USER as xs:string external
-     import module "http://marklogic.com/xdmp/security"
-      at "/MarkLogic/security.xqy"
-     sec:uid-for-name($USER)', (xs:QName('USER'), $username),
-     <options xmlns="xdmp:eval">
-       <database>{ xdmp:security-database() }</database>
-     </options>
-  )
+  c:get-conflicting-locks($uri, ())
+}
+
+define function c:get-conflicting-locks(
+  $uri as xs:string, $limit as xs:integer?)
+ as element(lock:active-lock)*
+{
+  let $locks := io:document-locks($uri)
+    /lock:lock[lock:lock-type eq "write"]
+    /lock:active-locks/lock:active-lock
+    [ lock:owner ne $c:SESSION-OWNER ]
+  return
+    if (empty($limit)) then $locks else subsequence(
+      (: we only care about the lock(s) that expires last :)
+      for $c in $locks
+      order by ($c/lock:timestamp + $c/lock:timeout) descending
+      return $c, 1, $limit
+    )
 }
 
 define function c:get-available-sessions()
  as element(sess:session)*
 {
+  c:get-sessions(true())
+}
+
+define function c:get-sessions()
+ as element(sess:session)*
+{
+  c:get-sessions(false())
+}
+
+define function c:get-sessions($check-conflicting as xs:boolean)
+ as element(sess:session)*
+{
   try {
     for $i in io:list($c:SESSION-DIRECTORY)/sess:session
+    where not($check-conflicting) or empty(c:get-conflicting-locks($i/@uri))
     order by xs:dateTime($i/sess:last-modified) descending,
-    xs:dateTime($i/sess:created) descending,
-    $i/name
+      xs:dateTime($i/sess:created) descending,
+      $i/name
     return $i
   } catch ($ex) {
     (: looks like we have a problem :)
-    let $action := xdmp:set($c:SESSION-EXCEPTION, $ex)
-    let $action := xdmp:set($c:SESSION-URI, ())
-    return ()
+    (: TODO can we find a cleaner way of doing this? :)
+    xdmp:set($c:SESSION-EXCEPTION, $ex),
+    xdmp:set($c:SESSION-URI, ())
   }
 }
 
@@ -225,8 +255,9 @@ define function c:get-last-session()
 define function c:generate-uri()
  as xs:anyURI
 {
-  let $uri :=
-    xs:anyURI(concat($c:SESSION-DIRECTORY, string(xdmp:random()), ".xml"))
+  let $uri := xs:anyURI(concat(
+      $c:SESSION-DIRECTORY, xdmp:integer-to-hex(xdmp:random()), ".xml"
+  ))
   return
     if (io:exists($uri)) then c:generate-uri() else $uri
 }
@@ -239,14 +270,15 @@ define function c:new-session()
 {
   let $uri :=
     if ($c:SESSION-EXCEPTION) then () else c:generate-uri()
-  let $d := c:debug(("new-session:", $uri))
+  let $d := c:debug((
+    "new-session:", $uri, string($c:SESSION-EXCEPTION/err:format-string) ))
   let $new := document {
     <session xmlns="com.marklogic.developer.cq.session">
     {
       if ($uri) then attribute uri { $uri } else (),
       element name { "New Session" },
-      element sec:user { $c:USER },
-      element sec:user-id { $c:USER-ID },
+      element sec:user { $su:USER },
+      element sec:user-id { $su:USER-ID },
       element created { current-dateTime() },
       element last-modified { current-dateTime() },
       element query-buffers {
@@ -273,7 +305,12 @@ define function c:delete-session($uri as xs:anyURI)
   (: make sure it really is a session :)
   let $session := io:read($uri)/sess:session
   where exists($session)
-  return io:delete($uri)
+  return (
+    io:lock-acquire($c:SESSION-URI, "exclusive", "0",
+      $c:SESSION-OWNER, $c:SESSION-TIMEOUT),
+    io:delete($uri),
+    io:lock-release($uri)
+  )
 }
 
 define function c:rename-session($uri as xs:anyURI, $name as xs:string)
@@ -283,15 +320,20 @@ define function c:rename-session($uri as xs:anyURI, $name as xs:string)
   let $new := element sess:name { $name }
   let $names := node-name($new)
   where $uri
-  return io:write(
-    $uri,
-    document {
-      element {node-name($c:SESSION)} {
-        $c:SESSION/@*,
-        $c:SESSION/node()[ not(node-name(.) = $names) ],
-        $new
+  return (
+    io:lock-acquire($c:SESSION-URI, "exclusive", "0",
+      $c:SESSION-OWNER, $c:SESSION-TIMEOUT),
+    io:write(
+      $uri,
+      document {
+        element {node-name($c:SESSION)} {
+          $c:SESSION/@*,
+          $c:SESSION/node()[ not(node-name(.) = $names) ],
+          $new
+        }
       }
-    }
+    ),
+    io:lock-release($uri)
   )
 }
 
@@ -303,16 +345,20 @@ define function c:update-session($nodes as element()*)
     node-name(<sess:last-modified/>)
   )
   where $c:SESSION
-  return io:write(
-    $c:SESSION-URI,
-    document {
-      element {node-name($c:SESSION)} {
-        $c:SESSION/@*,
-        $c:SESSION/node()[ not(node-name(.) = $names) ],
-        element sess:last-modified { current-dateTime() },
-        $nodes
+  return (
+    io:lock-acquire($c:SESSION-URI, "exclusive", "0",
+      $c:SESSION-OWNER, $c:SESSION-TIMEOUT),
+    io:write(
+      $c:SESSION-URI,
+      document {
+        element {node-name($c:SESSION)} {
+          $c:SESSION/@*,
+          $c:SESSION/node()[ not(node-name(.) = $names) ],
+          element sess:last-modified { current-dateTime() },
+          $nodes
+        }
       }
-    }
+    )
   )
 }
 

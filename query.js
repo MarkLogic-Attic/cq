@@ -100,7 +100,7 @@ function simulateSelectionStart(n) {
         //   /objects/obj_textrange.asp
         // first, make sure we have the focus
         //debug.print(label + "focus on " + n);
-        n.focus();
+        //n.focus();
         var range = document.selection.createRange();
         //debug.print(label + "range = " + range);
         var storedRange = range.duplicate();
@@ -696,7 +696,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             if (source != null) {
                 this.eval.value = source;
             }
-            this.input.focus();
+            //this.focus();
             active = true;
         }
         this.setLabel(n, active);
@@ -756,6 +756,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         // Update the label text from the query
         // ...make sure it doesn't break for huge strings
         var query = this.getQuery(n);
+        query = (null == query) ? "" : query;
         query = query.substr(0, 1024);
         // ...let the css handle text that's too large for the buffer
         // ...we shouldn't have to normalize spaces, but IE6 is broken
@@ -930,7 +931,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
         setPosition(this.input, buf.getSelectionStart(),
                     buf.getScrollTop(), buf.getScrollLeft());
-        this.input.focus();
+        this.focus();
     }
 
     this.setContentSource = function(v) {
@@ -1105,7 +1106,7 @@ function cqOnLoad() {
                                  $F("/cq:policy/accent-color"));
     policy.enforce();
 
-    // display the buffer list, exposing buffer 0, and focus
+    // display the buffer list, exposing buffer 0
     gBuffers.activate();
 
     // once more, to fix widths

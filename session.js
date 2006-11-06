@@ -35,23 +35,9 @@ function reportError(req, resp) {
 }
 
 // SessionList class
-function SessionList(id, target) {
-    this.id = id;
-    this.target = target;
-
-    var updateUrl = 'get-sessions-view.xqy';
+function SessionList() {
     var deleteUrl = 'delete-session.xqy';
     var renameUrl = 'rename-session.xqy';
-
-    this.updateSessions = function() {
-        debug.print("updateSessions: start");
-        var updater = new Ajax.Updater({success:this.target},
-                                       updateUrl,
-            {
-                method: 'post',
-                onFailure: reportError
-            } );
-    }
 
     this.newSession = function() {
         // start a new session and set the user cookie appropriately
@@ -71,7 +57,7 @@ function SessionList(id, target) {
         window.location.replace( "." );
     }
 
-    this.deleteSession = function(uri) {
+    this.deleteSession = function(uri, context) {
         // delete the session
         debug.print("deleteSession: " + uri);
         if (confirm("Are you sure you want to delete this session?")) {
@@ -83,8 +69,10 @@ function SessionList(id, target) {
                     asynchronous: false,
                     onFailure: reportError
                 });
-            // refresh the display
-            this.updateSessions(this.id, this.target);
+            // delete the item from the DOM
+            // context will be the button
+            var row = context.parentNode.parentNode;
+            Element.remove(row);
         }
     }
 
@@ -98,8 +86,6 @@ function SessionList(id, target) {
                 asynchronous: false,
                 onFailure: reportError
             });
-        // refresh the display
-        this.updateSessions(this.id, this.target);
     }
 
 } // SessionListClass

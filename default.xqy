@@ -22,6 +22,9 @@
 import module namespace c="com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
+import module namespace su="com.marklogic.developer.cq.security"
+ at "lib-security-utils.xqy"
+
 import module namespace v="com.marklogic.developer.cq.view"
  at "lib-view.xqy"
 
@@ -32,25 +35,34 @@ c:set-content-type(),
 let $errors :=
   for $priv in (
     "http://marklogic.com/xdmp/privileges/xdmp-document-get",
+    "http://marklogic.com/xdmp/privileges/xdmp-eval",
+    "http://marklogic.com/xdmp/privileges/xdmp-eval-in",
+    "http://marklogic.com/xdmp/privileges/xdmp-filesystem-directory",
+    "http://marklogic.com/xdmp/privileges/xdmp-invoke",
     "http://marklogic.com/xdmp/privileges/xdmp-read-cluster-config-file",
-    "http://marklogic.com/xdmp/privileges/xdmp-eval-in"
+    "http://marklogic.com/xdmp/privileges/xdmp-save"
   )
   return
   try { xdmp:security-assert($priv, "execute") } catch ($ex) { $priv }
-where exists($errors)
 return
+  if (exists($errors) or not($su:USER-HAS-SECURITY-ROLE)) then
 <html xmlns="http://www.w3.org/1999/xhtml">
 {
   v:get-html-head(),
   element body {
     <h1>Security Configuration Problem</h1>,
-    <p>cq cannot load until these privileges have been granted
-    to the current user, {$c:USER}:</p>,
-    element ul { for $e in $errors return element li { $e } }
+    if (empty($errors)) then () else (
+      <p>cq cannot load until these privileges have been granted
+      to the current user, {$su:USER}:</p>,
+      element ul { for $e in $errors return element li { $e } }
+    ),
+    if ($su:USER-HAS-SECURITY-ROLE) then () else
+    <p>cq cannot load until the current user, {$su:USER},
+    has been granted the "security" role.
+    </p>
   }
 }
 </html>
-,
-xdmp:invoke("frameset.xqy")
+else xdmp:invoke("frameset.xqy")
 
 (: cq.xqy :)

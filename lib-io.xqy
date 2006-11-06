@@ -27,8 +27,8 @@ module "com.marklogic.developer.cq.io"
 
 default function namespace = "http://www.w3.org/2003/05/xpath-functions"
 
-import module namespace c = "com.marklogic.developer.cq.controller"
-  at "lib-controller.xqy"
+import module namespace su = "com.marklogic.developer.cq.security"
+  at "lib-security-utils.xqy"
 
 declare namespace io = "com.marklogic.developer.cq.io"
 declare namespace gr = "http://marklogic.com/xdmp/group"
@@ -53,6 +53,28 @@ define variable $io:EVAL-OPTIONS as element() {
   <options xmlns="xdmp:eval">
     <database>{ $io:MODULES-DB }</database>
   </options>
+}
+
+(:~ get the epoch seconds :)
+define function io:get-epoch-seconds($dt as xs:dateTime)
+  as xs:unsignedLong
+{
+  xs:unsignedLong(xdmp:strftime("%s", $dt))
+}
+
+(:~ get the epoch seconds :)
+define function io:get-epoch-seconds()
+  as xs:unsignedLong
+{
+  io:get-epoch-seconds(current-dateTime())
+}
+
+(:~ convert epoch seconds to dateTime :)
+define function io:epoch-seconds-to-dateTime($v)
+  as xs:dateTime
+{
+  xs:dateTime("1970-01-01T00:00:00-00:00")
+  + xdt:dayTimeDuration(concat("PT", $v, "S"))
 }
 
 (:~ read the contents of a path :)
@@ -133,6 +155,53 @@ define function io:exists($path as xs:string)
     else io:exists-fs($path)
 }
 
+(:~ release a lock :)
+define function io:lock-release($path as xs:string)
+  as empty()
+{
+  if ($io:MODULES-DB ne 0)
+  then xdmp:lock-release(io:canonicalize($path))
+  else io:lock-release-fs($path)
+}
+
+(:~ acquire a lock :)
+define function io:lock-acquire($path as xs:string)
+  as empty()
+{
+  io:lock-acquire($path, (), (), (), ())
+}
+
+(:~ acquire a lock :)
+define function io:lock-acquire(
+  $path as xs:string, $scope as xs:string?,
+  $depth as xs:string?, $owner as item()?,
+  $timeout as xs:unsignedLong?)
+  as empty()
+{
+  let $path := io:canonicalize($path)
+  (: a pox on varargs - anyway, we can spec our own defaults :)
+  let $scope := ($scope[. = ("exclusive", "shared")], "exclusive")[1]
+  let $depth := ($depth[. = ("0", "infinity")], "0")[1]
+  let $owner := ($owner, xdmp:get-current-user())[1]
+  (: spec timeout too, for the filesystem variant :)
+  let $timeout := ($timeout, 0)[1]
+  return
+    if ($io:MODULES-DB ne 0)
+    then xdmp:lock-acquire($path, $scope, $depth, $owner, $timeout)
+    else io:lock-acquire-fs($path, $scope, $depth, $owner, $timeout)
+}
+
+(:~ list locks :)
+define function io:document-locks($paths as xs:string*)
+ as document-node()*
+{
+  let $paths := for $path in $paths return io:canonicalize($path)
+  return
+    if ($io:MODULES-DB ne 0)
+    then xdmp:document-locks($paths)
+    else io:document-locks-fs($paths)
+}
+
 (:~ @private :)
 define function io:exists-fs($path as xs:string)
  as xs:boolean
@@ -151,8 +220,8 @@ define function io:exists-fs($path as xs:string)
 define function io:delete-fs($path as xs:string)
  as empty()
 {
-  (: TODO filesystem delete :)
-  error("UNIMPLEMENTED")
+  (: TODO we cannot delete the document, so save an empty text node. :)
+  xdmp:save($path, text {})
 }
 
 (:~ @private :)
@@ -237,8 +306,18 @@ define function io:canonicalize($path as xs:string)
   as xs:string
 {
   concat(
-    $io:MODULES-ROOT, "/"[not(starts-with($path, "/"))], $path
+    $io:MODULES-ROOT,
+    "/"[not(starts-with($path, "/"))],
+    $path
   )
+}
+
+(:~ @private :)
+define function io:fs-lock-path($path as xs:string)
+  as xs:string
+{
+  (: primitive, yet messy :)
+  concat($path, ".lock")
 }
 
 (:~ @private :)
@@ -259,7 +338,12 @@ define function io:read-fs($path as xs:string)
 {
   if (ends-with($path, "/")) then () else try {
     (: hack - possibly a problem with ntfs streams? :)
-    xdmp:document-get($path)[1]
+    xdmp:document-get(
+      $path,
+      <options xmlns="xdmp:document-get">
+        <format>xml</format>
+      </options>
+    )[1]
   } catch ($ex) {
     if ($ex/err:code eq 'SVC-FILOPN') then ()
     else xdmp:log(text {
@@ -294,6 +378,98 @@ define function io:write-fs($path as xs:string, $new as document-node())
   as empty()
 {
   xdmp:save($path, $new)
+}
+
+(:~ @private :)
+define function io:lock-release-fs($path as xs:string)
+ as empty()
+{
+  (: filesystem lock-release - check and release.
+   : This might do ok with multiple locks.
+   :)
+  let $old := io:document-locks($path)/lock:lock
+  let $locks := $old/lock:active-locks/lock:active-lock
+  let $check :=
+    if (exists($locks)) then () else error(
+      "IO-NOTLOCKED", text { $path, "is not locked" }
+    )
+  let $check :=
+    if ($su:USER-IS-ADMIN or exists($locks[sec:user-id eq $su:USER-ID]))
+    then ()
+    else error(
+      "IO-NOUSER",
+      text { $path, "is not locked by", $su:USER, $su:USER-ID,
+      "existing locks are held by", data($locks/sec:user-id) }
+    )
+  let $path := io:canonicalize($path)
+  let $lock-path := io:fs-lock-path($path)
+  return
+    if ($su:USER-IS-ADMIN or empty($locks[ sec:user-id ne $su:USER-ID ]))
+    then io:delete-fs($lock-path)
+    else io:write-fs($lock-path, document {
+      element {node-name($old)} {
+        $old/@*,
+        $old/node()[ node-name(.) ne xs:QName("lock:active-locks") ],
+        element lock:active-locks {
+          $old/lock:active-locks/@*,
+          $old/lock:active-locks/node()
+            [ node-name(.) ne xs:QName("lock:active-locks") ],
+          $locks[ sec:user-id ne $su:USER-ID ]
+        }
+      }
+    } )
+}
+
+(:~ @private :)
+define function io:lock-acquire-fs(
+  $path as xs:string, $scope as xs:string?,
+  $depth as xs:string?, $owner as item()?,
+  $timeout as xs:unsignedLong?)
+ as empty()
+{
+  (: NB: the caller is responsible for checking our arguments! :)
+  (: TODO does not handle multiple locks, shared vs exclusive :)
+  (: first... can we lock this path? admin always can... :)
+  let $conflicting :=
+    if ($su:USER-IS-ADMIN) then ()
+    else io:document-locks($path)/lock:lock/lock:active-locks
+      /lock:active-lock[ sec:user-id ne $su:USER-ID ]
+  let $check :=
+    if (empty($conflicting)) then () else error(
+      "IO-LOCKED",
+      text { $path, "is locked by", $conflicting/lock:owner }
+    )
+  let $lock := document {
+    element lock:lock {
+      element lock:lock-type { "write" },
+      element lock:lock-scope { $scope },
+      element lock:active-locks {
+        element lock:active-lock {
+          element lock:depth { $depth },
+          element lock:owner { $owner },
+          element lock:timeout { $timeout },
+          element lock:lock-token {
+            concat(
+              'http://marklogic.com/xdmp/locks/',
+              xdmp:integer-to-hex(xdmp:random())
+            )
+          },
+          element lock:timestamp { io:get-epoch-seconds() },
+          element sec:user-id { $su:USER-ID }
+        }
+      }
+    }
+  }
+  let $path := io:fs-lock-path($path)
+  return io:write-fs($path, $lock)
+}
+
+(:~ @private :)
+define function io:document-locks-fs($paths as xs:string*)
+ as document-node()*
+{
+  for $path in $paths
+  return io:read-fs(io:fs-lock-path($path))
 }
 
 (: lib-io.xqy :)

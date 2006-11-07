@@ -19,21 +19,27 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-import module namespace c="com.marklogic.developer.cq.controller"
+import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
-import module namespace io="com.marklogic.developer.cq.io"
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy"
+
+import module namespace io = "com.marklogic.developer.cq.io"
  at "lib-io.xqy"
 
-import module namespace su="com.marklogic.developer.cq.security"
+import module namespace su = "com.marklogic.developer.cq.security"
  at "lib-security-utils.xqy"
 
-import module namespace v="com.marklogic.developer.cq.view"
+import module namespace v = "com.marklogic.developer.cq.view"
  at "lib-view.xqy"
 
-declare namespace sess="com.marklogic.developer.cq.session"
+declare namespace sess = "com.marklogic.developer.cq.session"
 
-c:check-debug(),
+define variable $SESSIONS as element(sess:session)* {
+  c:get-sessions() }
+
+d:check-debug(),
 c:set-content-type(),
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -51,7 +57,7 @@ c:set-content-type(),
       >developer.marklogic.com</a>.
       </p>
       {
-        if (not($c:SESSION) or exists($c:SESSION-EXCEPTION))
+        if (not($SESSIONS) or exists($c:SESSION-EXCEPTION))
         then <div>
           <h1>WARNING: sessions have been disabled, because of an error.</h1>
           <p>
@@ -81,7 +87,9 @@ c:set-content-type(),
             xdmp:quote($c:SESSION-EXCEPTION)
           }</pre>
           <hr/>
-        </div> else <div>
+        </div>
+        else
+        <div>
           <p>On this page you can start a new session,
           or resume a saved session.
           Your sessions will be stored in the modules location
@@ -115,7 +123,7 @@ c:set-content-type(),
 {
   (: TODO allow users to duplicate locked sessions :)
   let $sessions := c:get-sessions()
-  let $d := c:debug(("sessions:", count($sessions)))
+  let $d := d:debug(("sessions:", count($sessions)))
   return
     if (exists($sessions))
     then element table {

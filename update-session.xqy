@@ -29,10 +29,10 @@ define variable $HISTORY as xs:string {
 define variable $TABS as xs:string {
   xdmp:get-request-field("TABS") }
 
-import module namespace c="com.marklogic.developer.cq.controller"
+import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
-declare namespace sess="com.marklogic.developer.cq.session"
+declare namespace sess = "com.marklogic.developer.cq.session"
 
 define variable $unquote-opts as xs:string* {
     ('repair-none', 'format-xml') }
@@ -52,12 +52,6 @@ define variable $new-tabs as element(sess:active-tab) {
   /sess:active-tab
 }
 
-(:
-c:debug-on(),
-c:debug(("BUFFERS", $BUFFERS, $new-buffers)),
-c:debug(("HISTORY", $HISTORY, $new-history)),
-c:debug(("TABS", $TABS, $new-tabs)),
-:)
 c:update-session(($new-buffers, $new-history, $new-tabs))
 
 (: update-session.xqy :)

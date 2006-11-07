@@ -19,16 +19,19 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-import module namespace c="com.marklogic.developer.cq.controller"
+import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
-import module namespace su="com.marklogic.developer.cq.security"
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy"
+
+import module namespace su = "com.marklogic.developer.cq.security"
  at "lib-security-utils.xqy"
 
-import module namespace v="com.marklogic.developer.cq.view"
+import module namespace v = "com.marklogic.developer.cq.view"
  at "lib-view.xqy"
 
-c:check-debug(),
+d:check-debug(),
 c:set-content-type(),
 
 (: before we go any further, make sure we have the right exec privs :)

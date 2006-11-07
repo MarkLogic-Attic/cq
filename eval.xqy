@@ -26,10 +26,14 @@
 
 declare namespace mlgr = "http://marklogic.com/xdmp/group"
 
-import module namespace v = "com.marklogic.developer.cq.view"
- at "lib-view.xqy"
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
+
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy"
+
+import module namespace v = "com.marklogic.developer.cq.view"
+ at "lib-view.xqy"
 
 define variable $g-query as xs:string {
   xdmp:get-request-field("/cq:query", "") }
@@ -83,11 +87,11 @@ define variable $g-mime-type as xs:string {
   xdmp:get-request-field("/cq:mime-type", "text/plain")
 }
 
-c:check-debug(),
+d:check-debug(),
 (: does this fix the IE6 text/plain helper-app issue? :)
 xdmp:add-response-header('Content-Disposition', 'inline; filename=eval.txt'),
-c:debug(("cq-eval:", $g-mime-type)),
-c:debug(("cq-eval:", $g-db, $g-modules, $g-root, $g-query)),
+d:debug(("eval:", $g-mime-type)),
+d:debug(("eval:", $g-db, $g-modules, $g-root, $g-query)),
 try {
   (: set the mime-type inside the try-catch block,
    : so errors can override it.

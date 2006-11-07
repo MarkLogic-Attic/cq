@@ -29,11 +29,14 @@ declare namespace sess = "com.marklogic.developer.cq.session"
 
 declare namespace pol = "com.marklogic.developer.cq.policy"
 
-import module namespace v = "com.marklogic.developer.cq.view"
-  at "lib-view.xqy"
+import module namespace d = "com.marklogic.developer.cq.debug"
+  at "lib-debug.xqy"
 
 import module namespace io = "com.marklogic.developer.cq.io"
   at "lib-io.xqy"
+
+import module namespace v = "com.marklogic.developer.cq.view"
+  at "lib-view.xqy"
 
 import module namespace su = "com.marklogic.developer.cq.security"
   at "lib-security-utils.xqy"
@@ -52,8 +55,6 @@ define variable $c:COOKIES as element(c:cookie)* {
   }
 }
 
-define variable $c:DEBUG as xs:boolean { false() }
-
 define variable $c:POLICY as element(pol:policy)? {
   let $path := xdmp:get-request-path()
   (: ensure that the path ends with "/" :)
@@ -69,7 +70,7 @@ define variable $c:POLICY as element(pol:policy)? {
 }
 
 define variable $c:POLICY-TITLE as xs:string? {
-  c:debug(("policy:", $c:POLICY)),
+  d:debug(("policy:", $c:POLICY)),
   $c:POLICY/pol:title
 }
 
@@ -98,8 +99,8 @@ define variable $c:SESSION-EXCEPTION as element(err:error)? { () }
 
 (: we expect JavaScript to set a cookie for the session uri :)
 define variable $c:SESSION-URI as xs:anyURI? {
-  c:debug(("cookies:", $c:COOKIES)),
-  c:debug(("session-dir:", $c:SESSION-RELPATH)),
+  d:debug(("cookies:", $c:COOKIES)),
+  d:debug(("session-dir:", $c:SESSION-RELPATH)),
   let $v := data($c:COOKIES[ @key eq "/cq:session-uri" ]/@value)
   where $v and (ends-with($v, ".xml") or $v eq $c:SESSION-RELPATH)
   return xs:anyURI($v)
@@ -115,12 +116,12 @@ define variable $c:SESSION as element(sess:session)? {
   (: get the current session,
    : falling back to the last session or a new one.
    :)
-   let $d := c:debug(("$c:SESSION: uri =", $c:SESSION-URI))
+   let $d := d:debug(("$c:SESSION: uri =", $c:SESSION-URI))
    let $session :=
      if (exists($c:SESSION-URI))
      then io:read($c:SESSION-URI)/sess:session
      else ()
-   let $d := c:debug((
+   let $d := d:debug((
      "$c:SESSION: session =", data($session/sess:last-modified)))
    let $session :=
      if (exists($session)) then $session
@@ -133,7 +134,7 @@ define variable $c:SESSION as element(sess:session)? {
      if (exists($session)) then $session
      (: time for a new session :)
      else c:new-session()
-   let $d := c:debug(("$c:SESSION: session =", $session/sess:created))
+   let $d := d:debug(("$c:SESSION: session =", $session/sess:created))
    let $uri := data($session/@uri)
    where $session
    return
@@ -156,33 +157,6 @@ define variable $c:TITLE-TEXT as xs:string {
     "-", xdmp:product-name(), xdmp:version(),
     "-", xdmp:platform()
   }
-}
-
-define function c:get-debug() as xs:boolean { $c:DEBUG }
-
-define function c:debug-on()
- as empty()
-{
-  xdmp:set($c:DEBUG, true()),
-  c:debug("debug is on")
-}
-
-define function c:debug-off() as empty() { xdmp:set($c:DEBUG, false()) }
-
-define function c:debug($s as item()*)
- as empty()
-{
-  if (not($c:DEBUG)) then () else xdmp:log(
-    string-join(("DEBUG:", translate(xdmp:quote($s), $v:NL, " ")), " ")
-  )
-}
-
-define function c:check-debug()
- as empty()
-{
-  if (xs:boolean(xdmp:get-request-field("debug", string($c:DEBUG))))
-  then c:debug-on()
-  else ()
 }
 
 define function c:set-content-type()
@@ -276,7 +250,7 @@ define function c:new-session()
 {
   let $uri :=
     if ($c:SESSION-EXCEPTION) then () else c:generate-uri()
-  let $d := c:debug((
+  let $d := d:debug((
     "new-session:", $uri, string($c:SESSION-EXCEPTION/err:format-string) ))
   let $new := document {
     <session xmlns="com.marklogic.developer.cq.session">
@@ -291,7 +265,7 @@ define function c:new-session()
         for $i in (1 to 10) return element query {
           concat(
             '(: buffer ', string($i), ' :)', $v:NL,
-            'declare namespace html="http://www.w3.org/1999/xhtml"', $v:NL,
+            'declare namespace html = "http://www.w3.org/1999/xhtml"', $v:NL,
             '<p>hello world</p>'
           )
         }
@@ -320,7 +294,7 @@ define function c:delete-session($uri as xs:anyURI)
 define function c:rename-session($uri as xs:anyURI, $name as xs:string)
  as empty()
 {
-  c:debug(("c:rename-session:", $uri, "to", $name)),
+  d:debug(("c:rename-session:", $uri, "to", $name)),
   let $new := element sess:name { $name }
   let $names := node-name($new)
   where $uri

@@ -22,7 +22,7 @@
 define variable $URI as xs:anyURI {
   xs:anyURI(xdmp:get-request-field("URI")) }
 
-import module namespace c="com.marklogic.developer.cq.controller"
+import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
 c:delete-session($URI)

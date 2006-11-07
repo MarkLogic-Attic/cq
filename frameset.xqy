@@ -19,13 +19,16 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-import module namespace c="com.marklogic.developer.cq.controller"
+import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
-import module namespace v="com.marklogic.developer.cq.view"
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy"
+
+import module namespace v = "com.marklogic.developer.cq.view"
  at "lib-view.xqy"
 
-c:check-debug(),
+d:check-debug(),
 <html xmlns="http://www.w3.org/1999/xhtml">
 {
   v:get-html-head(),

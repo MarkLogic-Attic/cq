@@ -20,13 +20,19 @@
  :)
 
 declare namespace mlgr = "http://marklogic.com/xdmp/group"
+
 declare namespace html = "http://www.w3.org/1999/xhtml"
-declare namespace sess="com.marklogic.developer.cq.session"
+
+declare namespace sess = "com.marklogic.developer.cq.session"
 
 import module namespace v = "com.marklogic.developer.cq.view"
   at "lib-view.xqy"
+
 import module namespace c = "com.marklogic.developer.cq.controller"
   at "lib-controller.xqy"
+
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy"
 
 define variable $QUERY-BUFFERS as element(sess:query)* {
   $c:SESSION/sess:query-buffers/sess:query }
@@ -98,7 +104,7 @@ define function get-eval-selector() as element(html:select)
   }
 }
 
-c:check-debug(),
+d:check-debug(),
 c:set-content-type(),
 <html xmlns="http://www.w3.org/1999/xhtml">
   { v:get-html-head() }
@@ -204,7 +210,6 @@ c:set-content-type(),
           </td>
         </tr>
       </table>
-      <input id="debug" name="debug" type="hidden" value="{c:get-debug()}"/>
       <input id="/cq:policy/title" type="hidden"
        value="{$c:POLICY-TITLE}"/>
       <input id="/cq:policy/accent-color" type="hidden"

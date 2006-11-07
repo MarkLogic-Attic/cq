@@ -26,12 +26,16 @@ declare namespace v = "com.marklogic.developer.cq.view"
 
 default function namespace = "http://www.w3.org/2003/05/xpath-functions"
 
-declare namespace xh="http://www.w3.org/1999/xhtml"
+declare namespace xh = "http://www.w3.org/1999/xhtml"
 
 import module namespace c = "com.marklogic.developer.cq.controller"
-  at "lib-controller.xqy"
+ at "lib-controller.xqy"
+
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy"
 
 define variable $v:NBSP as xs:string { codepoints-to-string(160) }
+
 define variable $v:NL { fn:codepoints-to-string((10)) }
 
 define function v:get-xml($x)
@@ -216,9 +220,8 @@ define function v:get-html-head($label as xs:string)
     <script language="JavaScript" type="text/javascript" src="query.js">
     </script>
     {
-      if (c:get-debug())
-      then <script>debug.setEnabled(true);</script>
-      else ()
+      (: pass debug flag to JavaScript :)
+      <script>debug.setEnabled(true);</script>[ d:get-debug() ]
     }
   </head>
 }

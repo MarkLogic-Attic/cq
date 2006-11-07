@@ -203,6 +203,7 @@ define function c:get-conflicting-locks(
   $uri as xs:string, $limit as xs:integer?)
  as element(lock:active-lock)*
 {
+  (: TODO check to make sure that the lock is still active :)
   let $locks := io:document-locks($uri)
     /lock:lock[lock:lock-type eq "write"]
     /lock:active-locks/lock:active-lock
@@ -306,8 +307,6 @@ define function c:delete-session($uri as xs:anyURI)
   let $session := io:read($uri)/sess:session
   where exists($session)
   return (
-    io:lock-acquire($c:SESSION-URI, "exclusive", "0",
-      $c:SESSION-OWNER, $c:SESSION-TIMEOUT),
     io:delete($uri),
     io:lock-release($uri)
   )
@@ -321,8 +320,6 @@ define function c:rename-session($uri as xs:anyURI, $name as xs:string)
   let $names := node-name($new)
   where $uri
   return (
-    io:lock-acquire($c:SESSION-URI, "exclusive", "0",
-      $c:SESSION-OWNER, $c:SESSION-TIMEOUT),
     io:write(
       $uri,
       document {
@@ -346,8 +343,6 @@ define function c:update-session($nodes as element()*)
   )
   where $c:SESSION
   return (
-    io:lock-acquire($c:SESSION-URI, "exclusive", "0",
-      $c:SESSION-OWNER, $c:SESSION-TIMEOUT),
     io:write(
       $c:SESSION-URI,
       document {

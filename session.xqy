@@ -89,7 +89,7 @@ c:set-content-type(),
           { xdmp:get-request-header("Host") }.
           Your sessions will be stored in the {
             if (xdmp:modules-database() eq 0) then "filesystem,"
-            else ("database", xdmp:modules-database()),
+            else ("database", xdmp:database-name(xdmp:modules-database())),
             "under the path "
           }
           <code>{
@@ -113,6 +113,7 @@ c:set-content-type(),
           </p>
           <br/>
 {
+  (: TODO allow users to duplicate locked sessions :)
   let $sessions := c:get-sessions()
   let $d := c:debug(("sessions:", count($sessions)))
   return

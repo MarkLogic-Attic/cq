@@ -203,17 +203,22 @@ define function c:get-conflicting-locks(
   $uri as xs:string, $limit as xs:integer?)
  as element(lock:active-lock)*
 {
-  (: TODO check to make sure that the lock is still active :)
   let $locks := io:document-locks($uri)
     /lock:lock[lock:lock-type eq "write"]
     /lock:active-locks/lock:active-lock
     [ lock:owner ne $c:SESSION-OWNER ]
+  let $now := io:get-epoch-seconds()
   return
     if (empty($limit)) then $locks else subsequence(
       (: we only care about the lock(s) that expires last :)
       for $c in $locks
-      order by ($c/lock:timestamp + $c/lock:timeout) descending
-      return $c, 1, $limit
+      let $timeout := xs:unsignedLong($c/lock:timeout)
+      let $expires := $c/lock:timestamp + $timeout
+      where (0 eq $timeout) or $expires ge $now
+      order by (0 eq $timeout) descending, $expires descending
+      return $c,
+      (: remaining args to subsequence() :)
+      1, $limit
     )
 }
 
@@ -257,7 +262,7 @@ define function c:generate-uri()
  as xs:anyURI
 {
   let $uri := xs:anyURI(concat(
-      $c:SESSION-DIRECTORY, xdmp:integer-to-hex(xdmp:random()), ".xml"
+    $c:SESSION-DIRECTORY, xdmp:integer-to-hex(xdmp:random()), ".xml"
   ))
   return
     if (io:exists($uri)) then c:generate-uri() else $uri

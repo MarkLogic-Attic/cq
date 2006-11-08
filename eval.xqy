@@ -88,8 +88,6 @@ define variable $g-mime-type as xs:string {
 }
 
 d:check-debug(),
-(: does this fix the IE6 text/plain helper-app issue? :)
-xdmp:add-response-header('Content-Disposition', 'inline; filename=eval.txt'),
 d:debug(("eval:", $g-mime-type)),
 d:debug(("eval:", $g-db, $g-modules, $g-root, $g-query)),
 try {
@@ -125,6 +123,9 @@ try {
     else $g-mime-type
   let $set :=
     xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8"))
+  let $set := if ($g-mime-type ne "text/plain") then () else
+    (: does this fix the IE6 text/plain helper-app issue? cf Q239750 :)
+    xdmp:add-response-header('Content-Disposition', 'inline; filename=a.txt')
   return
     if ($g-mime-type eq "text/xml")
     then v:get-xml($x)

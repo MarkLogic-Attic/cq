@@ -27,6 +27,10 @@ var kResultFrameId = "/cq:resultFrame";
 var kQueryFormId = "/cq:form";
 var kQueryInput = "/cq:query";
 var kQueryMimeType = "/cq:mime-type";
+
+// I would prefer something like \u2715, but many systems don't display it.
+var kDeleteWidget = " (x) ";
+
 // is there some *optional* linebreak character we could use?
 // yes: http://www.quirksmode.org/oddsandends/wbr.html
 // but I don't want to muck with the wbr element in a string...
@@ -34,8 +38,6 @@ var kQueryMimeType = "/cq:mime-type";
 // another candiate is #8203 (0x200b), but it isn't as nice.
 // not perfect, but seems to be ok...
 var kBreakChar = "\u00ad"; //"\u200b";
-// I would prefer something like \u2715, but many systems don't display it.
-var kDeleteWidget = " (x) ";
 
 // GLOBAL VARIABLES
 var gBrowserIs = new BrowserIsClass();
@@ -894,7 +896,6 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.activate(this.pos - 1);
     }
 
-    // TODO can we reduce the flashing?
     this.activate = function(n) {
         label = "QueryBufferListClass.activate: ";
         debug.print(label + this.pos + " to " + n);
@@ -935,7 +936,32 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
     }
 
     this.setContentSource = function(v) {
+        var old = this.eval.value;
+        if (old == v) {
+            return;
+        }
         this.eval.value = v;
+        if (null == old || "" == old) {
+            return;
+        }
+        // TODO this was a real change, so cue the user visually
+        var oldClassName = this.eval.className;
+        this.strobe(6, "accent-color", oldClassName);
+    }
+
+    // strobe the eval selector (n / 2) times, recursively
+    this.strobe = function(n, accent, old) {
+        if ((n % 2) == 0) {
+            this.eval.className = old;
+        } else {
+            this.eval.className = accent;
+        }
+        if (n < 1) {
+            return;
+        }
+        setTimeout(function() { this.strobe(n - 1, accent, old); }
+                   .bindAsEventListener(this),
+                   100);
     }
 
     this.getLastLineStatus = function() {

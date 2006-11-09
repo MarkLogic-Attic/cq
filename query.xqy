@@ -79,7 +79,6 @@ define function get-eval-selector() as element(html:select)
       order by ($id eq xdmp:server()) descending, $label
       return element html:option {
         attribute value { $value },
-        if ($current eq $value) then attribute selected { true() } else (),
         $label
       },
       (: list the databases that aren't exposed via an app-server -
@@ -93,10 +92,9 @@ define function get-eval-selector() as element(html:select)
       for $db in xdmp:databases()[not(. = $exposed)]
       let $label := v:get-eval-label($db, $modules, $root, ())
       let $value := string-join((string($db), string($modules), $root), ":")
-      order by $label
+      order by ($db eq xdmp:database()) descending, $label
       return element html:option {
         attribute value { $value },
-        if ($current eq $value) then attribute selected { true() } else (),
         $label
       }
     )

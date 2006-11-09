@@ -32,13 +32,21 @@ define variable $TABS as xs:string {
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy"
+
 declare namespace sess = "com.marklogic.developer.cq.session"
 
 define variable $unquote-opts as xs:string* {
     ('repair-none', 'format-xml') }
 
 define variable $new-buffers as element(sess:query-buffers) {
-  xdmp:unquote($BUFFERS, namespace-uri(<sess:x/>), $unquote-opts)
+  d:debug-on(),
+  d:debug(("update-session.xqy", $BUFFERS)),
+  xdmp:unquote(
+    $BUFFERS,
+    namespace-uri(<sess:x/>),
+    $unquote-opts)
   /sess:query-buffers
 }
 

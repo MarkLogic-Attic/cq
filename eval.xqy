@@ -118,7 +118,10 @@ try {
      :)
     if (empty($x)) then "text/html"
     else if (($x[1] instance of attribute() and count($x) gt 1)
-      or exists($x[ . instance of binary()]) )
+      or exists($x[ . instance of binary()])
+      or (count($x) eq 1 and $x instance of document-node()
+        and empty($x/node()))
+    )
     then "text/plain"
     else $g-mime-type
   let $set :=

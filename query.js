@@ -1098,6 +1098,17 @@ function PolicyClass(titleId, title, accentClass, accentColor) {
 function cqOnLoad() {
     debug.print("cqOnLoad: begin");
 
+    if (gBrowserIs.gecko) {
+        // gecko problem with nodeValue longer than 4kB (encoded):
+        // it creates multiple text-node children.
+        // this is a DOM violation, but won't be fixed for some time.
+        // see https://bugzilla.mozilla.org/show_bug.cgi?id=194231
+        // This affects session restore.
+        // workaround: call normalize() early
+        debug.print("finishImport: normalizing for gecko workaround");
+        document.normalize();
+    }
+
     // register for key-presses
     Event.observe(this, "keypress", handleKeyPress);
 

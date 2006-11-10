@@ -56,7 +56,7 @@ function normalizeSpace(s) { return trim(s.replace(/[\n\t\s]+/g, ' ')); }
 // create some whitespace, for line breaking in the buffer labels
 function nudge(s) {
     if (null == s) {
-        return;
+        return null;
     }
     s = s.replace("/(/g", "(" + kBreakChar);
     s = s.replace("/)/g", kBreakChar + ")");
@@ -67,7 +67,7 @@ function nudge(s) {
 
 function escapeXml(s) {
     if (null == s) {
-        return;
+        return null;
     }
     s = s.replace(/\&/g, "&amp;");
     s = s.replace(/\</g, "&lt;");
@@ -109,7 +109,7 @@ function simulateSelectionStart(n) {
         if (null == storedRange) {
           debug.print(label + "null storedRange");
           n.selectionStart = 0;
-          return;
+          return false;
         }
         storedRange.moveToElementText(n);
         storedRange.setEndPoint('EndToEnd', range);
@@ -253,7 +253,8 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         debug.print(label + n + ", " + this.current);
 
         if (isNaN(n)) {
-            return this.refresh(this.current);
+            this.refresh(this.current);
+            return;
         }
 
         this.current = null == n ? 0 : n;
@@ -716,15 +717,15 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
         this.buffers[n] = null;
         this.buffers = this.buffers.compact();
-        var label = this.getLabel(n);
+        var labelNode = this.getLabel(n);
         debug.print("QueryBufferListClass.remove: " + n
-                    + ", label = " + label);
-        if (null != label) {
+                    + ", labelNode = " + labelNode);
+        if (null != labelNode) {
             // we actually want the table row
-            label = label.parentNode.parentNode;
+            labelNode = labelNode.parentNode.parentNode;
             debug.print("QueryBufferListClass.remove: " + n
-                        + ", label = " + label.nodeName);
-            Element.remove(label);
+                        + ", labelNode = " + labelNode.nodeName);
+            Element.remove(labelNode);
         }
 
         for (var i = n; i < this.buffers.length; i++) {
@@ -820,10 +821,10 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
         // it will be the n-th div below this.labelsBody
         var labels = this.labelsBody.getElementsByTagName('div');
-        var label = labels[n];
+        var labelNode = labels[n];
 
         // what if there isn't a label for n?
-        if (null == label) {
+        if (null == labelNode) {
             // if it isn't a valid buffer, skip it
             if (this.buffers.length <= n) {
                 return null;
@@ -833,13 +834,13 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             this.labelsBody.appendChild(row);
             var cell = document.createElement('td');
             row.appendChild(cell);
-            label = document.createElement('div');
-            cell.appendChild(label);
+            labelNode = document.createElement('div');
+            cell.appendChild(labelNode);
         } else {
             // destory any contents
-            Element.update(label, '');
+            Element.update(labelNode, '');
         }
-        return label;
+        return labelNode;
     }
 
     this.getBuffer = function(n) {
@@ -897,7 +898,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
     }
 
     this.activate = function(n) {
-        label = "QueryBufferListClass.activate: ";
+        var label = "QueryBufferListClass.activate: ";
         debug.print(label + this.pos + " to " + n);
 
         var buf = this.getBuffer();
@@ -937,6 +938,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
     this.setContentSource = function(v) {
         var old = this.eval.value;
+        this.eval.className = "";
         if (old == v) {
             return;
         }
@@ -944,7 +946,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         if (null == old || "" == old) {
             return;
         }
-        // TODO this was a real change, so cue the user visually
+        // this was a real change, so cue the user visually
         var oldClassName = this.eval.className;
         this.strobe(6, "accent-color", oldClassName);
     }
@@ -957,6 +959,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             this.eval.className = accent;
         }
         if (n < 1) {
+            this.eval.className = old;
             return;
         }
         setTimeout(function() { this.strobe(n - 1, accent, old); }

@@ -52,7 +52,8 @@ Function.prototype.bind = function() {
 Function.prototype.bindAsEventListener = function(object) {
   var __method = this;
   return function(event) {
-    return __method.call(object, event || window.event);
+    return __method.call(object,
+                         event || (window.event ? window.event : null));
   }
 }
 
@@ -236,8 +237,8 @@ var Enumerable = {
   any: function(iterator) {
     var result = true;
     this.each(function(value, index) {
-      if (result = !!(iterator || Prototype.K)(value, index))
-        throw $break;
+        result = !!(iterator || Prototype.K)(value, index);
+        if (result) throw $break;
     });
     return result;
   },
@@ -512,7 +513,8 @@ function $H(object) {
   Object.extend(hash, Hash);
   return hash;
 }
-ObjectRange = Class.create();
+//ObjectRange = Class.create();
+var ObjectRange = Class.create(); // mask warning - safe?
 Object.extend(ObjectRange.prototype, Enumerable);
 Object.extend(ObjectRange.prototype, {
   initialize: function(start, end, exclusive) {
@@ -689,12 +691,14 @@ Ajax.Request.prototype = Object.extend(new Ajax.Base(), {
     try {
       return this.transport.getResponseHeader(name);
     } catch (e) {}
+    return null; // silence warning
   },
 
   evalJSON: function() {
     try {
       return eval(this.header('X-JSON'));
     } catch (e) {}
+    return null; // silence warning
   },
 
   evalResponse: function() {
@@ -703,6 +707,7 @@ Ajax.Request.prototype = Object.extend(new Ajax.Base(), {
     } catch (e) {
       this.dispatchException(e);
     }
+    return null; // silence warning
   },
 
   respondToReadyState: function(readyState) {
@@ -888,17 +893,17 @@ Object.extend(Element, {
   },
 
   hasClassName: function(element, className) {
-    if (!(element = $(element))) return;
+    if (!(element = $(element))) return null;
     return Element.classNames(element).include(className);
   },
 
   addClassName: function(element, className) {
-    if (!(element = $(element))) return;
+    if (!(element = $(element))) return null;
     return Element.classNames(element).add(className);
   },
 
   removeClassName: function(element, className) {
-    if (!(element = $(element))) return;
+    if (!(element = $(element))) return null;
     return Element.classNames(element).remove(className);
   },
 
@@ -1258,17 +1263,19 @@ Form.Element = {
     var method = element.tagName.toLowerCase();
     var parameter = Form.Element.Serializers[method](element);
 
-    if (parameter) {
-      var key = encodeURIComponent(parameter[0]);
-      if (key.length == 0) return;
-
-      if (parameter[1].constructor != Array)
-        parameter[1] = [parameter[1]];
-
-      return parameter[1].map(function(value) {
-        return key + '=' + encodeURIComponent(value);
-      }).join('&');
+    if (! parameter) {
+        return null;
     }
+
+    var key = encodeURIComponent(parameter[0]);
+    if (key.length == 0) return null;
+
+    if (parameter[1].constructor != Array)
+    parameter[1] = [parameter[1]];
+
+    return parameter[1].map(function(value) {
+        return key + '=' + encodeURIComponent(value);
+    }).join('&');
   },
 
   getValue: function(element) {
@@ -1276,8 +1283,11 @@ Form.Element = {
     var method = element.tagName.toLowerCase();
     var parameter = Form.Element.Serializers[method](element);
 
-    if (parameter)
-      return parameter[1];
+    if (! parameter) {
+        return null;
+    }
+
+    return parameter[1];
   }
 }
 
@@ -1297,7 +1307,10 @@ Form.Element.Serializers = {
   },
 
   inputSelector: function(element) {
-    if (element.checked)
+      if (! element.checked) {
+          return null;
+      }
+
       return [element.name, element.value];
   },
 
@@ -1517,8 +1530,8 @@ Object.extend(Event, {
     Event.observers = false;
   },
 
-  observe: function(element, name, observer, useCapture) {
-    var element = $(element);
+  observe: function(id, name, observer, useCapture) {
+    var element = $(id);
     useCapture = useCapture || false;
 
     if (name == 'keypress' &&
@@ -1529,8 +1542,8 @@ Object.extend(Event, {
     this._observeAndCache(element, name, observer, useCapture);
   },
 
-  stopObserving: function(element, name, observer, useCapture) {
-    var element = $(element);
+  stopObserving: function(id, name, observer, useCapture) {
+    var element = $(id);
     useCapture = useCapture || false;
 
     if (name == 'keypress' &&
@@ -1648,6 +1661,8 @@ var Position = {
     if (mode == 'horizontal')
       return ((this.offset[0] + element.offsetWidth) - this.xcomp) /
         element.offsetWidth;
+
+    return null;
   },
 
   clone: function(source, target) {
@@ -1673,13 +1688,13 @@ var Position = {
       if (element.offsetParent==document.body)
         if (Element.getStyle(element,'position')=='absolute') break;
 
-    } while (element = element.offsetParent);
+    } while ((element = element.offsetParent) != null);
 
     element = forElement;
     do {
       valueT -= element.scrollTop  || 0;
       valueL -= element.scrollLeft || 0;
-    } while (element = element.parentNode);
+    } while ((element = element.parentNode) != null);
 
     return [valueL, valueT];
   },

@@ -181,7 +181,7 @@ function SessionClass(tabs, id) {
     }
 
     this.sync = function() {
-        label = "SessionClass.sync: ";
+        var label = "SessionClass.sync: ";
         if (this.syncDisabled) {
             debug.print(label + "disabled");
             return false;
@@ -196,7 +196,7 @@ function SessionClass(tabs, id) {
             && lastLineStatus < this.lastSync)
         {
             // nothing has changed
-            return;
+            return false;
         }
 
         var buffers = encodeURIComponent(this.buffers.toXml());

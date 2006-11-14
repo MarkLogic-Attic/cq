@@ -98,20 +98,14 @@ c:set-content-type(),
           Your sessions will be stored in the {
             if (xdmp:modules-database() eq 0) then "filesystem,"
             else ("database", xdmp:database-name(xdmp:modules-database())),
-            "under the path "
-          }
-          <code>{
-            concat(
-              xdmp:modules-root(),
-              "/"[not(ends-with(xdmp:modules-root(), "/"))],
-              "cq/sessions/"
-            )
-          }</code>.
+            " "
+          } under the path <code>{ $c:SESSION-DIRECTORY }</code>.
           </p>
           <p>
           Note that if your modules location is a database,
           you must have write permission
-          for the uri <code>/cq/sessions/</code> in order to create sessions.
+          for the uri <code>{ $c:SESSION-DIRECTORY }</code>
+          in order to create sessions.
           If you do not have read permission for a session,
           you will not be able to view it.
           If a session is locked by another user,
@@ -137,7 +131,7 @@ c:set-content-type(),
         return element th { $i }
       },
       for $i in $sessions
-      let $uri := $i/@uri
+      let $uri := c:get-session-uri($i)
       (: we only care about the lock that expires last :)
       let $conflicting := c:get-conflicting-locks($uri, 1)
       return element tr {

@@ -135,12 +135,12 @@ define variable $c:SESSION as element(sess:session)? {
      (: time for a new session :)
      else c:new-session()
    let $d := d:debug(("$c:SESSION: session =", $session/sess:created))
-   let $uri := data($session/@uri)
+   let $uri := c:get-session-uri($session)
    where $session
    return
-     let $set := xdmp:set($c:SESSION-URI, $session/@uri)
+     let $set := xdmp:set($c:SESSION-URI, $uri)
      let $lock :=
-       if (exists($session/@uri))
+       if (exists($c:SESSION-URI))
        then io:lock-acquire(
          $c:SESSION-URI, "exclusive", "0",
          $c:SESSION-OWNER, $c:SESSION-TIMEOUT
@@ -215,7 +215,8 @@ define function c:get-sessions($check-conflicting as xs:boolean)
 {
   try {
     for $i in io:list($c:SESSION-DIRECTORY)/sess:session
-    where not($check-conflicting) or empty(c:get-conflicting-locks($i/@uri))
+    where not($check-conflicting)
+      or empty(c:get-conflicting-locks(c:get-session-uri($i)))
     order by xs:dateTime($i/sess:last-modified) descending,
       xs:dateTime($i/sess:created) descending,
       $i/name
@@ -336,6 +337,18 @@ define function c:update-session($nodes as element()*)
       }
     )
   )
+}
+
+define function c:get-session-uri($session as element(sess:session))
+ as xs:string
+{
+  (: handle sessions, regardless of changes to $c:SESSION-DIRECTORY :)
+  let $uri := data($session/@uri)
+  where $uri
+  return
+    if (contains($uri, '/'))
+    then concat($c:SESSION-DIRECTORY, tokenize($uri, '/+')[last()])
+    else $uri
 }
 
 (: lib-controller.xqy :)

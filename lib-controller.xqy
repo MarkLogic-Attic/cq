@@ -139,10 +139,12 @@ define variable $c:SESSION as element(sess:session)? {
    where $session
    return
      let $set := xdmp:set($c:SESSION-URI, $session/@uri)
-     let $lock := io:lock-acquire(
-       $c:SESSION-URI, "exclusive", "0",
-       $c:SESSION-OWNER, $c:SESSION-TIMEOUT
-     )
+     let $lock :=
+       if (exists($session/@uri))
+       then io:lock-acquire(
+         $c:SESSION-URI, "exclusive", "0",
+         $c:SESSION-OWNER, $c:SESSION-TIMEOUT
+       ) else ()
      return $session
 }
 

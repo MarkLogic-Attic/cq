@@ -439,7 +439,9 @@ function QueryHistoryClass(id, buffers, limit) {
         // remove this listItem and its corresponding hash entry
         // will this work? relying on garbage collection?
         var node = this.hash[key];
-        Element.remove(node);
+        if (null != node) {
+            Element.remove(node);
+        }
         this.hash[key] = null;
         this.lastModified = new Date();
     }

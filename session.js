@@ -72,7 +72,9 @@ function SessionList() {
             // delete the item from the DOM
             // context will be the button
             var row = context.parentNode.parentNode;
-            Element.remove(row);
+            if (null != row) {
+                Element.remove(row);
+            }
         }
     }
 

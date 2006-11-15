@@ -41,7 +41,6 @@ define variable $unquote-opts as xs:string* {
     ('repair-none', 'format-xml') }
 
 define variable $new-buffers as element(sess:query-buffers) {
-  d:debug-on(),
   d:debug(("update-session.xqy", $BUFFERS)),
   xdmp:unquote(
     $BUFFERS,

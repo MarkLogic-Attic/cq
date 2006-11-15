@@ -117,8 +117,10 @@ define variable $c:SESSION as element(sess:session)? {
    : falling back to the last session or a new one.
    :)
    let $d := d:debug(("$c:SESSION: uri =", $c:SESSION-URI))
+   (: get the last session, as long as it is not locked :)
    let $session :=
-     if (exists($c:SESSION-URI))
+     if (exists($c:SESSION-URI)
+       and empty(c:get-conflicting-locks($c:SESSION-URI)) )
      then io:read($c:SESSION-URI)/sess:session
      else ()
    let $d := d:debug((

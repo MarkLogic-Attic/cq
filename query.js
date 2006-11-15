@@ -945,10 +945,11 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             return;
         }
         this.eval.value = v;
-        if (null == old || "" == old) {
+        if (null == old || "" == old || null == v || "" == v) {
             return;
         }
         // this was a real change, so cue the user visually
+        //alert("old = " + old);
         var oldClassName = this.eval.className;
         this.strobe(6, "accent-color", oldClassName);
     }

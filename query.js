@@ -227,7 +227,7 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
     }
 
     this.setInstructionText = function() {
-        if (!this.instructionNode) {
+        if (! (this.instructionNode && this.instructionNode.innerHTML)) {
             return;
         }
         // if this seems to be IE6, hide the text entirely (keys do not work)
@@ -239,7 +239,8 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         // we only need to worry about X11 (see the comment in handleKeyPress)
         var theText = gBrowserIs.x11 ? "ctrl" : "alt";
         debug.print("setInstructionText: " + theText);
-        Element.update(this.instructionNode, '');
+        // clear any old text
+        Element.removeChildren(this.instructionNode);
         this.instructionNode.appendChild(document.createTextNode(theText));
     }
 
@@ -387,7 +388,7 @@ function QueryHistoryClass(id, buffers, limit) {
         if (null == this.listNode.parentNode) {
             // We haven't attached the listNode to the document yet:
             // remove any existing text and attach our listNode.
-            Element.update(this.node, '');
+            Element.removeChildren(this.node);
             this.node.appendChild(this.listNode);
         }
 
@@ -839,8 +840,8 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             labelNode = document.createElement('div');
             cell.appendChild(labelNode);
         } else {
-            // destory any contents
-            Element.update(labelNode, '');
+            // destroy any contents
+            Element.removeChildren(labelNode);
         }
         return labelNode;
     }
@@ -1077,7 +1078,7 @@ function PolicyClass(titleId, title, accentClass, accentColor) {
             && "" != this.title)
         {
             // enforce title
-            Element.update(this.titleNode, '');
+            Element.removeChildren(this.titleNode);
             this.titleNode.appendChild(document.createTextNode(this.title));
         }
 

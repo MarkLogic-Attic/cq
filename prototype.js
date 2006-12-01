@@ -878,6 +878,13 @@ Object.extend(Element, {
     element.parentNode.removeChild(element);
   },
 
+  removeChildren: function(e) {
+    var nodes = $A(e.childNodes);
+    for (var i = 0; i < nodes.length; i++) {
+        e.removeChild(nodes[i]);
+    }
+  },
+
   update: function(element, html) {
     $(element).innerHTML = html.stripScripts();
     setTimeout(function() {html.evalScripts()}, 10);

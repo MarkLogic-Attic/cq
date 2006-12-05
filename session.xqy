@@ -47,6 +47,7 @@ c:set-content-type(),
   v:get-html-head(),
   <body>
     <form action="" method="post" id="/cq:session-form">
+      <input type="hidden" name="debug" value="{$d:DEBUG}"/>
 
       <h1 class="head1 accent-color">Welcome to cq</h1>
 
@@ -162,7 +163,7 @@ c:set-content-type(),
             attribute type { "button" },
             attribute title { data($i/sess:query-buffers/sess:query[1]) },
             attribute onclick { concat("list.resumeSession('", $uri, "')") },
-            attribute value { "Resume" }
+            attribute value { "Resume", (' ', $uri)[ $d:DEBUG ] }
           }[ empty($conflicting) ],
           $v:NBSP,
           element input {
@@ -171,7 +172,7 @@ c:set-content-type(),
             attribute onclick {
               concat("list.deleteSession('", $uri, "', this)")
             },
-            attribute value { "Delete" }
+            attribute value { "Delete", (' ', $uri)[ $d:DEBUG ] }
           }[ empty($conflicting) ]
         }
       }

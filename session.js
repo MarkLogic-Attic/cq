@@ -50,11 +50,14 @@ function SessionList() {
     }
 
     this.resumeSession = function(sessionUri) {
-        debug.print("resumeSession: start");
+        debug.print("resumeSession: " + sessionUri);
         // set cookie to the new uri
         setCookie(gSessionUriCookie, sessionUri);
+	if (debug.isEnabled()) {
+	    alert("will refresh now");
+	}
         // refresh should show the query view
-        window.location.replace( "." );
+        window.location.replace( ".?debug=" + debug.isEnabled() );
     }
 
     this.deleteSession = function(uri, context) {

@@ -192,7 +192,7 @@ define function c:get-conflicting-locks(
       for $c in $locks
       let $timeout := xs:unsignedLong($c/lock:timeout)
       let $expires := $c/lock:timestamp + $timeout
-      where (0 eq $timeout) or $expires ge $now
+      where (0 eq $timeout) or ($expires ge $now)
       order by (0 eq $timeout) descending, $expires descending
       return $c,
       (: remaining args to subsequence() :)
@@ -215,6 +215,9 @@ define function c:get-sessions()
 define function c:get-sessions($check-conflicting as xs:boolean)
  as element(sess:session)*
 {
+  (: TODO find a way to check consistency here: uri := $i/@uri
+   : problem: io:list doesn't support that functionality.
+   :)
   try {
     for $i in io:list($c:SESSION-DIRECTORY)/sess:session
     where not($check-conflicting)
@@ -235,6 +238,13 @@ define function c:get-last-session()
  as element(sess:session)?
 {
   (c:get-available-sessions())[1]
+}
+
+define function c:get-session($uri, $check-conflicting as xs:boolean)
+ as element(sess:session)?
+{
+  if ($check-conflicting) then io:lock-acquire($uri) else (),
+  c:get-sessions($check-conflicting)[ @uri = $uri ]
 }
 
 define function c:generate-uri()
@@ -289,50 +299,45 @@ define function c:delete-session($uri as xs:anyURI)
 {
   (: make sure it really is a session :)
   let $session := io:read($uri)/sess:session
-  where exists($session)
+  where $session
   return (
+    io:lock-acquire($uri),
     io:delete($uri),
     io:lock-release($uri)
   )
 }
 
-define function c:rename-session($uri as xs:anyURI, $name as xs:string)
+define function c:rename-session($uri as xs:string, $name as xs:string)
  as empty()
 {
   d:debug(("c:rename-session:", $uri, "to", $name)),
-  let $new := element sess:name { $name }
-  let $names := node-name($new)
-  where $uri
-  return (
-    io:write(
-      $uri,
-      document {
-        element {node-name($c:SESSION)} {
-          $c:SESSION/@*,
-          $c:SESSION/node()[ not(node-name(.) = $names) ],
-          $new
-        }
-      }
-    ),
-    io:lock-release($uri)
-  )
+  c:update-session($uri, element sess:name { $name }),
+  io:lock-release($uri)
 }
 
 define function c:update-session($nodes as element()*)
  as empty()
 {
+  c:update-session($c:SESSION-URI, $nodes)
+}
+
+define function c:update-session($uri as xs:string, $nodes as element()*)
+ as empty()
+{
+  let $session := c:get-session($uri, true())
   let $names := (
     for $n in $nodes return node-name($n),
     node-name(<sess:last-modified/>)
   )
-  where $c:SESSION
+  where $session
   return (
     io:write(
-      $c:SESSION-URI,
+      $uri,
       document {
-        element {node-name($c:SESSION)} {
-          $c:SESSION/@*,
-          $c:SESSION/node()[ not(node-name(.) = $names) ],
+        element {node-name($session)} {
+	  attribute uri { $uri },
+          $session/@*[ not(node-name(.) = (xs:QName('uri'))) ],
+          $session/node()[ not(node-name(.) = $names) ],
           element sess:last-modified { current-dateTime() },
           $nodes
         }
@@ -346,6 +351,7 @@ define function c:get-session-uri($session as element(sess:session))
 {
   (: handle sessions, regardless of changes to $c:SESSION-DIRECTORY :)
   let $uri := data($session/@uri)
+  let $d := d:debug(('c:get-session-uri', $uri))
   where $uri
   return
     if (contains($uri, '/'))

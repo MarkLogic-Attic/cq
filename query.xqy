@@ -120,7 +120,8 @@ c:set-content-type(),
             <div>
               list:&#160;<a href="javascript:cqListDocuments()">all</a>
               &#160;|&#160;<span class="instruction">
-              <a href="session.xqy" target="_parent">session{
+              <a href="session.xqy{"?debug=1"[ $d:DEBUG ]}"
+	         target="_parent">session{
                 if ($c:SESSION and empty($c:SESSION-EXCEPTION))
                 then ()
                 else " disabled"

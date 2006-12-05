@@ -164,7 +164,7 @@ define function io:lock-acquire(
   let $depth := ($depth[. = ("0", "infinity")], "0")[1]
   let $owner := ($owner, xdmp:get-current-user())[1]
   (: spec timeout too, for the filesystem variant :)
-  let $timeout := ($timeout, 0)[1]
+  let $timeout := ($timeout, xs:unsignedLong(0))[1]
   return
     if ($io:MODULES-DB eq 0)
     then io:lock-acquire-fs($path, $scope, $depth, $owner, $timeout)

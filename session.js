@@ -53,11 +53,13 @@ function SessionList() {
         debug.print("resumeSession: " + sessionUri);
         // set cookie to the new uri
         setCookie(gSessionUriCookie, sessionUri);
-	if (debug.isEnabled()) {
-	    alert("will refresh now");
-	}
         // refresh should show the query view
-        window.location.replace( ".?debug=" + debug.isEnabled() );
+        if (debug.isEnabled()) {
+            alert("will refresh now");
+            window.location.replace( ".?debug=1");
+        } else {
+            window.location.replace( "." );
+        }
     }
 
     this.deleteSession = function(uri, context) {
@@ -87,7 +89,8 @@ function SessionList() {
         var req = new Ajax.Request(renameUrl,
             {
                 method: 'post',
-                parameters: 'URI=' + uri + '&NAME=' + name,
+                parameters: 'URI=' + uri + '&NAME=' + name
+                  + (debug.isEnabled() ? '&DEBUG=1' : ''),
                 asynchronous: false,
                 onFailure: reportError
             });

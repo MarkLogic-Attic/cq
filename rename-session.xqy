@@ -25,9 +25,16 @@ define variable $URI as xs:anyURI {
 define variable $NAME as xs:string {
   xdmp:get-request-field("NAME") }
 
+define variable $DEBUG as xs:boolean {
+  xs:boolean(xdmp:get-request-field("DEBUG", 'false')) }
+
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy"
+
+if ($DEBUG) then d:debug-on() else (),
 c:rename-session($URI, $NAME)
 
 (: rename-session.xqy :)

@@ -58,7 +58,7 @@ c:set-content-type(),
       >developer.marklogic.com</a>.
       </p>
       {
-        if (not($SESSIONS) or exists($c:SESSION-EXCEPTION))
+        if (exists($c:SESSION-EXCEPTION))
         then <div>
           <h1>WARNING: sessions have been disabled, because of an error.</h1>
           <p>
@@ -112,77 +112,78 @@ c:set-content-type(),
           If a session is locked by another user,
           you will not be able to resume it.
           </p>
-          <p>Active sessions:
-          </p>
-          <br/>
+          <script>
+          var list = new SessionList();
+          </script>
 {
   (: TODO allow users to duplicate locked sessions :)
   let $sessions := c:get-sessions()
   let $d := d:debug(("sessions:", count($sessions)))
   return
     if (exists($sessions))
-    then element table {
-      <script>
-      var list = new SessionList();
-      </script>,
-      element tr {
-        for $i in (
-          "session name", "user", "created", "last modified",
-          "")
-        return element th { $i }
-      },
-      for $i in $sessions
-      let $uri := c:get-session-uri($i)
-      (: we only care about the lock that expires last :)
-      let $conflicting := c:get-conflicting-locks($uri, 1)
-      return element tr {
-        element td {
-          element input {
-            attribute type { "text" },
-            attribute autocomplete { "off" },
-            attribute value { ($i/sess:name, "(unnamed)")[1] },
-            attribute onchange {
-              concat("list.renameSession('", $uri, "', this.value)")
+    then element div {
+          <p>Active sessions:</p>,
+          <br/>,
+          element table {
+            element tr {
+              for $i in (
+                "session name", "user", "created", "last modified",
+                "")
+              return element th { $i }
+            },
+            for $i in $sessions
+            let $uri := c:get-session-uri($i)
+            (: we only care about the lock that expires last :)
+            let $conflicting := c:get-conflicting-locks($uri, 1)
+            return element tr {
+              element td {
+                element input {
+                  attribute type { "text" },
+                  attribute autocomplete { "off" },
+                  attribute value { ($i/sess:name, "(unnamed)")[1] },
+                  attribute onchange {
+                    concat("list.renameSession('", $uri, "', this.value)")
+                  }
+                }
+              },
+              element td { string($i/sec:user) },
+              element td { data($i/sess:created) },
+              element td { data($i/sess:last-modified) },
+              element td {
+                if (empty($conflicting)) then () else
+                text {
+                  "by", $conflicting/lock:owner,
+                  "until", adjust-dateTime-to-timezone(
+                    io:epoch-seconds-to-dateTime(
+                      $conflicting/lock:timestamp + $conflicting/lock:timeout
+                    )
+                  )
+                },
+                element input {
+                  attribute type { "button" },
+                  attribute title {
+                    data($i/sess:query-buffers/sess:query[1]) },
+                  attribute onclick {
+                    concat("list.resumeSession('", $uri, "')") },
+                  attribute value {
+                    "Resume", (' ', $uri)[ $d:DEBUG ] }
+                }[ empty($conflicting) ],
+                $v:NBSP,
+                element input {
+                  attribute type { "button" },
+                  attribute title { "permanently delete this session" },
+                  attribute onclick {
+                    concat("list.deleteSession('", $uri, "', this)")
+                  },
+                  attribute value { "Delete", (' ', $uri)[ $d:DEBUG ] }
+                }[ empty($conflicting) ]
+              }
             }
           }
-        },
-        element td { string($i/sec:user) },
-        element td { data($i/sess:created) },
-        element td { data($i/sess:last-modified) },
-        element td {
-          if (empty($conflicting)) then () else
-          text {
-            "by", $conflicting/lock:owner,
-            "until", adjust-dateTime-to-timezone(
-              io:epoch-seconds-to-dateTime(
-                $conflicting/lock:timestamp + $conflicting/lock:timeout
-              )
-            )
-          },
-          element input {
-            attribute type { "button" },
-            attribute title { data($i/sess:query-buffers/sess:query[1]) },
-            attribute onclick { concat("list.resumeSession('", $uri, "')") },
-            attribute value { "Resume", (' ', $uri)[ $d:DEBUG ] }
-          }[ empty($conflicting) ],
-          $v:NBSP,
-          element input {
-            attribute type { "button" },
-            attribute title { "permanently delete this session" },
-            attribute onclick {
-              concat("list.deleteSession('", $uri, "', this)")
-            },
-            attribute value { "Delete", (' ', $uri)[ $d:DEBUG ] }
-          }[ empty($conflicting) ]
-        }
-      }
     }
-    else <div class="instruction">
-    There are no resumable sessions
-    in the contentbase "{$c:SESSION-DB}".
-    Please try a different contentbase,
-    or create a new session.
-    </div>
+    else <p class="instruction">
+    There are no resumable sessions. Please create a new session.
+    </p>
 }
           <input type="button" value="New Session"
           id="newSession2" name="newSession2" onclick="list.newSession()"/>

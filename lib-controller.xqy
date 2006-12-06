@@ -142,11 +142,7 @@ define variable $c:SESSION as element(sess:session)? {
    return
      let $set := xdmp:set($c:SESSION-URI, $uri)
      let $lock :=
-       if (exists($c:SESSION-URI))
-       then io:lock-acquire(
-         $c:SESSION-URI, "exclusive", "0",
-         $c:SESSION-OWNER, $c:SESSION-TIMEOUT
-       ) else ()
+       if (empty($c:SESSION-URI)) then () else c:lock-acquire($c:SESSION-URI)
      return $session
 }
 
@@ -161,6 +157,15 @@ define variable $c:TITLE-TEXT as xs:string {
     "-", xdmp:product-name(), xdmp:version(),
     "-", xdmp:platform()
   }
+}
+
+define function c:lock-acquire($uri)
+ as empty()
+{
+  io:lock-acquire(
+    $c:uri, "exclusive", "0",
+    $c:SESSION-OWNER, $c:SESSION-TIMEOUT
+  )
 }
 
 define function c:set-content-type()
@@ -181,23 +186,8 @@ define function c:get-conflicting-locks(
   $uri as xs:string, $limit as xs:integer?)
  as element(lock:active-lock)*
 {
-  let $locks := io:document-locks($uri)
-    /lock:lock[lock:lock-type eq "write"]
-    /lock:active-locks/lock:active-lock
-    [ lock:owner ne $c:SESSION-OWNER ]
-  let $now := io:get-epoch-seconds()
-  return
-    if (empty($limit)) then $locks else subsequence(
-      (: we only care about the lock(s) that expires last :)
-      for $c in $locks
-      let $timeout := xs:unsignedLong($c/lock:timeout)
-      let $expires := $c/lock:timestamp + $timeout
-      where (0 eq $timeout) or ($expires ge $now)
-      order by (0 eq $timeout) descending, $expires descending
-      return $c,
-      (: remaining args to subsequence() :)
-      1, $limit
-    )
+  d:debug(('c:get-conflicting-locks', $uri, $limit, $c:SESSION-OWNER)),
+  io:get-conflicting-locks($uri, $limit, $c:SESSION-OWNER)
 }
 
 define function c:get-available-sessions()
@@ -243,7 +233,7 @@ define function c:get-last-session()
 define function c:get-session($uri, $check-conflicting as xs:boolean)
  as element(sess:session)?
 {
-  if ($check-conflicting) then io:lock-acquire($uri) else (),
+  if ($check-conflicting) then c:lock-acquire($uri) else (),
   c:get-sessions($check-conflicting)[ @uri = $uri ]
 }
 
@@ -301,7 +291,7 @@ define function c:delete-session($uri as xs:anyURI)
   let $session := io:read($uri)/sess:session
   where $session
   return (
-    io:lock-acquire($uri),
+    c:lock-acquire($uri),
     io:delete($uri),
     io:lock-release($uri)
   )
@@ -311,8 +301,7 @@ define function c:rename-session($uri as xs:string, $name as xs:string)
  as empty()
 {
   d:debug(("c:rename-session:", $uri, "to", $name)),
-  c:update-session($uri, element sess:name { $name }),
-  io:lock-release($uri)
+  c:update-session($uri, element sess:name { $name })
 }
 
 define function c:update-session($nodes as element()*)
@@ -324,18 +313,22 @@ define function c:update-session($nodes as element()*)
 define function c:update-session($uri as xs:string, $nodes as element()*)
  as empty()
 {
+  d:debug(("c:update-session:", $uri, $nodes)),
   let $session := c:get-session($uri, true())
   let $names := (
     for $n in $nodes return node-name($n),
     node-name(<sess:last-modified/>)
   )
-  where $session
+  let $d := d:debug(("c:update-session: session =", $session))
+  let $assert := if ($session) then () else error(
+    'CTRL-SESSION', text { 'No session for', $uri }
+  )
   return (
     io:write(
       $uri,
       document {
         element {node-name($session)} {
-	  attribute uri { $uri },
+          attribute uri { $uri },
           $session/@*[ not(node-name(.) = (xs:QName('uri'))) ],
           $session/node()[ not(node-name(.) = $names) ],
           element sess:last-modified { current-dateTime() },

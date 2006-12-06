@@ -85,7 +85,7 @@ define function io:read($path as xs:string)
   return
     if ($io:MODULES-DB eq 0)
     then io:read-fs($path)
-    else io:read-db(xs:anyURI($path))
+    else io:read-db($path)
 }
 
 (:~ write a document-node to a path :)
@@ -96,7 +96,7 @@ define function io:write($path as xs:string, $new as document-node())
   return
     if ($io:MODULES-DB eq 0)
     then io:write-fs($path, $new)
-    else io:write-db(xs:anyURI($path), $new)
+    else io:write-db($path, $new)
 }
 
 (:~ list contents of a directory path :)
@@ -108,7 +108,7 @@ define function io:list($path as xs:string)
   return
     if ($io:MODULES-DB eq 0)
     then io:list-fs($path)
-    else io:list-db(xs:anyURI($path))
+    else io:list-db($path)
 }
 
 (:~ delete a path :)
@@ -119,7 +119,7 @@ define function io:delete($path as xs:string)
   return
     if ($io:MODULES-DB eq 0)
     then io:delete-fs($path)
-    else io:delete-db(xs:anyURI($path))
+    else io:delete-db($path)
 }
 
 (:~ return true if path exists :)
@@ -130,7 +130,7 @@ define function io:exists($path as xs:string)
   return
     if ($io:MODULES-DB eq 0)
     then io:exists-fs($path)
-    else io:exists-db(xs:anyURI($path))
+    else io:exists-db($path)
 }
 
 (:~ release a lock :)
@@ -141,14 +141,14 @@ define function io:lock-release($path as xs:string)
   return
     if ($io:MODULES-DB eq 0)
     then io:lock-release-fs($path)
-    else io:lock-release-db(xs:anyURI($path))
+    else io:lock-release-db($path)
 }
 
 (:~ acquire a lock :)
 define function io:lock-acquire($path as xs:string)
   as empty()
 {
-  io:lock-acquire($path, (), (), (), ())
+  io:lock-acquire($path, (), (), (), xs:unsignedLong(300))
 }
 
 (:~ acquire a lock :)
@@ -163,12 +163,11 @@ define function io:lock-acquire(
   let $scope := ($scope[. = ("exclusive", "shared")], "exclusive")[1]
   let $depth := ($depth[. = ("0", "infinity")], "0")[1]
   let $owner := ($owner, xdmp:get-current-user())[1]
-  (: spec timeout too, for the filesystem variant :)
-  let $timeout := ($timeout, xs:unsignedLong(0))[1]
+  (: NB empty timeout is considered infinite :)
   return
     if ($io:MODULES-DB eq 0)
     then io:lock-acquire-fs($path, $scope, $depth, $owner, $timeout)
-    else io:lock-acquire-db(xs:anyURI($path), $scope, $depth, $owner, $timeout)
+    else io:lock-acquire-db($path, $scope, $depth, $owner, $timeout)
 }
 
 (:~ list locks :)
@@ -179,15 +178,15 @@ define function io:document-locks($paths as xs:string*)
   return
     if ($io:MODULES-DB eq 0)
     then io:document-locks-fs($paths)
-    else io:document-locks-db(xs:anyURI($paths))
+    else io:document-locks-db($paths)
 }
 
 (:~ @private :)
-define function io:exists-db($uri as xs:anyURI)
+define function io:exists-db($uri as xs:string)
  as xs:boolean
 {
   xdmp:eval(
-    'define variable $URI as xs:anyURI external
+    'define variable $URI as xs:string external
      xdmp:exists(doc($URI))',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -209,11 +208,11 @@ define function io:exists-fs($path as xs:string)
 }
 
 (:~ @private :)
-define function io:delete-db($uri as xs:anyURI)
+define function io:delete-db($uri as xs:string)
  as empty()
 {
   xdmp:eval(
-    'define variable $URI as xs:anyURI external
+    'define variable $URI as xs:string external
      xdmp:document-delete($URI)',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -229,11 +228,11 @@ define function io:delete-fs($path as xs:string)
 }
 
 (:~ @private :)
-define function io:list-db($uri as xs:anyURI)
+define function io:list-db($uri as xs:string)
   as document-node()*
 {
   xdmp:eval(
-    'define variable $URI as xs:anyURI external
+    'define variable $URI as xs:string external
      xdmp:directory($URI, "1")',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -273,11 +272,11 @@ define function io:fs-lock-path($path as xs:string)
 }
 
 (:~ @private :)
-define function io:read-db($uri as xs:anyURI)
+define function io:read-db($uri as xs:string)
   as document-node()?
 {
   xdmp:eval(
-    'define variable $URI as xs:anyURI external
+    'define variable $URI as xs:string external
      doc($URI)',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -304,11 +303,11 @@ define function io:read-fs($path as xs:string)
 }
 
 (:~ @private :)
-define function io:write-db($uri as xs:anyURI, $new as document-node())
+define function io:write-db($uri as xs:string, $new as document-node())
   as empty()
 {
   xdmp:eval(
-    'define variable $URI as xs:anyURI external
+    'define variable $URI as xs:string external
      define variable $NEW as document-node() external
      define variable $EXISTS as xs:boolean { xdmp:exists(doc($URI)) }
      xdmp:document-insert(
@@ -333,11 +332,11 @@ define function io:write-fs($path as xs:string, $new as document-node())
 }
 
 (:~ @private :)
-define function io:lock-release-db($uri as xs:anyURI)
+define function io:lock-release-db($uri as xs:string)
  as empty()
 {
   xdmp:eval(
-    'define variable $URI as xs:anyURI external
+    'define variable $URI as xs:string external
      xdmp:lock-release($URI)',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -386,13 +385,13 @@ define function io:lock-release-fs($path as xs:string)
 
 (:~ @private :)
 define function io:lock-acquire-db(
-  $uri as xs:anyURI, $scope as xs:string,
+  $uri as xs:string, $scope as xs:string,
   $depth as xs:string, $owner as item(),
   $timeout as xs:unsignedLong)
   as empty()
 {
   xdmp:eval(
-    'define variable $URI as xs:anyURI external
+    'define variable $URI as xs:string external
      define variable $SCOPE as xs:string external
      define variable $DEPTH as xs:string external
      define variable $OWNER as xs:string external
@@ -405,25 +404,54 @@ define function io:lock-acquire-db(
   )
 }
 
+define function io:get-conflicting-locks(
+  $uri as xs:string, $limit as xs:integer?, $owner as xs:string
+)
+ as element(lock:active-lock)*
+{
+  let $locks := io:document-locks($uri)
+    /lock:lock[lock:lock-type eq "write"]
+    /lock:active-locks/lock:active-lock
+    [ lock:owner ne $owner ]
+  let $now := io:get-epoch-seconds()
+  return
+    if (empty($limit)) then $locks else subsequence(
+      (: we only care about the lock(s) that expires last.
+       : an empty timeout is considered infinite.
+       :)
+      for $c in $locks
+      let $timeout := data($c/lock:timeout)
+      let $expires :=
+        if (empty($timeout)) then (1 + $now)
+        else ($c/lock:timestamp + xs:unsignedLong($timeout))
+      where $expires ge $now
+      order by empty($timeout) descending, $expires descending
+      return $c,
+      (: remaining args to subsequence() :)
+      1, $limit
+    )
+}
+
 (:~ @private :)
 define function io:lock-acquire-fs(
   $path as xs:string, $scope as xs:string,
   $depth as xs:string, $owner as item(),
-  $timeout as xs:unsignedLong)
+  $timeout as xs:unsignedLong?)
  as empty()
 {
   (: NB: the caller is responsible for checking our arguments! :)
   (: TODO does not handle multiple locks, shared vs exclusive :)
-  (: first... can we lock this path? admin always can... :)
+  (: first... can we lock this path?
+   : admin always can... others can only break their own locks.
+   :)
   let $conflicting :=
     if ($su:USER-IS-ADMIN) then ()
     else io:document-locks($path)/lock:lock/lock:active-locks
       /lock:active-lock[ sec:user-id ne $su:USER-ID ]
-  let $check :=
-    if (empty($conflicting)) then () else error(
-      "IO-LOCKED",
-      text { $path, "is locked by", $conflicting/lock:owner }
-    )
+  let $check := if (empty($conflicting)) then () else error(
+    "IO-LOCKED",
+    text { $path, "is locked by", $conflicting/lock:owner }
+  )
   let $lock := document {
     element lock:lock {
       element lock:lock-type { "write" },
@@ -450,7 +478,7 @@ define function io:lock-acquire-fs(
 }
 
 (:~ @private :)
-define function io:document-locks-db($uris as xs:anyURI*)
+define function io:document-locks-db($uris as xs:string*)
  as document-node()*
 {
   xdmp:eval(

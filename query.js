@@ -1356,7 +1356,7 @@ function cqListDocuments() {
         + "  'First 10000 documents of', $est, 'total:' }"
         + ")[$est gt 10000],"
         + " for $i in doc()[1 to 10000]"
-        + " let $uri := base-uri($i)"
+        + " let $uri := xdmp:node-uri($i)"
         + " order by $uri"
         + " return ( $uri, <br/> )"
         + ")";

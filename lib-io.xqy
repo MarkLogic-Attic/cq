@@ -59,7 +59,15 @@ define variable $io:EVAL-OPTIONS as element() {
 define function io:get-epoch-seconds($dt as xs:dateTime)
   as xs:unsignedLong
 {
-  xs:unsignedLong(xdmp:strftime("%s", $dt))
+  xs:unsignedLong(
+    let $d :=
+      current-dateTime() - xs:dateTime('1970-01-01T00:00:00Z')
+    return
+      86400 * days-from-duration($d)
+      + 3600 * hours-from-duration($d)
+      + 60 * minutes-from-duration($d)
+      + seconds-from-duration($d)
+  )
 }
 
 (:~ get the epoch seconds :)

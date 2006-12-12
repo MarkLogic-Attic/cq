@@ -1358,7 +1358,10 @@ function cqListDocuments() {
         + " for $i in doc()[1 to 10000]"
         + " let $uri := xdmp:node-uri($i)"
         + " order by $uri"
-        + " return ( $uri, <br/> )"
+        + " return ( $uri,"
+        + " <span> - </span>,"
+        + " <i>{ node-kind($i/(binary()|element()|text())) }</i>,"
+        + " <code>&#160;{ name($i/*) }</code>, <br/> )"
         + ")";
     submitForm($(kQueryFormId), theQuery, "text/html", false);
 }

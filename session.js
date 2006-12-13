@@ -214,6 +214,7 @@ function SessionClass(tabs, id) {
                       + '&HISTORY=' + history
                       + '&TABS=' + tabs);
         debug.print(label + "" + params);
+
         var req = new Ajax.Request(syncUrl,
             {
                 method: 'post',

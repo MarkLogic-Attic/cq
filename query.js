@@ -80,7 +80,7 @@ function escapeXml(s) {
 // Returns a boolean if successful.
 function simulateSelectionStart(n) {
     var label = "simulateSelectionStart: ";
-    //debug.print(label + "buf = " + n);
+    debug.print(label + "n = " + n);
     if (null == n) {
         //debug.print(label + "null buf!");
         return false;
@@ -96,23 +96,27 @@ function simulateSelectionStart(n) {
     // but I'd rather avoid calling gBrowserIs.opera()
     if (!window.getSelection && !document.getSelection
         && document.selection && document.selection.createRange) {
-        //debug.print(label + "document.selection ok");
+        debug.print(label + "document.selection found");
         // set it up, using IE5+ API
         // http://msdn.microsoft.com/workshop/author/dhtml/reference
         //   /objects/obj_textrange.asp
         // first, make sure we have the focus
-        //debug.print(label + "focus on " + n);
+        debug.print(label + "focus on " + n);
         //n.focus();
         var range = document.selection.createRange();
-        //debug.print(label + "range = " + range);
+        debug.print(label + "range = " + range);
         var storedRange = range.duplicate();
         if (null == storedRange) {
           debug.print(label + "null storedRange");
           n.selectionStart = 0;
           return false;
         }
-        storedRange.moveToElementText(n);
+        debug.print(label + "storedRange = " + storedRange);
+        // TODO this call seems to be failing: Invalid argument
+        //storedRange.moveToElementText(n);
+        debug.print(label + "storedRange = " + storedRange);
         storedRange.setEndPoint('EndToEnd', range);
+        debug.print(label + "storedRange = " + storedRange);
         //debug.print(label + "storedRange.text = '"
         //          + storedRange.text + "'"
         //          + " (" + storedRange.text.length
@@ -123,6 +127,7 @@ function simulateSelectionStart(n) {
         n.selectionStart = (storedRange.text.length
                                      - range.text.length);
         // now we can pretend that IE6 is gecko
+        debug.print(label + "selectionStart = " + n.selectionStart);
         return true;
     }
 
@@ -663,7 +668,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
     }
 
     this.setQuery = function(query) {
-        debug.print("QueryBufferListClass.setQuery " + this.pos);
+        debug.print("QueryBufferListClass.setQuery: pos = " + this.pos);
         if (null == query) {
             return;
         }

@@ -117,6 +117,11 @@ try {
      : Binaries should not be viewed as html or text.
      :)
     if (empty($x)) then "text/html"
+    (: for binaries, let the browser autosense the mime-type :)
+    else if (exists((
+      $x[ . instance of binary() or . instance of document-node() ]
+      /(self::binary()|child::binary())
+    ))) then 'image/gif'
     else if (($x[1] instance of attribute() and count($x) gt 1)
       or exists($x[ . instance of binary()])
       or (count($x) eq 1 and $x instance of document-node()
@@ -125,7 +130,10 @@ try {
     then "text/plain"
     else $g-mime-type
   let $set :=
-    xdmp:set-response-content-type(concat($g-mime-type, "; charset=utf-8"))
+    if (exists($g-mime-type))
+    then xdmp:set-response-content-type(string-join(
+      ($g-mime-type, 'charset=utf-8'), '; '))
+    else ()
   let $set := if ($g-mime-type ne "text/plain") then () else
     (: does this fix the IE6 text/plain helper-app issue? cf Q239750 :)
     xdmp:add-response-header('Content-Disposition', 'inline; filename=a.txt')

@@ -189,6 +189,15 @@ define function io:document-locks($paths as xs:string*)
     else io:document-locks-db($paths)
 }
 
+(:~ get document uri :)
+define function io:node-uri($n as node())
+ as xs:string
+{
+    if ($io:MODULES-DB eq 0)
+    then io:node-uri-fs($n)
+    else io:node-uri-db($n)
+}
+
 (:~ @private :)
 define function io:exists-db($uri as xs:string)
  as xs:boolean
@@ -504,6 +513,27 @@ define function io:document-locks-fs($paths as xs:string*)
 {
   for $path in $paths
   return io:read-fs(io:fs-lock-path($path))
+}
+
+(:~ @private :)
+define function io:node-uri-db($n as node())
+ as xs:string
+{
+  xdmp:node-uri($n)
+}
+
+(:~ @private :)
+define function io:node-uri-fs($n as node())
+ as xs:string
+{
+  let $uri := xdmp:node-uri($n)
+  return
+    (: behave just like xdmp:node-uri :)
+    if (empty($uri)) then ''
+    (: the prefix must be stripped :)
+    else if (starts-with($uri, $io:MODULES-ROOT))
+    then substring-after($uri, $io:MODULES-ROOT)
+    else $uri
 }
 
 (: lib-io.xqy :)

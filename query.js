@@ -17,9 +17,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-// TODO test for IE6 compatibility
-// TODO test for memory leaks
-
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 var kFramesetId = "/cq:frameset";
 var kQueryFrameId = "/cq:queryFrame";
@@ -80,7 +77,7 @@ function escapeXml(s) {
 // Returns a boolean if successful.
 function simulateSelectionStart(n) {
     var label = "simulateSelectionStart: ";
-    debug.print(label + "n = " + n);
+    //debug.print(label + "n = " + n);
     if (null == n) {
         //debug.print(label + "null buf!");
         return false;
@@ -96,7 +93,7 @@ function simulateSelectionStart(n) {
     // but I'd rather avoid calling gBrowserIs.opera()
     if (!window.getSelection && !document.getSelection
         && document.selection && document.selection.createRange) {
-        debug.print(label + "document.selection found");
+        //debug.print(label + "document.selection found");
         // set it up, using IE5+ API
         // http://msdn.microsoft.com/workshop/author/dhtml/reference
         //   /objects/obj_textrange.asp
@@ -127,13 +124,13 @@ function simulateSelectionStart(n) {
         n.selectionStart = (storedRange.text.length
                                      - range.text.length);
         // now we can pretend that IE6 is gecko
-        debug.print(label + "selectionStart = " + n.selectionStart);
+        //debug.print(label + "selectionStart = " + n.selectionStart);
         return true;
     }
 
     if (n && n.selectionStart) {
         // looks like gecko: selectionStart should work
-        debug.print(label + "found " + n.selectionStart);
+        //debug.print(label + "found " + n.selectionStart);
         return true;
     }
 

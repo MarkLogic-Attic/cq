@@ -42,10 +42,7 @@ define variable $unquote-opts as xs:string* {
 
 define variable $new-buffers as element(sess:query-buffers) {
   d:debug(("update-session.xqy", $BUFFERS)),
-  xdmp:unquote(
-    $BUFFERS,
-    namespace-uri(<sess:x/>),
-    $unquote-opts)
+  xdmp:unquote($BUFFERS, namespace-uri(<sess:x/>), $unquote-opts)
   /sess:query-buffers
 }
 

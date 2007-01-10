@@ -146,32 +146,33 @@ define function v:get-error-html(
 <html xmlns="http://www.w3.org/1999/xhtml">
   <body bgcolor="white">
     <div>
-  <b>
-  <code>{
-    (: display eval-in information :)
-    "ERROR: eval-in",
-    xdmp:database-name($db), "at",
-    concat(
-      if ($modules eq 0) then "file" else xdmp:database-name($modules),
-      ":", $root
-    ),
-    <br/>,
-    <br/>,
-    (: NOTE: format-string is sometimes empty. if so, we omit the br :)
-    if (exists($ex/err:format-string/text()))
-    then ($ex/err:format-string/text(), <br/>)
-    else if (exists($ex/err:code/text()))
-    then (text { $ex/err:code, $ex/err:data/err:datum }, <br/>)
-    else (),
-    <br/>,
-    <i>Stack trace:</i>, <br/>, <br/>,
-    for $f in $ex/err:stack/err:frame
-    return v:get-error-frame-html($f, $query),
-    <br/>,
-    (: for debugging :)
-    comment { xdmp:quote($ex) }
-  }</code>
-  </b>
+  <code>
+    <b>{
+      (: display eval-in information :)
+      "ERROR: eval-in",
+      xdmp:database-name($db), "at",
+      concat(
+        if ($modules eq 0) then "file" else xdmp:database-name($modules),
+        ":", $root
+      ),
+      <br/>,
+      <br/>,
+      (: NOTE: format-string is sometimes empty. if so, we omit the br :)
+      if (exists($ex/err:format-string/text()))
+      then ($ex/err:format-string/text(), <br/>)
+      else if (exists($ex/err:code/text()))
+      then (text { $ex/err:code, $ex/err:data/err:datum }, <br/>)
+      else ()
+    }</b><br/>
+    <b><i>Stack trace:</i></b><br/><br/>
+    {
+      for $f in $ex/err:stack/err:frame
+      return v:get-error-frame-html($f, $query),
+      <br/>,
+      (: for debugging :)
+      comment { xdmp:quote($ex) }
+    }
+  </code>
     </div>
   </body>
 </html>

@@ -19,8 +19,8 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-define variable $URI as xs:anyURI {
-  xs:anyURI(xdmp:get-request-field("URI")) }
+define variable $URI as xs:string {
+  xdmp:get-request-field("URI") }
 
 define variable $NAME as xs:string {
   xdmp:get-request-field("NAME") }

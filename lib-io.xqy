@@ -166,6 +166,8 @@ define function io:lock-acquire(
   $timeout as xs:unsignedLong?)
   as empty()
 {
+  if ($path eq '' or ends-with($path, '/'))
+  then error('IO-BADPATH', text { $path }) else (),
   let $path := io:canonicalize($path)
   (: a pox on varargs - anyway, we can spec our own defaults :)
   let $scope := ($scope[. = ("exclusive", "shared")], "exclusive")[1]

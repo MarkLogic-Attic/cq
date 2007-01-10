@@ -142,7 +142,8 @@ define variable $c:SESSION as element(sess:session)? {
    return
      let $set := xdmp:set($c:SESSION-URI, $uri)
      let $lock :=
-       if (empty($c:SESSION-URI)) then () else c:lock-acquire($c:SESSION-URI)
+       if (empty($c:SESSION-URI) or $c:SESSION-URI eq '') then ()
+       else c:lock-acquire($c:SESSION-URI)
      return $session
 }
 
@@ -344,10 +345,8 @@ define function c:update-session($uri as xs:string, $nodes as element()*)
 define function c:get-session-uri($session as element(sess:session))
  as xs:string
 {
-  (: handle sessions, regardless of changes to $c:SESSION-DIRECTORY :)
-  let $uri := (io:node-uri($session), $c:SESSION-URI)[1]
+  let $uri := io:node-uri($session)
   let $d := d:debug(('c:get-session-uri', $uri))
-  where $uri
   return
     if (contains($uri, '/'))
     then concat($c:SESSION-DIRECTORY, tokenize($uri, '/+')[last()])

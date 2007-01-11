@@ -20,8 +20,7 @@
 // NOTE: to defeat IE6 caching, always use method=POST
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
-var gSessionUriCookie = "/cq:session-uri";
-var gSessionDirectory = "sessions/";
+var gSessionIdCookie = "/cq:session-id";
 
 // GLOBAL VARIABLES
 
@@ -42,17 +41,17 @@ function SessionList() {
     this.newSession = function() {
         // start a new session and set the user cookie appropriately
         debug.print("newSession: start");
-        // setting the session uri to gSessionDirectory signals
+        // setting the session id to the string "NEW" signals
         // lib-controller.xqy to build a new session.
-        setCookie(gSessionUriCookie, gSessionDirectory);
+        setCookie(gSessionIdCookie, "NEW");
         // refresh should show the query view
         window.location.replace( "." );
     }
 
-    this.resumeSession = function(sessionUri) {
-        debug.print("resumeSession: " + sessionUri);
-        // set cookie to the new uri
-        setCookie(gSessionUriCookie, sessionUri);
+    this.resumeSession = function(sessionId) {
+        debug.print("resumeSession: " + sessionId);
+        // set cookie to the new id
+        setCookie(gSessionIdCookie, sessionId);
         // refresh should show the query view
         if (debug.isEnabled()) {
             alert("will refresh now");
@@ -62,15 +61,15 @@ function SessionList() {
         }
     }
 
-    this.deleteSession = function(uri, context) {
+    this.deleteSession = function(id, context) {
         // delete the session
-        debug.print("deleteSession: " + uri);
+        debug.print("deleteSession: " + id);
         if (confirm("Are you sure you want to delete this session?")) {
             // call session-delete
             var req = new Ajax.Request(deleteUrl,
                 {
                     method: 'post',
-                    parameters: 'URI=' + uri,
+                    parameters: 'ID=' + id,
                     asynchronous: false,
                     onFailure: reportError
                 });
@@ -83,13 +82,13 @@ function SessionList() {
         }
     }
 
-    this.renameSession = function(uri, name) {
-        debug.print("renameSession: " + uri + " to " + name);
+    this.renameSession = function(id, name) {
+        debug.print("renameSession: " + id + " to " + name);
         // call the rename xqy
         var req = new Ajax.Request(renameUrl,
             {
                 method: 'post',
-                parameters: 'URI=' + uri + '&NAME=' + name
+                parameters: 'ID=' + id + '&NAME=' + name
                   + (debug.isEnabled() ? '&DEBUG=1' : ''),
                 asynchronous: false,
                 onFailure: reportError
@@ -102,13 +101,14 @@ function SessionList() {
 function SessionClass(tabs, id) {
     this.tabs = tabs;
     this.restoreId = id;
+    this.sessionId = null;
     this.buffers = this.tabs.getBuffers();
     debug.print("SessionClass: buffers = " + this.buffers);
     this.history = this.tabs.getHistory();
     debug.print("SessionClass: history = " + this.history);
     this.lastSync = null;
 
-    // enable sync if and only if we see a session URI
+    // enable sync if and only if we see a session id
     this.syncDisabled = true;
 
     this.autosave = null;
@@ -127,14 +127,14 @@ function SessionClass(tabs, id) {
           return;
         }
 
-        // handle session uri cookie
-        var uri = restore.getAttribute('uri');
-        if (null != uri) {
+        // handle session id cookie
+        this.sessionId = restore.getAttribute('session-id');
+        if (null != this.sessionId) {
             this.syncDisabled = false;
-            setCookie(gSessionUriCookie, uri);
-            debug.print(label + "set session cookie = " + uri);
+            setCookie(gSessionIdCookie, this.sessionId);
+            debug.print(label + "set session id cookie = " + this.sessionId);
         } else {
-            debug.print(label + "missing session uri!");
+            debug.print(label + "missing session id!");
             this.syncDisabled = true;
         }
 
@@ -190,7 +190,7 @@ function SessionClass(tabs, id) {
 
     this.sync = function() {
         var label = "SessionClass.sync: ";
-        if (this.syncDisabled) {
+        if (this.syncDisabled || null == this.sessionId) {
             debug.print(label + "disabled");
             return false;
         }
@@ -210,7 +210,8 @@ function SessionClass(tabs, id) {
         var buffers = encodeURIComponent(this.buffers.toXml());
         var history = encodeURIComponent(this.history.toXml());
         var tabs = encodeURIComponent(this.tabs.toXml());
-        var params = ('BUFFERS=' + buffers
+        var params = ('ID=' + this.sessionId
+                      + '&BUFFERS=' + buffers
                       + '&HISTORY=' + history
                       + '&TABS=' + tabs);
         debug.print(label + "" + params);

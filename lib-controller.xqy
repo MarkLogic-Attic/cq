@@ -98,12 +98,14 @@ define variable $c:SESSION-DIRECTORY as xs:string {
 define variable $c:SESSION-EXCEPTION as element(err:error)? { () }
 
 (: we expect JavaScript to set a cookie for the session uri :)
-define variable $c:SESSION-URI as xs:string? {
-  d:debug(("cookies:", $c:COOKIES)),
-  d:debug(("session-dir:", $c:SESSION-RELPATH)),
-  let $v := data($c:COOKIES[ @key eq "/cq:session-uri" ]/@value)
-  where $v and (ends-with($v, ".xml") or $v eq $c:SESSION-RELPATH)
-  return string($v)
+define variable $c:SESSION-ID as xs:string? {
+  d:debug(('$c:SESSION-ID:', 'cookies =', $c:COOKIES)),
+  d:debug(('$c:SESSION-ID:', 'session-dir =', $c:SESSION-RELPATH)),
+  let $matches := $c:COOKIES[@key eq '/cq:session-id']
+  let $d := d:debug(('$c:SESSION-ID:', 'matching =', $matches))
+  let $id := ($matches/@value)[1]
+  let $d := d:debug(('$c:SESSION-ID:', 'value =', $id))
+  return $id
 }
 
 define variable $c:SESSION-OWNER as xs:string {
@@ -116,34 +118,32 @@ define variable $c:SESSION as element(sess:session)? {
   (: get the current session,
    : falling back to the last session or a new one.
    :)
-   let $d := d:debug(("$c:SESSION: uri =", $c:SESSION-URI))
+   let $d := d:debug(("$c:SESSION: id =", $c:SESSION-ID))
    (: get the last session, as long as it is not locked :)
    let $session :=
-     if (exists($c:SESSION-URI)
-       and empty(c:get-conflicting-locks($c:SESSION-URI)) )
-     then io:read($c:SESSION-URI)/sess:session
+     if (exists($c:SESSION-ID))
+     then c:get-session($c:SESSION-ID, true())
      else ()
    let $d := d:debug((
-     "$c:SESSION: session =", data($session/sess:last-modified)))
+     "$c:SESSION: session =", $session, data($session/sess:last-modified)))
    let $session :=
      if (exists($session)) then $session
      (: We were explicitly asked for a new session,
       : so do not use the last session.
       :)
-     else if (ends-with($c:SESSION-URI, "/")) then ()
+     else if ($c:SESSION-ID eq 'NEW') then ()
      else c:get-last-session()
-   let $session :=
-     if (exists($session)) then $session
-     (: time for a new session :)
-     else c:new-session()
+   (: if none of the above worked, generate a new session :)
+   let $session := if ($session) then $session else c:new-session()
    let $d := d:debug(("$c:SESSION: session =", $session/sess:created))
-   let $uri := c:get-session-uri($session)
    where $session
    return
-     let $set := xdmp:set($c:SESSION-URI, $uri)
+     let $id :=
+       if ($c:SESSION-EXCEPTION) then () else c:get-session-id($session)
+     let $set := xdmp:set($c:SESSION-ID, $id)
      let $lock :=
-       if (empty($c:SESSION-URI) or $c:SESSION-URI eq '') then ()
-       else c:lock-acquire($c:SESSION-URI)
+       if (empty($c:SESSION-ID) or $c:SESSION-ID eq '') then ()
+       else c:lock-acquire($c:SESSION-ID)
      return $session
 }
 
@@ -160,11 +160,11 @@ define variable $c:TITLE-TEXT as xs:string {
   }
 }
 
-define function c:lock-acquire($uri)
+define function c:lock-acquire($id as xs:string)
  as empty()
 {
   io:lock-acquire(
-    $c:uri, "exclusive", "0",
+    c:get-uri-from-id($id), "exclusive", "0",
     $c:SESSION-OWNER, $c:SESSION-TIMEOUT
   )
 }
@@ -188,7 +188,9 @@ define function c:get-conflicting-locks(
  as element(lock:active-lock)*
 {
   d:debug(('c:get-conflicting-locks', $uri, $limit, $c:SESSION-OWNER)),
-  io:get-conflicting-locks($uri, $limit, $c:SESSION-OWNER)
+  let $locks := io:get-conflicting-locks($uri, $limit, $c:SESSION-OWNER)
+  let $d := d:debug(('c:get-conflicting-locks', $uri, $locks))
+  return $locks
 }
 
 define function c:get-available-sessions()
@@ -206,6 +208,7 @@ define function c:get-sessions()
 define function c:get-sessions($check-conflicting as xs:boolean)
  as element(sess:session)*
 {
+  d:debug(('c:get-sessions:', $c:SESSION-DIRECTORY, $check-conflicting)),
   try {
     for $i in io:list($c:SESSION-DIRECTORY)/sess:session
     where not($check-conflicting)
@@ -218,7 +221,7 @@ define function c:get-sessions($check-conflicting as xs:boolean)
     (: looks like we have a problem :)
     (: TODO can we find a cleaner way of doing this? :)
     xdmp:set($c:SESSION-EXCEPTION, $ex),
-    xdmp:set($c:SESSION-URI, ())
+    xdmp:set($c:SESSION-ID, ())
   }
 }
 
@@ -228,28 +231,63 @@ define function c:get-last-session()
   (c:get-available-sessions())[1]
 }
 
-define function c:get-session($uri, $check-conflicting as xs:boolean)
- as element(sess:session)?
+define function c:get-id-from-uri($uri as xs:string)
+ as xs:string
 {
-  d:debug(('c:get-session:', 'uri =', $uri, ', root =', $io:MODULES-ROOT)),
-  if ($check-conflicting) then c:lock-acquire($uri) else (),
-  (
-    for $i in c:get-sessions($check-conflicting)
-    let $i-uri := io:node-uri($i)
-    let $d := d:debug(('c:get-session:', 'i-uri =', $i-uri))
-    where $i-uri = $uri
-    return $i
+  substring-before(tokenize($uri, '/+')[last()], '.xml')
+}
+
+define function c:get-uri-from-id($id as xs:string)
+ as xs:string
+{
+  concat($c:SESSION-DIRECTORY, $id, '.xml')
+}
+
+define function c:get-session-id($session as element(sess:session))
+ as xs:string
+{
+  ($session/@id,
+    let $uri := $session/@uri
+    where $uri
+    return c:get-id-from-uri($uri)
   )[1]
 }
 
-define function c:generate-uri()
+define function c:get-session-uri($session as element(sess:session))
+ as xs:string?
+{
+  let $id := c:get-session-id($session)
+  let $uri := c:get-uri-from-id($id)
+  let $d := d:debug(('c:get-session-uri', $id, $uri))
+  where $id
+  return $uri
+}
+
+define function c:get-session(
+  $id as xs:string, $check-conflicting as xs:boolean)
+ as element(sess:session)?
+{
+  d:debug(('c:get-session:', 'id =', $id, ', root =', $io:MODULES-ROOT)),
+  let $session := (
+    for $i in c:get-sessions($check-conflicting)
+    let $iid := c:get-session-id($i)
+    let $d := d:debug(('c:get-session:', 'id =', $iid, 'session =', $i))
+    where $id eq $iid
+    return $i
+  )[1]
+  where exists($session)
+  return
+    let $d := d:debug(('c:get-session:', 'session =', $session))
+    let $lock := if ($check-conflicting) then c:lock-acquire($id) else ()
+    return $session
+}
+
+define function c:generate-id()
  as xs:string
 {
-  let $uri := concat(
-    $c:SESSION-DIRECTORY, xdmp:integer-to-hex(xdmp:random()), ".xml"
-  )
-  return
-    if (io:exists($uri)) then c:generate-uri() else $uri
+  let $id := xdmp:integer-to-hex(xdmp:random())
+  let $uri := c:get-uri-from-id($id)
+  return if (io:exists($uri)) then c:generate-id() else $id
 }
 
 (:
@@ -258,13 +296,14 @@ define function c:generate-uri()
 define function c:new-session()
  as element(sess:session)
 {
-  let $uri :=
-    if ($c:SESSION-EXCEPTION) then () else c:generate-uri()
+  let $id :=
+    if ($c:SESSION-EXCEPTION) then () else c:generate-id()
   let $d := d:debug((
-    "new-session:", $uri, string($c:SESSION-EXCEPTION/err:format-string) ))
+    "new-session:", $id, string($c:SESSION-EXCEPTION/err:format-string) ))
   let $new := document {
     <session xmlns="com.marklogic.developer.cq.session">
     {
+      attribute id { $id },
       element name { "New Session" },
       element sec:user { $su:USER },
       element sec:user-id { $su:USER-ID },
@@ -284,20 +323,21 @@ define function c:new-session()
     </session>
   }
   let $action :=
-    if ($c:SESSION-EXCEPTION) then () else io:write($uri, $new)
+    if ($c:SESSION-EXCEPTION) then ()
+    else io:write(c:get-uri-from-id($id), $new)
   return $new/sess:session
 }
 
-define function c:delete-session($uri as xs:string)
+define function c:delete-session($id as xs:string)
  as empty()
 {
   (: make sure it really is a session :)
+  let $uri := c:get-uri-from-id($id)
   let $session := io:read($uri)/sess:session
   where $session
   return (
-    c:lock-acquire($uri),
-    io:delete($uri),
-    io:lock-release($uri)
+    c:lock-acquire($id),
+    io:delete($uri) (:, io:lock-release($uri) :)
   )
 }
 
@@ -308,49 +348,32 @@ define function c:rename-session($uri as xs:string, $name as xs:string)
   c:update-session($uri, element sess:name { $name })
 }
 
-define function c:update-session($nodes as element()*)
+define function c:update-session($id as xs:string, $nodes as element()*)
  as empty()
 {
-  c:update-session($c:SESSION-URI, $nodes)
-}
-
-define function c:update-session($uri as xs:string, $nodes as element()*)
- as empty()
-{
-  d:debug(("c:update-session:", $uri, $nodes)),
-  let $session := c:get-session($uri, true())
+  d:debug(("c:update-session: id =", $id, $nodes)),
+  let $session := c:get-session($id, true())
   let $d := d:debug(("c:update-session: session =", $session))
   let $assert := if ($session) then () else error(
-    'CTRL-SESSION', text { 'No session for', $uri }
+    'CTRL-SESSION', text { 'No session for', $id }
   )
-  let $names := (
+  let $x-attrs := for $n in ('id', 'uri') return xs:QName($n)
+  let $x-elems := (
     for $n in $nodes return node-name($n),
     node-name(<sess:last-modified/>)
   )
-  return (
-    io:write(
-      $uri,
-      document {
-        element {node-name($session)} {
-          $session/@*,
-          $session/node()[ not(node-name(.) = $names) ],
-          element sess:last-modified { current-dateTime() },
-          $nodes
-        }
+  return io:write(
+    c:get-uri-from-id($id),
+    document {
+      element {node-name($session)} {
+        $session/@*[ not(node-name(.) = $x-attrs) ],
+        attribute id { $id },
+        $session/node()[ not(node-name(.) = $x-elems) ],
+        element sess:last-modified { current-dateTime() },
+        $nodes
       }
-    )
+    }
   )
-}
-
-define function c:get-session-uri($session as element(sess:session))
- as xs:string
-{
-  let $uri := io:node-uri($session)
-  let $d := d:debug(('c:get-session-uri', $uri))
-  return
-    if (contains($uri, '/'))
-    then concat($c:SESSION-DIRECTORY, tokenize($uri, '/+')[last()])
-    else $uri
 }
 
 (: lib-controller.xqy :)

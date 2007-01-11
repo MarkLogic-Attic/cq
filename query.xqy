@@ -216,7 +216,9 @@ c:set-content-type(),
       <div class="hidden" xml:space="preserve"
        id="/cq:restore-session" name="/cq:restore-session">{
 
-        if ($c:SESSION-URI) then attribute uri { $c:SESSION-URI } else (),
+        if ($c:SESSION)
+        then attribute session-id { $c:SESSION-ID }
+        else (),
 
         let $active := data($c:SESSION/sess:active-tab)
         where $active

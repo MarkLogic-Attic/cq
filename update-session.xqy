@@ -20,6 +20,9 @@
  :
  :)
 
+define variable $ID as xs:string {
+  xdmp:get-request-field("ID") }
+
 define variable $BUFFERS as xs:string {
   xdmp:get-request-field("BUFFERS") }
 
@@ -56,6 +59,7 @@ define variable $new-tabs as element(sess:active-tab) {
   /sess:active-tab
 }
 
-c:update-session(($new-buffers, $new-history, $new-tabs))
+(:d:debug-on(),:)
+c:update-session($ID, ($new-buffers, $new-history, $new-tabs))
 
 (: update-session.xqy :)

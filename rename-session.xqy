@@ -19,8 +19,8 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-define variable $URI as xs:string {
-  xdmp:get-request-field("URI") }
+define variable $ID as xs:string {
+  xdmp:get-request-field("ID") }
 
 define variable $NAME as xs:string {
   xdmp:get-request-field("NAME") }
@@ -35,6 +35,6 @@ import module namespace d = "com.marklogic.developer.cq.debug"
  at "lib-debug.xqy"
 
 if ($DEBUG) then d:debug-on() else (),
-c:rename-session($URI, $NAME)
+c:rename-session($ID, $NAME)
 
 (: rename-session.xqy :)

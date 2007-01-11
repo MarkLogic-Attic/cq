@@ -132,6 +132,7 @@ c:set-content-type(),
               return element th { $i }
             },
             for $i in $sessions
+            let $id := c:get-session-id($i)
             let $uri := c:get-session-uri($i)
             (: we only care about the lock that expires last :)
             let $conflicting := c:get-conflicting-locks($uri, 1)
@@ -142,7 +143,7 @@ c:set-content-type(),
                   attribute autocomplete { "off" },
                   attribute value { ($i/sess:name, "(unnamed)")[1] },
                   attribute onchange {
-                    concat("list.renameSession('", $uri, "', this.value)")
+                    concat("list.renameSession('", $id, "', this.value)")
                   }
                 }
               },
@@ -164,18 +165,18 @@ c:set-content-type(),
                   attribute title {
                     data($i/sess:query-buffers/sess:query[1]) },
                   attribute onclick {
-                    concat("list.resumeSession('", $uri, "')") },
+                    concat("list.resumeSession('", $id, "')") },
                   attribute value {
-                    "Resume", (' ', $uri)[ $d:DEBUG ] }
+                    "Resume", (' ', $id)[ $d:DEBUG ] }
                 }[ empty($conflicting) ],
                 $v:NBSP,
                 element input {
                   attribute type { "button" },
                   attribute title { "permanently delete this session" },
                   attribute onclick {
-                    concat("list.deleteSession('", $uri, "', this)")
+                    concat("list.deleteSession('", $id, "', this)")
                   },
-                  attribute value { "Delete", (' ', $uri)[ $d:DEBUG ] }
+                  attribute value { "Delete", (' ', $id)[ $d:DEBUG ] }
                 }[ empty($conflicting) ]
               }
             }

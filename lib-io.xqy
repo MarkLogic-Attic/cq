@@ -191,15 +191,6 @@ define function io:document-locks($paths as xs:string*)
     else io:document-locks-db($paths)
 }
 
-(:~ get document uri :)
-define function io:node-uri($n as node())
- as xs:string
-{
-    if ($io:MODULES-DB eq 0)
-    then io:node-uri-fs($n)
-    else io:node-uri-db($n)
-}
-
 (:~ @private :)
 define function io:exists-db($uri as xs:string)
  as xs:boolean
@@ -283,7 +274,7 @@ define function io:canonicalize($path as xs:string)
 }
 
 (:~ @private :)
-define function io:fs-lock-path($path as xs:string)
+define function io:lock-path-fs($path as xs:string)
   as xs:string
 {
   (: primitive, yet messy :)
@@ -317,7 +308,7 @@ define function io:read-fs($path as xs:string)
   } catch ($ex) {
     if ($ex/err:code eq 'SVC-FILOPN') then ()
     else xdmp:log(text {
-      "io:exists-fs:", normalize-space(xdmp:quote($ex)) })
+      "io:read-fs:", normalize-space(xdmp:quote($ex)) })
   }
 }
 
@@ -384,7 +375,7 @@ define function io:lock-release-fs($path as xs:string)
       "existing locks are held by", data($locks/sec:user-id) }
     )
   let $path := io:canonicalize($path)
-  let $lock-path := io:fs-lock-path($path)
+  let $lock-path := io:lock-path-fs($path)
   return
     if ($su:USER-IS-ADMIN or empty($locks[ sec:user-id ne $su:USER-ID ]))
     then io:delete-fs($lock-path)
@@ -492,7 +483,7 @@ define function io:lock-acquire-fs(
       }
     }
   }
-  let $path := io:fs-lock-path($path)
+  let $path := io:lock-path-fs($path)
   return io:write-fs($path, $lock)
 }
 
@@ -514,28 +505,9 @@ define function io:document-locks-fs($paths as xs:string*)
  as document-node()*
 {
   for $path in $paths
-  return io:read-fs(io:fs-lock-path($path))
-}
-
-(:~ @private :)
-define function io:node-uri-db($n as node())
- as xs:string
-{
-  xdmp:node-uri($n)
-}
-
-(:~ @private :)
-define function io:node-uri-fs($n as node())
- as xs:string
-{
-  let $uri := xdmp:node-uri($n)
-  return
-    (: behave just like xdmp:node-uri :)
-    if (empty($uri)) then ''
-    (: the prefix must be stripped :)
-    else if (starts-with($uri, $io:MODULES-ROOT))
-    then substring-after($uri, $io:MODULES-ROOT)
-    else $uri
+  let $lock-path := io:lock-path-fs($path)
+  let $fs := io:read-fs($lock-path)
+  return $fs
 }
 
 (: lib-io.xqy :)

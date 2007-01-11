@@ -19,12 +19,12 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-define variable $URI as xs:string {
-  xdmp:get-request-field("URI") }
+define variable $ID as xs:string {
+  xdmp:get-request-field("ID") }
 
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
-c:delete-session($URI)
+c:delete-session($ID)
 
 (: delete-session.xqy :)

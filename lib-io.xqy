@@ -419,27 +419,29 @@ define function io:get-conflicting-locks(
 )
  as element(lock:active-lock)*
 {
-  let $locks := io:document-locks($uri)
-    /lock:lock[lock:lock-type eq "write"]
-    /lock:active-locks/lock:active-lock
-    [ lock:owner ne $owner ]
+  (: a lock is conflicting if...
+   :   1. it is a write-lock
+   :   2. the owner is not $owner
+   :   3. it has an active-lock which has not expired
+   :)
   let $now := io:get-epoch-seconds()
+  let $locks :=
+    for $c in io:document-locks($uri)
+      /lock:lock[lock:lock-type eq 'write']
+      /lock:active-locks/lock:active-lock
+        [ lock:owner ne $owner ]
+    let $timeout := data($c/lock:timeout)
+    let $expires :=
+      if (empty($timeout)) then (1 + $now)
+      else ($c/lock:timestamp + xs:unsignedLong($timeout))
+    where $expires ge $now
+    (: we only care about the lock(s) that expires last.
+     : an empty timeout is considered infinite.
+     :)
+    order by empty($timeout) descending, $expires descending
+    return $c
   return
-    if (empty($limit)) then $locks else subsequence(
-      (: we only care about the lock(s) that expires last.
-       : an empty timeout is considered infinite.
-       :)
-      for $c in $locks
-      let $timeout := data($c/lock:timeout)
-      let $expires :=
-        if (empty($timeout)) then (1 + $now)
-        else ($c/lock:timestamp + xs:unsignedLong($timeout))
-      where $expires ge $now
-      order by empty($timeout) descending, $expires descending
-      return $c,
-      (: remaining args to subsequence() :)
-      1, $limit
-    )
+    if (empty($limit)) then $locks else subsequence($locks, 1, $limit)
 }
 
 (:~ @private :)

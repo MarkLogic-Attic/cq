@@ -160,6 +160,7 @@ c:set-content-type(),
                     )
                   )
                 },
+                (: only show these buttons if there are no conflicting locks :)
                 element input {
                   attribute type { "button" },
                   attribute title {

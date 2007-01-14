@@ -1352,18 +1352,22 @@ function cqListDocuments() {
     // I would rather use text/plain, but it causes problems for IE6
     // TODO create a link to display each document?
     var theQuery =
-        "let $est := xdmp:estimate(doc()) "
+        "let $limit := 10000 "
+        + "let $est := xdmp:estimate(doc()) "
         + "return ("
-        + "( element p { 'Too many documents to display!',"
-        + "  'First 10000 documents of', $est, 'total:' }"
-        + ")[$est gt 10000],"
-        + " for $i in doc()[1 to 10000]"
+        + " if ($est gt $limit)"
+        + " then element p { 'Too many documents to display!',"
+        + "  'First', $limit, 'documents of', $est, 'total:' }"
+        + " else element p { $est, 'documents total' },"
+        + " for $i in doc()[1 to $limit]"
         + " let $uri := xdmp:node-uri($i)"
+        + " let $n := $i/(binary()|element()|text())[1]"
+        + " where $n"
         + " order by $uri"
         + " return ( $uri,"
         + " <span> - </span>,"
-        + " <i>{ node-kind($i/(binary()|element()|text())) }</i>,"
-        + " <code>&#160;{ name($i/*) }</code>, <br/> )"
+        + " <i>{ node-kind($n) }</i>,"
+        + " <code>&#160;{ name($n) }</code>, <br/> )"
         + ")";
     submitForm($(kQueryFormId), theQuery, "text/html", false);
 }

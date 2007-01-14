@@ -189,7 +189,8 @@ define function c:get-conflicting-locks(
 {
   d:debug(('c:get-conflicting-locks', $uri, $limit, $c:SESSION-OWNER)),
   let $locks := io:get-conflicting-locks($uri, $limit, $c:SESSION-OWNER)
-  let $d := d:debug(('c:get-conflicting-locks', $uri, $locks))
+  let $d := d:debug(('c:get-conflicting-locks',
+    $uri, $limit, $c:SESSION-OWNER, $locks))
   return $locks
 }
 
@@ -360,6 +361,7 @@ define function c:update-session($id as xs:string, $nodes as element()*)
   let $x-attrs := for $n in ('id', 'uri') return xs:QName($n)
   let $x-elems := (
     for $n in $nodes return node-name($n),
+    node-name(<sec:user/>),
     node-name(<sess:last-modified/>)
   )
   return io:write(
@@ -368,6 +370,9 @@ define function c:update-session($id as xs:string, $nodes as element()*)
       element {node-name($session)} {
         $session/@*[ not(node-name(.) = $x-attrs) ],
         attribute id { $id },
+        (: by default, take ownership :)
+        if (exists($nodes/sec:user)) then ()
+        else element sec:user { $su:USER },
         $session/node()[ not(node-name(.) = $x-elems) ],
         element sess:last-modified { current-dateTime() },
         $nodes

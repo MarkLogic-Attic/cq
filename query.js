@@ -1362,7 +1362,7 @@ function cqListDocuments() {
         + " for $i in doc()[1 to $limit]"
         + " let $uri := xdmp:node-uri($i)"
         + " let $n := $i/(binary()|element()|text())[1]"
-        + " where $n"
+        + " where exists($n)"
         + " order by $uri"
         + " return ( $uri,"
         + " <span> - </span>,"

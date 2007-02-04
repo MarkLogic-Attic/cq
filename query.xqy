@@ -121,15 +121,11 @@ c:set-content-type(),
               list:&#160;<a href="javascript:cqListDocuments()">all</a>
               &#160;|&#160;<span class="instruction">
               <a href="session.xqy{"?debug=1"[ $d:DEBUG ]}"
-           target="_parent">session{
+           target="_parent">{
                 if ($c:SESSION and empty($c:SESSION-EXCEPTION))
-                then ()
-                else " disabled"
-              }</a>{
-                if ($c:SESSION and empty($c:SESSION-EXCEPTION))
-                then concat(": ", $c:SESSION-NAME)
-                else ()
-              }</span>
+                then concat("session: ", $c:SESSION-NAME)
+                else "sessions disabled"
+              }</a></span>
               &#160;|&#160;<span class="instruction">resize:</span>
               <img src="darr.gif" class="resizable-s" width="13" height="10"
               title="increase the number of rows"

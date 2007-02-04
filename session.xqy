@@ -58,6 +58,8 @@ c:set-content-type(),
       >developer.marklogic.com</a>.
       </p>
       {
+        (: force session initialization :)
+        let $s := $c:SESSION return (),
         if (exists($c:SESSION-EXCEPTION))
         then <div>
           <h1>WARNING: sessions have been disabled, because of an error.</h1>

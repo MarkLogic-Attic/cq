@@ -129,7 +129,8 @@ function SessionClass(tabs, id) {
 
         // handle session id cookie
         this.sessionId = restore.getAttribute('session-id');
-        if (null != this.sessionId) {
+        // sessionId may be null, or empty string
+        if (this.sessionId) {
             this.syncDisabled = false;
             setCookie(gSessionIdCookie, this.sessionId);
             debug.print(label + "set session id cookie = " + this.sessionId);

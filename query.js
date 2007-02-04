@@ -1312,6 +1312,8 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
         $(kQueryMimeType).value = theMimeType;
     }
 
+    // TODO try setting form.action to append '?iesucks=.txt' if text
+
     // TODO it would be nice to grey out the target frame, if possible
 
     // post the form
@@ -1352,7 +1354,7 @@ function cqListDocuments() {
     // I would rather use text/plain, but it causes problems for IE6
     // TODO create a link to display each document?
     var theQuery =
-        "let $limit := 10000 "
+        "let $limit := 5000 "
         + "let $est := xdmp:estimate(doc()) "
         + "return ("
         + " if ($est gt $limit)"

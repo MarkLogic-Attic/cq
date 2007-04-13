@@ -49,12 +49,20 @@ define variable $g-default-worksheet as element(cq_buffers)? {
    : module-database (or filesystem)
    :)
   let $mdb := xdmp:modules-database()
+  (: NB - xdmp:modules-root() introduced in MarkLogic Server 3.1 :)
   let $root := data(
     xdmp:read-cluster-config-file("groups.xml")
     /mlgr:groups/mlgr:group/mlgr:http-servers
     /mlgr:http-server[ mlgr:http-server-id = xdmp:server() ]
     /mlgr:root
   )
+  (: rpath will always start with a slash,
+   : so life is easier of the root doesn't end with a slash
+   :)
+  let $root :=
+    if (ends-with($root, "/"))
+    then substring($root, 1, string-length($root) - 1)
+    else $root
   let $rpath := string-join(
     tokenize(xdmp:get-request-path(), "[/]+")[1 to last() - 1],
     "/"

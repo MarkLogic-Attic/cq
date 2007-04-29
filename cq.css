@@ -52,6 +52,13 @@ select
   margin-left: 5px;
 }
 
+input[type = "button"]
+{
+  font-family: sans-serif;
+  margin-left: 5px;
+  margin-left: 5px;
+}
+
 #cq-textarea-status
 {
   font-weight: normal;
@@ -86,9 +93,13 @@ select
   vertical-align: middle;
 }
 
+.accent-color
+{ 
+  background-color: #FFCC33;
+}
+
 .head1 
 {
-  background-color: #FFCC33;
   font-size: medium;
   font-weight: bold;
   margin-bottom: 3px;
@@ -108,7 +119,6 @@ select
 
 .buffer-tab-active
 {  
-  background-color: #FFCC33;
   font-size: medium;
   font-weight: bold;
   margin: 0 1em 0 1em;
@@ -122,16 +132,16 @@ select
 {  
   border: 1px solid black;
   overflow: auto;
-  /* would be better if this was dynamic,
-   * but 22em should be font-independent.
-   * the idea is to match the height of the query-buffers area.
+  /* initial value only:
+   * JavaScript will match the height of the query-buffers area.
    */
   height: 21em;
 }
 
-.query-delete
+.delete-widget
 {
   color: red;
+  cursor: crosshair;
 }
 
 .instruction
@@ -140,13 +150,6 @@ select
   font-size: small;
   font-style: italic;
   margin-right: .5em;
-}
-
-.input1 
-{
-  font-family: sans-serif;
-  margin-left: 5px;
-  margin-left: 5px;
 }
 
 /* clipping doesn't work quite how I'd like it to:
@@ -169,7 +172,7 @@ select
   cursor: pointer;
 }
 
-.bufferlabelactive 
+.bufferlabel-active 
 {
   overflow: hidden !important;
 /*  text-overflow: clip !important; */
@@ -183,7 +186,6 @@ select
 
   line-height: 1.5;
   height: 3em;
-  background-color: #FFCC33;
 }
 
 /* IE6 hack, to allow 'white-space: nowrap' for gecko browsers. 
@@ -192,6 +194,11 @@ select
 * html .bufferlabel 
 {
   white-space: normal !important;
+}
+
+.hidden
+{
+  display: none;
 }
 
 /* end cq.css */

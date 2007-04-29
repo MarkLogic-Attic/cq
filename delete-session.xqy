@@ -1,7 +1,7 @@
 (:
  : Client Query Application
  :
- : Copyright (c) 2002-2006 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2007 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -19,7 +19,12 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-(: in case the user had the old cq.xqy bookmarked :)
-xdmp:redirect-response(".")
+define variable $ID as xs:string {
+  xdmp:get-request-field("ID") }
 
-(: cq.xqy :)
+import module namespace c = "com.marklogic.developer.cq.controller"
+ at "lib-controller.xqy"
+
+c:delete-session($ID)
+
+(: delete-session.xqy :)

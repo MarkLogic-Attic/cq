@@ -1,7 +1,5 @@
-(:
- : Client Query Application
- :
- : Copyright (c) 2002-2006 Mark Logic Corporation. All Rights Reserved.
+<!--
+ : Copyright (c)2002-2006 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -17,9 +15,22 @@
  :
  : The use of the Apache License does not indicate that this project is
  : affiliated with the Apache Software Foundation.
- :)
+-->
+<!--
 
-(: in case the user had the old cq.xqy bookmarked :)
-xdmp:redirect-response(".")
+    policy.xml
 
-(: cq.xqy :)
+    To make this file active, copy it to 'policy.xml'
+    in the installed cq directory.
+    
+    You may change the value of the title element
+    to be any valid xs:string.
+    
+    You may change the value of the accent-color element
+    to be any valid XHTML color.
+
+-->
+<policy xmlns="com.marklogic.developer.cq.policy">
+  <title>ONLINE - BE CAREFUL</title>
+  <accent-color>red</accent-color>
+</policy>

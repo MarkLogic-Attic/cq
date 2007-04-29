@@ -1,7 +1,7 @@
 (:
  : Client Query Application
  :
- : Copyright (c) 2002-2006 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2007 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -19,7 +19,22 @@
  : affiliated with the Apache Software Foundation.
  :)
 
-(: in case the user had the old cq.xqy bookmarked :)
-xdmp:redirect-response(".")
+define variable $ID as xs:string {
+  xdmp:get-request-field("ID") }
 
-(: cq.xqy :)
+define variable $NAME as xs:string {
+  xdmp:get-request-field("NAME") }
+
+define variable $DEBUG as xs:boolean {
+  xs:boolean(xdmp:get-request-field("DEBUG", 'false')) }
+
+import module namespace c = "com.marklogic.developer.cq.controller"
+ at "lib-controller.xqy"
+
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy"
+
+if ($DEBUG) then d:debug-on() else (),
+c:rename-session($ID, $NAME)
+
+(: rename-session.xqy :)

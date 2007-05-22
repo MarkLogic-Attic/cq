@@ -74,17 +74,39 @@ define variable $c:HOST-ID as xs:unsignedLong {
  xdmp:host() }
 
 define variable $c:POLICY as element(pol:policy)? {
-  let $path := xdmp:get-request-path()
-  (: ensure that the path ends with "/" :)
-  let $path :=
-    if (ends-with($path, "/"))
-    then $path
-    else concat(
-      string-join(tokenize($path, "/")[ 1 to last() - 1], "/"), "/"
-    )
-  let $path := concat($path, "policy.xml")
+  let $path := c:build-document-path("policy.xml")
   where io:exists($path)
   return io:read($path)/pol:policy
+}
+
+(: some deployments like to set their own default worksheet:
+ : if it is available, use it.
+ :)
+define variable $c:DEFAULT-WORKSHEET as element(sess:session) {
+  let $d := d:debug(('DEFAULT-WORKSHEET: init'))
+  let $worksheet as element(sess:session)? :=
+    let $path := c:build-document-path("worksheet.xml")
+    let $d := d:debug(('DEFAULT-WORKSHEET: path =', $path))
+    where io:exists($path)
+    return io:read($path)/sess:session
+  return
+    (: did someone deletes the template document? be nice about it! :)
+    if ($worksheet)
+    then $worksheet
+    else <session xmlns="com.marklogic.developer.cq.session">
+    {
+      element name { "New Session" },
+      element query-buffers {
+        for $i in (1 to 10) return element query {
+          concat(
+            '(: buffer ', string($i), ' :)', $v:NL,
+            '<p>hello world</p>'
+          )
+        }
+      },
+      <query-history/>
+    }
+    </session>
 }
 
 define variable $c:POLICY-TITLE as xs:string? {
@@ -246,11 +268,31 @@ define function c:get-sessions($check-conflicting as xs:boolean)
       $i/name
     return $i
   } catch ($ex) {
-    (: looks like we have a problem :)
-    (: TODO can we find a cleaner way of doing this? :)
+    (: looks like we have a problem - disable sessions :)
     xdmp:set($c:SESSION-EXCEPTION, $ex),
     xdmp:set($c:SESSION-ID, ())
   }
+}
+
+define function c:get-session(
+  $id as xs:string, $check-conflicting as xs:boolean)
+ as element(sess:session)?
+{
+  let $session :=
+    let $path := c:get-uri-from-id($id)
+    let $d := d:debug(('c:get-session:',
+      'id =', $id, ', root =', $io:MODULES-ROOT, ', path =', $path))
+    let $exists := io:exists($path)
+    let $conflicts :=
+      if (not($check-conflicting)) then ()
+      else c:get-conflicting-locks($path)
+    let $lock :=
+      if (not($check-conflicting) or exists($conflicts)) then ()
+      else c:lock-acquire($id)
+    where $exists and empty($conflicts)
+    return io:read($path)/sess:session
+  let $d := d:debug(('c:get-session:', $session))
+  return $session
 }
 
 define function c:get-last-session()
@@ -291,25 +333,6 @@ define function c:get-session-uri($session as element(sess:session))
   return $uri
 }
 
-define function c:get-session(
-  $id as xs:string, $check-conflicting as xs:boolean)
- as element(sess:session)?
-{
-  d:debug(('c:get-session:', 'id =', $id, ', root =', $io:MODULES-ROOT)),
-  let $session := (
-    for $i in c:get-sessions($check-conflicting)
-    let $iid := c:get-session-id($i)
-    let $d := d:debug(('c:get-session:', 'id =', $iid, 'session =', $i))
-    where $id eq $iid
-    return $i
-  )[1]
-  where exists($session)
-  return
-    let $d := d:debug(('c:get-session:', 'session =', $session))
-    let $lock := if ($check-conflicting) then c:lock-acquire($id) else ()
-    return $session
-}
-
 define function c:generate-id()
  as xs:string
 {
@@ -321,9 +344,6 @@ define function c:generate-id()
 (:
  : Create a new session.
  :)
-(: TODO some deployments like to set their own default worksheet:
- : if it is in APP-SERVER-ROOT/CQ-LOCATION/worksheet.xml, use it.
- :)
 define function c:new-session()
  as element(sess:session)
 {
@@ -331,39 +351,40 @@ define function c:new-session()
     if ($c:SESSION-EXCEPTION) then () else c:generate-id()
   let $d := d:debug((
     "new-session:", $id, string($c:SESSION-EXCEPTION/err:format-string) ))
-  let $new := document {
+  let $attributes := attribute id { $id }
+  let $attribute-qnames := for $i in $attributes return node-name($i)
+  let $elements := (
+    element sec:user { $su:USER },
+    element sec:user-id { $su:USER-ID },
+    element created { current-dateTime() },
+    element last-modified { current-dateTime() }
+  )
+  let $element-qnames := for $i in $elements return node-name($i)
+  let $new :=
     <session xmlns="com.marklogic.developer.cq.session">
     {
-      attribute id { $id },
-      element name { "New Session" },
-      element sec:user { $su:USER },
-      element sec:user-id { $su:USER-ID },
-      element created { current-dateTime() },
-      element last-modified { current-dateTime() },
-      element query-buffers {
-        for $i in (1 to 10) return element query {
-          attribute content-source {
-            string-join(
-              ('as', string($c:SERVER-ID), string($c:HOST-ID)), ':') },
-          concat(
-            '(: buffer ', string($i), ' :)', $v:NL,
-            'declare namespace html = "http://www.w3.org/1999/xhtml"', $v:NL,
-            '<p>hello world</p>'
-          )
-        }
-      },
-      <query-history/>
+      $attributes,
+      $elements,
+      (: default buffers and history, excluding any conflicts :)
+      $c:DEFAULT-WORKSHEET/@*[ not(node-name(.) = $attribute-qnames) ],
+      $c:DEFAULT-WORKSHEET/node()[ not(node-name(.) = $element-qnames) ]
     }
     </session>
-  }
   let $action :=
     if ($c:SESSION-EXCEPTION) then ()
     else try {
-      io:write(c:get-uri-from-id($id), $new)
+      c:save-session($new)
     } catch ($ex) {
+      (: if something goes wrong, disable sessions :)
       xdmp:set($c:SESSION-EXCEPTION, $ex)
     }
-  return $new/sess:session
+  return $new
+}
+
+define function c:save-session($session as element(sess:session))
+ as empty()
+{
+  io:write(c:get-uri-from-id($session/@id), document { $session })
 }
 
 define function c:delete-session($id as xs:string)
@@ -392,30 +413,26 @@ define function c:update-session($id as xs:string, $nodes as element()*)
   d:debug(("c:update-session: id =", $id, $nodes)),
   let $session := c:get-session($id, true())
   let $d := d:debug(("c:update-session: session =", $session))
-  let $assert := if ($session) then () else error(
-    'CTRL-SESSION', text { 'No session for', $id }
-  )
+  let $assert :=
+    if ($session) then ()
+    else error('CTRL-SESSION', text { 'No session for', $id } )
   let $x-attrs := for $n in ('id', 'uri') return xs:QName($n)
   let $x-elems := (
     for $n in $nodes return node-name($n),
     node-name(<sec:user/>),
     node-name(<sess:last-modified/>)
   )
-  return io:write(
-    c:get-uri-from-id($id),
-    document {
-      element {node-name($session)} {
-        $session/@*[ not(node-name(.) = $x-attrs) ],
-        attribute id { $id },
-        (: by default, take ownership :)
-        if (exists($nodes/sec:user)) then ()
-        else element sec:user { $su:USER },
-        $session/node()[ not(node-name(.) = $x-elems) ],
-        element sess:last-modified { current-dateTime() },
-        $nodes
-      }
-    }
-  )
+  let $session := element {node-name($session)} {
+    $session/@*[ not(node-name(.) = $x-attrs) ],
+    attribute id { $id },
+    (: by default, take ownership :)
+    if (exists($nodes/sec:user)) then ()
+    else element sec:user { $su:USER },
+    $session/node()[ not(node-name(.) = $x-elems) ],
+    element sess:last-modified { current-dateTime() },
+    $nodes
+  }
+  return c:save-session($session)
 }
 
 define function c:get-app-server-info()
@@ -460,6 +477,23 @@ define function c:get-orphan-database-ids()
    :)
   let $exposed := data($c:APP-SERVER-INFO/c:database)
   return xdmp:databases()[not(. = $exposed)]
+}
+
+define function c:build-document-path($document-name as xs:string)
+ as xs:string {
+  let $path := xdmp:get-request-path()
+  (: ensure that the path ends with "/" :)
+  let $path :=
+    if (ends-with($path, "/"))
+    then $path
+    else concat(string-join(tokenize(
+      $path, "/")[ 1 to last() - 1], "/"), "/")
+  (: canonicalize the document-name :)
+  let $document-name :=
+    if (not(starts-with($document-name, '/')))
+    then $document-name
+    else replace($document-name, '^(/+)(.+)', '$2')
+  return concat($path, $document-name)
 }
 
 (: lib-controller.xqy :)

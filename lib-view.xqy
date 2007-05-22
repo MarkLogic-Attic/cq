@@ -64,6 +64,12 @@ define function v:get-xml($x)
 define function v:get-html($x)
  as element(xh:html)
 {
+  v:get-html($x, false())
+}
+
+define function v:get-html($x as item()*, $include-head as xs:boolean)
+ as element(xh:html)
+{
   let $body :=
     for $i in $x
     return if ($i instance of document-node()) then $i/node() else $i
@@ -72,16 +78,19 @@ define function v:get-html($x)
       and ($body instance of element())
       and node-name($body) eq xs:QName('xh:html'))
     then $body
-    else
-<html xmlns="http://www.w3.org/1999/xhtml">
-  <head><title/></head>
-  <body bgcolor="white">
-{
-  if (exists($body)) then $body
-  else <i>your query returned an empty sequence</i>
-}
-  </body>
-</html>
+    else <html xmlns="http://www.w3.org/1999/xhtml">
+    {
+      if ($include-head)
+      then v:get-html-head('Query Results')
+      else <head><title>Query Results</title></head>
+    }
+    <body bgcolor="white">
+    {
+      if (exists($body)) then $body
+      else <i>your query returned an empty sequence</i>
+    }
+    </body>
+  </html>
 }
 
 define function v:get-text($x as item()+)
@@ -110,7 +119,7 @@ define function v:get-error-frame-html(
       return (
         concat(string($x), ": "),
         element span {
-          if ($x eq $line-no) then attribute style { "color: red" } else (),
+          if ($x eq $line-no) then attribute class { "error" } else (),
           $l
         },
         <br/>
@@ -252,7 +261,10 @@ define function v:get-eval-selector() as element(xh:select)
       ('as', string($s/c:server-id), string($s/c:host-id)), ":")
     (: sort current app-server to the top, for bootstrap selection :)
     order by ($s/c:server-id eq $c:SERVER-ID) descending, $label
-    return element xh:option { attribute value { $value }, $label }
+    return element xh:option {
+      if ($s/c:server-id ne $c:SERVER-ID) then ()
+      else attribute selected { 1 },
+      attribute value { $value }, $label }
     ,
     for $db in c:get-orphan-database-ids()
     let $label :=
@@ -262,6 +274,65 @@ define function v:get-eval-selector() as element(xh:select)
     order by ($db eq $c:DATABASE-ID) descending, $label
     return element xh:option { attribute value { $value }, $label }
   }
+}
+
+define function v:round-to-sigfig($i as xs:double)
+ as xs:double {
+  if ($i eq 0) then 0
+  else round-half-to-even(
+    $i, xs:integer(2 - ceiling(math:log10($i))))
+}
+
+define function v:format-profiler-report($report as element(prof:report))
+  as element(xh:table)
+{
+  let $elapsed := data($report/prof:metadata/prof:overall-elapsed)
+  let $size := 256
+  let $ellipsis := codepoints-to-string(8230)
+  return (
+    <table xmlns="http://www.w3.org/1999/xhtml" summary="profiler report">{
+      attribute class { "profiler-report" },
+      element caption {
+        attribute class { "caption" },
+        'Profiled', sum($report/prof:histogram/prof:expression/prof:count),
+        'expressions in', $elapsed },
+      element tr {
+        for $i in ('line', 'expression', 'count', 'shallow-%', 'deep-%')
+        return element th { attribute class { "profiler-report" }, $i }
+      },
+      for $i in $report/prof:histogram/prof:expression
+      order by $i/prof:shallow-time descending, $i/prof:deep-time descending
+      return element tr {
+        attribute class { "profiler-report" },
+        element td {
+          attribute class { "profiler-report row-title" },
+          attribute nowrap { 1 },
+          text {
+            ($i/prof:uri/text(), 'main')[1] }, ': ', $i/prof:line/text()
+        },
+        element td {
+          attribute class { "profiler-report expression" },
+          let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
+          return
+            if (string-length($expr) gt $size)
+            then concat($expr, $ellipsis)
+            else $expr
+        },
+        element td {
+          attribute class { "profiler-report numeric" },
+          data($i/prof:count)
+        },
+        element td {
+          attribute class { "profiler-report numeric" },
+          v:round-to-sigfig(100 * $i/prof:shallow-time div $elapsed)
+        },
+        element td {
+          attribute class { "profiler-report numeric" },
+          v:round-to-sigfig(100 * $i/prof:deep-time div $elapsed)
+        }
+      }
+    }</table>
+  )
 }
 
 (: lib-view.xqy :)

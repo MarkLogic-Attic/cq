@@ -44,7 +44,7 @@ c:set-content-type(),
   { v:get-html-head() }
   <body onload="cqOnLoad()">
     <!-- TODO query path on our form may keep IE6 from launching a helper -->
-    <form action="eval.xqy?iesucks.txt" method="post" id="/cq:form"
+    <form action="eval.xqy?iefix.txt" method="post" id="/cq:form"
      target="/cq:resultFrame">
       <table summary="query form">
         <tr>
@@ -102,10 +102,13 @@ c:set-content-type(),
                 <input type="button" onclick="submitText(this.form);"
                 value="TEXT"
                 title="Submit query as text/plain. Shortcut: ctrl-shift-enter"/>
+                <input type="button" onclick="submitProfile(this.form);"
+                value="Profile"
+                title="Submit query for profiling. Shortcut: ctrl-alt-shift-enter"/>
                 <input type="hidden" value="text/xml"
                 id="/cq:mime-type" name="/cq:mime-type"/>
                 </td>
-                <td id="/cq:textarea-status" nowrap="1"
+                <td id="/cq:textarea-status" nowrap="1" class="status"
                 title="Current position of the caret, as LINE,COLUMN."></td>
               </tr>
             </table>

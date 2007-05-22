@@ -32,6 +32,9 @@ define variable $HISTORY as xs:string {
 define variable $TABS as xs:string {
   xdmp:get-request-field("TABS") }
 
+define variable $DEBUG as xs:boolean {
+  boolean(xdmp:get-request-field("DEBUG")) }
+
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy"
 
@@ -59,7 +62,7 @@ define variable $new-tabs as element(sess:active-tab) {
   /sess:active-tab
 }
 
-(:d:debug-on(),:)
+if ($DEBUG) then d:debug-on() else (),
 c:update-session($ID, ($new-buffers, $new-history, $new-tabs))
 
 (: update-session.xqy :)

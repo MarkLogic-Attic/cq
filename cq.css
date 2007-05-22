@@ -1,4 +1,4 @@
-/* Copyright (c) 2004-2006 Mark Logic Corporation. All Rights Reserved.
+/* Copyright (c) 2004-2007 Mark Logic Corporation. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  * The use of the Apache License does not indicate that this project is
  * affiliated with the Apache Software Foundation. 
  */
+@import "local.css";
 
 body 
 {
@@ -65,38 +66,18 @@ input[type = "button"]
   font-size: small;
 }
 
-.resizable-e
-{ 
-  cursor: e-resize;
+.resizable-e,.resizable-s,.resizable-w,.resizable-n
+{
   margin-right: 5px;
   vertical-align: middle;
 }
 
-.resizable-s
-{ 
-  cursor: s-resize;
-  margin-right: 5px;
-  vertical-align: middle;
-}
+.resizable-e { cursor: e-resize; }
+.resizable-s { cursor: s-resize; }
+.resizable-w { cursor: w-resize; }
+.resizable-n { cursor: n-resize; }
 
-.resizable-w
-{ 
-  cursor: w-resize;
-  margin-right: 5px;
-  vertical-align: middle;
-}
-
-.resizable-n
-{ 
-  cursor: n-resize;
-  margin-right: 5px;
-  vertical-align: middle;
-}
-
-.accent-color
-{ 
-  background-color: #FFCC33;
-}
+.accent-color { background-color: #FFCC33; }
 
 .head1 
 {
@@ -199,6 +180,32 @@ input[type = "button"]
 .hidden
 {
   display: none;
+}
+
+/* for display of stack traces */
+.error
+{
+  color: red;
+}
+
+.profiler-report
+{
+  border: 1px solid black;
+}
+
+.caption, .row-title
+{
+  font-weight: bold;  
+}
+
+.numeric
+{
+  text-align: right;
+}
+
+.status
+{
+  width: 7em;
 }
 
 /* end cq.css */

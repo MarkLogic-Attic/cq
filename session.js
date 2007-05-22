@@ -38,6 +38,15 @@ function SessionList() {
     var deleteUrl = 'delete-session.xqy';
     var renameUrl = 'rename-session.xqy';
 
+    this.refresh = function() {
+        if (debug.isEnabled()) {
+            alert("will refresh now");
+            window.location.replace( ".?debug=1");
+        } else {
+            window.location.replace( "." );
+        }
+    }
+
     this.newSession = function() {
         // start a new session and set the user cookie appropriately
         debug.print("newSession: start");
@@ -45,7 +54,7 @@ function SessionList() {
         // lib-controller.xqy to build a new session.
         setCookie(gSessionIdCookie, "NEW");
         // refresh should show the query view
-        window.location.replace( "." );
+        this.refresh();
     }
 
     this.resumeSession = function(sessionId) {
@@ -53,12 +62,7 @@ function SessionList() {
         // set cookie to the new id
         setCookie(gSessionIdCookie, sessionId);
         // refresh should show the query view
-        if (debug.isEnabled()) {
-            alert("will refresh now");
-            window.location.replace( ".?debug=1");
-        } else {
-            window.location.replace( "." );
-        }
+        this.refresh();
     }
 
     this.deleteSession = function(id, context) {
@@ -214,7 +218,8 @@ function SessionClass(tabs, id) {
         var params = ('ID=' + this.sessionId
                       + '&BUFFERS=' + buffers
                       + '&HISTORY=' + history
-                      + '&TABS=' + tabs);
+                      + '&TABS=' + tabs
+                      + (debug.isEnabled() ? '&DEBUG=1' : ''));
         debug.print(label + "" + params);
 
         var req = new Ajax.Request(syncUrl,

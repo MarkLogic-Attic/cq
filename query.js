@@ -1206,10 +1206,10 @@ function resizeFrameset() {
 
 // keycode support:
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain
-//   alt-1 to alt-0 exposes the corresponding buffer (really 0-9)
-//   next buffer: alt-> (46)
-//   previous buffer: alt-< (44)
 //   NB: the modifer changes according to platform
+//   MOD-0 to MOD-9 exposes the corresponding buffer (48-57)
+//   previous buffer: MOD-, (44) (think '<')
+//   next buffer: MOD-. (46) (think '>')
 function handleKeyPress(e) {
     var theCode = e.keyCode;
     // see http://www.mozilla.org/editor/key-event-spec.html
@@ -1222,66 +1222,58 @@ function handleKeyPress(e) {
     var altKey = e['altKey'];
     var ctrlKey = e['ctrlKey'];
     var shiftKey = e['shiftKey'];
-    var metaKey = e['metaKey'];
 
     // short-circuit if we obviously don't care about this keypress
     if (! (ctrlKey || altKey) ) {
         return true;
     }
 
+    // firefox uses alt 0-9 for tabs on linux, ctrl on win32, meta on macos.
+    // So we accept either ctrl or alt, by platform.
+    var modKey = gBrowserIs.x11 ? ctrlKey : altKey;
+
     if (debug.isEnabled()) {
         var keyInfo = "win=" + gBrowserIs.win
             + " x11=" + gBrowserIs.x11
             + " mac=" + gBrowserIs.mac + ", "
-            + (metaKey ? "meta " : "")
+            + (modKey ? "mod " : "")
             + (ctrlKey ? "ctrl " : "") + (shiftKey ? "shift " : "")
             + (altKey ? "alt " : "") + theCode;
         debug.print("handleKeyPress: " + keyInfo);
     }
 
-    // handle buffers: 1 = 49, 9 = 57, 0 = 48
-    // ick: firefox-linux decided to use alt 0-9 for tabs
-    //   win32 uses ctrl, macos uses meta.
-    // So we accept either ctrl or alt:
-    // the browser will swallow anything that it doesn't want us to see.
-    if ( (theCode >= 48) && (theCode <= 57) ) {
+    if ( modKey && (47 < theCode) && (58 > theCode) ) {
         // expose the corresponding buffer: 0-9
-        var n = (theCode == 48) ? 9 : (theCode - 49);
-        gBuffers.activate(n);
+        gBuffers.activate((theCode == 48) ? 9 : (theCode - 49));
         return false;
     }
 
-    // next buffer: alt-> (46)
-    if (46 == theCode) {
+    // next buffer: MOD-> (46)
+    if (modKey && 46 == theCode) {
         gBuffers.nextBuffer();
         return false;
     }
 
-    // previous buffer: alt-< (44)
-    if (44 == theCode) {
+    // previous buffer: MOD-< (44)
+    if (modKey && 44 == theCode) {
         gBuffers.previousBuffer();
         return false;
     }
 
-    // toggle tab: alt-` (96)
-    if (96 == theCode) {
+    // toggle tab: MOD-` (96)
+    if (modKey && 96 == theCode) {
         gBufferTabs.toggle();
         return false;
     }
 
-    // treat ctrl-shift-s (83) as session-sync
-    if (shiftKey && ctrlKey && theCode == 83) {
-        // sync the session to the database
-        // if sync fails, return true so that the event will bubble
-        return ! gSession.sync();
-    }
-
+    // NB apparently we cannot capture KEY_RETURN on IE
     if (theCode == Event.KEY_RETURN) {
         var theForm = $(kQueryFormId);
-        if (ctrlKey && shiftKey) {
+        if (altKey && ctrlKey && shiftKey) {
+            submitProfile(theForm);
+        } else if (ctrlKey && shiftKey) {
             submitText(theForm);
         } else if (altKey) {
-            // TODO alt-enter doesn't work in IE6?
             submitHTML(theForm);
         } else {
             submitXML(theForm);
@@ -1343,6 +1335,11 @@ function submitHTML(theForm) {
 
 function submitText(theForm) {
     submitFormWrapper(theForm, "text/plain");
+}
+
+function submitProfile(theForm) {
+    submitFormWrapper(theForm,
+                      "application/x-com.marklogic.developer.cq.profiling");
 }
 
 function submitFormWrapper(theForm, mimeType) {

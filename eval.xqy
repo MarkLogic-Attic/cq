@@ -35,7 +35,7 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 import module namespace v = "com.marklogic.developer.cq.view"
  at "lib-view.xqy"
 
-define variable $g-query as xs:string {
+define variable $QUERY as xs:string {
   xdmp:get-request-field("/cq:query", "") }
 
 (: split into database, modules location, and root:
@@ -46,7 +46,7 @@ define variable $g-query as xs:string {
 (: Get appserver info in real-time, so we can support admin changes.
  : NOTE: Requires MarkLogic Server 3.1 or later.
  :)
-define variable $g-eval-in as xs:string+ {
+define variable $EVAL-STRING as xs:string+ {
   (: colon-delimited value, dependent on the first field...
    :   if not "as", then database-id:modules-id:root-path,
    :   otherwise use the second token (app-server-id)
@@ -62,49 +62,55 @@ define variable $g-eval-in as xs:string+ {
   )
 }
 
-define variable $g-db as xs:unsignedLong {
-  xs:unsignedLong($g-eval-in[1]) }
+define variable $DATABASE-ID as xs:unsignedLong {
+  xs:unsignedLong($EVAL-STRING[1]) }
 
 (: default to current server module :)
-define variable $g-modules as xs:unsignedLong {
-  xs:unsignedLong(($g-eval-in[2], xdmp:modules-database())[1]) }
+define variable $MODULES-ID as xs:unsignedLong {
+  xs:unsignedLong(($EVAL-STRING[2], xdmp:modules-database())[1]) }
 
 (: default to root :)
-define variable $g-root as xs:string {
+define variable $MODULES-ROOT as xs:string {
   (: default to root="/", though that should never happen :)
   (: also fix win32 backslashes, and repeated slashes :)
-  let $root := replace(($g-eval-in[3], "/")[1], "/+|\\+", "/")
+  let $root := replace(($EVAL-STRING[3], "/")[1], "/+|\\+", "/")
   let $root :=
     if (matches($root, '([a-z]:)?/', "i")) then $root
     (: relative root, on a filesystem :)
     (: hack for bug 1894: eval-in doesn't support relative roots without "./" :)
-    else if ($g-modules eq 0) then concat("./", $root)
+    else if ($MODULES-ID eq 0) then concat("./", $root)
     (: relative root, in a database :)
     else concat($root, "/")
   return $root
 }
 
-define variable $g-mime-type as xs:string {
+define variable $MIMETYPE as xs:string {
   xdmp:get-request-field("/cq:mime-type", "text/plain")
 }
 
+define variable $PROFILING as xs:boolean {
+  $MIMETYPE eq 'application/x-com.marklogic.developer.cq.profiling'
+}
+
 d:check-debug(),
-d:debug(("eval:", $g-mime-type)),
-d:debug(("eval:", $g-db, $g-modules, $g-root, $g-query)),
+d:debug(("eval:", $MIMETYPE)),
+d:debug(("eval:", $DATABASE-ID, $MODULES-ID, $MODULES-ROOT, $QUERY)),
 try {
   (: set the mime-type inside the try-catch block,
    : so errors can override it.
    :)
   let $options := <options xmlns="xdmp:eval">
   {
-    element database { $g-db },
-    element modules { $g-modules },
-    element root { $g-root },
+    element database { $DATABASE-ID },
+    element modules { $MODULES-ID },
+    element root { $MODULES-ROOT },
     element isolation { "different-transaction" }
   }
   </options>
-  let $x := xdmp:eval($g-query, (), $options)
-  let $g-mime-type :=
+  let $x :=
+    if (not($PROFILING)) then xdmp:eval($QUERY, (), $options)
+    else v:format-profiler-report(prof:eval($QUERY, (), $options)[1])
+  let $mimetype :=
     (: Sometimes we override the user's request,
      : and display the results as text/plain instead
      :
@@ -118,6 +124,7 @@ try {
      : Binaries should not be viewed as html or text.
      :)
     if (empty($x)) then "text/html"
+    else if ($PROFILING) then "text/html"
     (: for binaries, let the browser autosense the mime-type :)
     else if ($x instance of node()
       and exists((
@@ -129,26 +136,26 @@ try {
         and empty($x/node()))
     )
     then "text/plain"
-    else $g-mime-type
+    else $MIMETYPE
   let $set :=
-    if (exists($g-mime-type))
+    if (exists($mimetype))
     then xdmp:set-response-content-type(string-join(
-      ($g-mime-type, 'charset=utf-8'), '; '))
+      ($mimetype, 'charset=utf-8'), '; '))
     else ()
   let $set :=
-    if (empty($g-mime-type) or $g-mime-type ne "text/plain") then () else
+    if (empty($mimetype) or $mimetype ne "text/plain") then () else
     (: does this fix the IE6 text/plain helper-app issue? cf Q239750 :)
     xdmp:add-response-header('Content-Disposition', 'inline; filename=a.txt')
   return
-    if ($g-mime-type eq "text/xml")
+    if ($mimetype eq "text/xml")
     then v:get-xml($x)
-    else if ($g-mime-type eq "text/html")
-    then v:get-html($x)
+    else if ($mimetype eq "text/html")
+    then v:get-html($x, $PROFILING)
     else v:get-text($x)
 } catch ($ex) {
   (: errors are always displayed as html :)
   xdmp:set-response-content-type("text/html; charset=utf-8"),
-  v:get-error-html($g-db, $g-modules, $g-root, $ex, $g-query)
+  v:get-error-html($DATABASE-ID, $MODULES-ID, $MODULES-ROOT, $ex, $QUERY)
 }
 
-(: cq-eval.xqy :)
+(: eval.xqy :)

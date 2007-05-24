@@ -286,15 +286,17 @@ define function v:round-to-sigfig($i as xs:double)
 define function v:format-profiler-report($report as element(prof:report))
   as element(xh:table)
 {
-  let $elapsed := data($report/prof:metadata/prof:overall-elapsed)
   let $size := 256
   let $ellipsis := codepoints-to-string(8230)
+  let $elapsed := data($report/prof:metadata/prof:overall-elapsed)
+  let $zero := prof:execution-time('PT0S')
   return (
     <table xmlns="http://www.w3.org/1999/xhtml" summary="profiler report">{
       attribute class { "profiler-report" },
       element caption {
         attribute class { "caption" },
-        'Profiled', sum($report/prof:histogram/prof:expression/prof:count),
+        'Profiled',
+        (sum($report/prof:histogram/prof:expression/prof:count), 0)[1],
         'expressions in', $elapsed },
       element tr {
         for $i in ('line', 'expression', 'count', 'shallow-%', 'deep-%')
@@ -308,8 +310,7 @@ define function v:format-profiler-report($report as element(prof:report))
           attribute class { "profiler-report row-title" },
           attribute nowrap { 1 },
           text {
-            ($i/prof:uri/text(), 'main')[1] }, ': ', $i/prof:line/text()
-        },
+            ($i/prof:uri/text(), 'main')[1] }, ': ', $i/prof:line/text() },
         element td {
           attribute class { "profiler-report expression" },
           let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
@@ -324,11 +325,15 @@ define function v:format-profiler-report($report as element(prof:report))
         },
         element td {
           attribute class { "profiler-report numeric" },
-          v:round-to-sigfig(100 * $i/prof:shallow-time div $elapsed)
+          if ($elapsed ne $zero)
+          then v:round-to-sigfig(100 * $i/prof:shallow-time div $elapsed)
+          else 0
         },
         element td {
           attribute class { "profiler-report numeric" },
-          v:round-to-sigfig(100 * $i/prof:deep-time div $elapsed)
+          if ($elapsed ne $zero)
+          then v:round-to-sigfig(100 * $i/prof:deep-time div $elapsed)
+          else 0
         }
       }
     }</table>

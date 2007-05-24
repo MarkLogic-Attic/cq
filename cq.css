@@ -86,32 +86,28 @@ input[type = "button"]
   margin-bottom: 3px;
 }
 
-.buffer-tab
-{
-  font-size: medium;
-  font-weight: bold;
-  cursor: pointer;
-  margin: 0 1em 0 1em;
-  padding: 0 1em 0 1em;
-  float: left;
+.buffer-tab, .buffer-tab-active, .query-history, .profiler-report
+{ 
   border: 1px solid black;
-  color: grey;
 }
 
-.buffer-tab-active
-{  
+.buffer-tab, .buffer-tab-active
+{
+  cursor: pointer;
   font-size: medium;
   font-weight: bold;
   margin: 0 1em 0 1em;
   padding: 0 1em 0 1em;
   float: left;
-  border: 1px solid black;
-  cursor: pointer;
+}
+
+.buffer-tab
+{
+  color: grey;
 }
 
 .query-history
 {  
-  border: 1px solid black;
   overflow: auto;
   /* initial value only:
    * JavaScript will match the height of the query-buffers area.
@@ -186,11 +182,6 @@ input[type = "button"]
 .error
 {
   color: red;
-}
-
-.profiler-report
-{
-  border: 1px solid black;
 }
 
 .caption, .row-title

@@ -921,13 +921,18 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         if (null == n
             || isNaN(n)
             || 0 > n
-            || this.buffers.length <= n)
+            || this.buffers.length <= n
+            || n == this.pos)
         {
             return;
         }
 
-        if (this.pos == n) {
-            return;
+        // IE7 has some weird behavior around the select-list
+        // if nothing is selected, it shows an empty content-source.
+        // we remedy that by copying the last content-source.
+        var lastContentSource = buf.getContentSource();
+        if (null == lastContentSource) {
+            lastContentSource = TODO;
         }
 
         // deactivate the current buffer
@@ -938,7 +943,10 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.pos = n;
         buf = this.getBuffer(n);
         this.input.value = buf.getQuery();
-        this.setContentSource(buf.getContentSource());
+        var contentSource = buf.getContentSource();
+        // if no source is selected, keep the last one
+        this.setContentSource(null != contentSource
+                              ? contentSource : lastContentSource);
         this.setLabel(this.pos, true);
 
         setPosition(this.input, buf.getSelectionStart(),
@@ -947,19 +955,21 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
     }
 
     this.setContentSource = function(v) {
-        var old = this.eval.value;
         this.eval.className = "";
-        if (old == v) {
+        if (null == v || "" == v) {
+            return;
+        }
+        var old = this.eval.value;
+        if (v == old) {
             return;
         }
         this.eval.value = v;
-        if (null == old || "" == old || null == v || "" == v) {
+        // if nothing really changed, then we are done
+        if (null == old || "" == old) {
             return;
         }
         // this was a real change, so cue the user visually
-        //alert("old = " + old);
-        var oldClassName = this.eval.className;
-        this.strobe(6, "accent-color", oldClassName);
+        this.strobe(6, "accent-color", "");
     }
 
     // strobe the eval selector (n / 2) times, recursively

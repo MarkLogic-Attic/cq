@@ -38,6 +38,26 @@ define variable $v:NBSP as xs:string { codepoints-to-string(160) }
 
 define variable $v:NL { fn:codepoints-to-string((10)) }
 
+define variable $v:PROFILER-COLUMNS as element(columns) {
+  element columns {
+    <column>line</column>,
+    <column>count</column>,
+    <column>expression</column>,
+    element column {
+      attribute title {
+        "Time spent in the expression,",
+        "not including time spent in sub-expressions."
+      },
+      'shallow-%' },
+    element column {
+      attribute title {
+        "Total time spent in the expression,",
+        "including time spent in sub-expressions."
+      },
+      'deep-%' }
+  }
+}
+
 define function v:get-xml($x)
  as element()
 {
@@ -299,8 +319,10 @@ define function v:format-profiler-report($report as element(prof:report))
         (sum($report/prof:histogram/prof:expression/prof:count), 0)[1],
         'expressions in', $elapsed },
       element tr {
-        for $i in ('line', 'expression', 'count', 'shallow-%', 'deep-%')
-        return element th { attribute class { "profiler-report" }, $i }
+        for $c in $v:PROFILER-COLUMNS/*
+        return element th {
+          attribute class { "profiler-report" }, $c/@title, $c/text()
+        }
       },
       for $i in $report/prof:histogram/prof:expression
       order by $i/prof:shallow-time descending, $i/prof:deep-time descending
@@ -312,16 +334,16 @@ define function v:format-profiler-report($report as element(prof:report))
           text {
             ($i/prof:uri/text(), 'main')[1] }, ': ', $i/prof:line/text() },
         element td {
+          attribute class { "profiler-report numeric" },
+          data($i/prof:count)
+        },
+        element td {
           attribute class { "profiler-report expression" },
           let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
           return
             if (string-length($expr) gt $size)
             then concat($expr, $ellipsis)
             else $expr
-        },
-        element td {
-          attribute class { "profiler-report numeric" },
-          data($i/prof:count)
         },
         element td {
           attribute class { "profiler-report numeric" },

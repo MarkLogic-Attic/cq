@@ -194,6 +194,11 @@ input[type = "button"]
   text-align: right;
 }
 
+.expression
+{
+  width: 80%
+}
+
 .status
 {
   width: 7em;

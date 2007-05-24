@@ -109,7 +109,13 @@ try {
   </options>
   let $x :=
     if (not($PROFILING)) then xdmp:eval($QUERY, (), $options)
-    else v:format-profiler-report(prof:eval($QUERY, (), $options)[1])
+    else if ($c:PROFILING-ALLOWED)
+    then v:format-profiler-report(prof:eval($QUERY, (), $options)[1])
+    else <p class="head1 error">
+      Profiling is disabled for the application server
+      <b>{$c:SERVER-NAME}</b>.
+      You may enable profiling in the admin server.
+    </p>
   let $mimetype :=
     (: Sometimes we override the user's request,
      : and display the results as text/plain instead

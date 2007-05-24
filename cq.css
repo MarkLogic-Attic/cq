@@ -199,4 +199,9 @@ input[type = "button"]
   width: 7em;
 }
 
+.disabled
+{
+  color: grey;
+}
+
 /* end cq.css */

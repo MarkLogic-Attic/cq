@@ -118,8 +118,14 @@ define variable $c:POLICY-ACCENT-COLOR as xs:string? {
   $c:POLICY/pol:accent-color
 }
 
+define variable $c:PROFILING-ALLOWED as xs:boolean {
+   prof:allowed(xdmp:request()) }
+
 define variable $c:SERVER-ID as xs:unsignedLong {
   xdmp:server() }
+
+define variable $c:SERVER-NAME as xs:string {
+  xdmp:server-name($SERVER-ID) }
 
 define variable $c:SERVER-ROOT-PATH as xs:string {
   $io:MODULES-ROOT }
@@ -440,7 +446,7 @@ define function c:get-app-server-info()
 {
   (: first, list all the app-servers (except webdav and task servers).
    : next, list all databases that aren't part of an app-server.
-   : NOTE: requires MarkLogic Server 3.1 or later.
+   : NOTE: requires MarkLogic Server 3.1-1 or later.
    : TODO provide a mechanism to update the list, to pull admin changes.
    :)
    let $hosts-status := for $h in xdmp:hosts() return xdmp:host-status($h)

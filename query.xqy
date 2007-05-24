@@ -102,9 +102,20 @@ c:set-content-type(),
                 <input type="button" onclick="submitText(this.form);"
                 value="TEXT"
                 title="Submit query as text/plain. Shortcut: ctrl-shift-enter"/>
-                <input type="button" onclick="submitProfile(this.form);"
-                value="Profile"
-                title="Submit query for profiling. Shortcut: ctrl-alt-shift-enter"/>
+                <input type="button" value="Profile"
+                onclick="submitProfile(this.form);">{
+                  if ($c:PROFILING-ALLOWED)
+                  then ()
+                  else attribute class { "disabled" },
+                  attribute title {
+                    if ($c:PROFILING-ALLOWED) then text {
+                      "Submit query for profiling.",
+                      "Shortcut: ctrl-alt-shift-enter" }
+                    else text {
+                      "Profiling is disabled for the application server",
+                      $c:SERVER-NAME }
+                  }
+                }</input>
                 <input type="hidden" value="text/xml"
                 id="/cq:mime-type" name="/cq:mime-type"/>
                 </td>

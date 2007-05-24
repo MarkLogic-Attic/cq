@@ -1364,6 +1364,8 @@ function submitFormWrapper(theForm, mimeType) {
 function cqListDocuments() {
     // fancy list of up to N documents, including root node type.
     // TODO create a link to display each document?
+    // TODO paginate?
+    // TODO use cts:uris(), if available? interferes with element-display...
     var theQuery =
         "let $limit := 5000 "
         + "let $est := xdmp:estimate(doc()) "

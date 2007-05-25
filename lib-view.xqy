@@ -34,6 +34,9 @@ import module namespace c = "com.marklogic.developer.cq.controller"
 import module namespace d = "com.marklogic.developer.cq.debug"
  at "lib-debug.xqy"
 
+import module namespace io = "com.marklogic.developer.cq.io"
+  at "lib-io.xqy"
+
 define variable $v:NBSP as xs:string { codepoints-to-string(160) }
 
 define variable $v:NL as xs:string { codepoints-to-string(10) }
@@ -445,11 +448,9 @@ define function v:lead-string(
   concat(string-pad($pad, $len - string-length(string($v))), string($v))
 }
 
-define function v:duration-to-microseconds($d as xdt:anyAtomicType)
+define function v:duration-to-microseconds($d as xdt:dayTimeDuration)
  as xs:unsignedLong {
-   xs:unsignedLong(
-     1000 * 1000 * xs:double(
-       replace(string($d), 'PT([\d\.]+).*', '$1') ) )
+   1000 * 1000 * io:cumulative-seconds-from-duration($d)
 }
 
 (: lib-view.xqy :)

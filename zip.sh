@@ -36,5 +36,6 @@ URL=http://corp1/~michael/`basename $ZIP`
 ssh ssh.marklogic.com HEAD $URL
 
 echo $URL ok
+echo
 
 # end

@@ -192,6 +192,7 @@ input[type = "button"]
 .numeric
 {
   text-align: right;
+  white-space: pre;
 }
 
 .expression

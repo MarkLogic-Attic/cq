@@ -337,7 +337,6 @@ define function v:round-to-sigfig($i as xs:double)
 define function v:format-profiler-report($report as element(prof:report))
   as element(xh:table)
 {
-  let $size := 255
   let $elapsed := data($report/prof:metadata/prof:overall-elapsed)
   return <table xmlns="http://www.w3.org/1999/xhtml">{
     attribute summary { "profiler report" },
@@ -357,21 +356,24 @@ define function v:format-profiler-report($report as element(prof:report))
         $c/@title, $c/text()
       }
     },
+    let $size := 255
+    let $max-line-length := string-length(string(max(
+      $report/prof:histogram/prof:expression/prof:line)))
     for $i in $report/prof:histogram/prof:expression
     order by $i/prof:shallow-time descending, $i/prof:deep-time descending
-    return v:format-profiler-row($elapsed, $i, $size)
+    return v:format-profiler-row($elapsed, $i, $size, $max-line-length)
   }</table>
 }
 
 define function v:format-profiler-row(
   $elapsed as prof:execution-time, $i as element(prof:expression),
-  $size as xs:integer)
+  $size as xs:integer, $max-line-length as xs:integer)
  as element(xh:tr) {
   let $shallow := data($i/prof:shallow-time)
   let $deep := data($i/prof:deep-time)
   let $uri := text {
     if (not(string($i/prof:uri)))
-    then 'main'
+    then '.main'
     else if (starts-with($i/prof:uri, '/'))
     then substring-after($i/prof:uri,'/')
     else $i/prof:uri
@@ -381,14 +383,21 @@ define function v:format-profiler-row(
     element td {
       attribute class { "profiler-report row-title" },
       attribute nowrap { 1 },
-      concat($uri, ': ', $i/prof:line) },
+      element code {
+        element span { $uri, ': ' },
+        element span {
+          attribute class { "numeric" },
+          attribute xml:space { "preserve" },
+          v:lead-space(string($i/prof:line), $max-line-length) } } },
     element td {
         attribute class { "profiler-report expression" },
-        let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
-        return
-          if (string-length($expr) gt $size)
-          then concat($expr, $v:ELLIPSIS)
-          else $expr
+        element code {
+          let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
+          return
+            if (string-length($expr) gt $size)
+            then concat($expr, $v:ELLIPSIS)
+            else $expr
+        }
     },
     element td {
       attribute class { "profiler-report numeric" }, $i/prof:count },
@@ -413,6 +422,27 @@ define function v:format-profiler-row(
       v:duration-to-microseconds($deep)
     }
   }</tr>
+}
+
+define function v:lead-nbsp($v as xs:string, $len as xs:integer)
+ as xs:string {
+  v:lead-string($v, $v:NBSP, $len)
+}
+
+define function v:lead-space($v as xs:string, $len as xs:integer)
+ as xs:string {
+  v:lead-string($v, ' ', $len)
+}
+
+define function v:lead-zero($v as xs:string, $len as xs:integer)
+ as xs:string {
+  v:lead-string($v, '0', $len)
+}
+
+define function v:lead-string(
+  $v as xs:string, $pad as xs:string, $len as xs:integer)
+ as xs:string {
+  concat(string-pad($pad, $len - string-length(string($v))), string($v))
 }
 
 define function v:duration-to-microseconds($d as xdt:anyAtomicType)

@@ -1,0 +1,159 @@
+/*
+*
+* Copyright (c) 2007 Andrew Tetlaw & Millstream Web Software
+* http://www.millstream.com.au/view/code/tablekit/
+* Version: 1.2.1 2007-03-11
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use, copy,
+* modify, merge, publish, distribute, sublicense, and/or sell copies
+* of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+* BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+* ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+* CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+* * 
+*/
+
+pre {
+	padding: 1em;
+	background-color: #F2F2F2;
+}
+
+code {
+	font-size: 1.2em;
+	background-color: #F2F2F2;
+}
+
+#content {
+	margin: 3em;
+}
+
+#content p {
+	width: 45em;
+}
+#mainmenu {
+	margin: 1em 0 0 0;
+}
+.panel {
+	clear: both;
+	display: none;
+	border: 3px solid #00adef;
+	padding: 1em;
+	background-color: #FFF;
+	margin: 0;
+}
+.panel.active-tab-body {
+	display: block;
+}
+#tabs {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+#tabs li {
+	position: relative;
+	float: left;
+}
+#tabs a {
+	float: left;
+	padding: 5px 8px;
+	margin-right: 6px;
+	border: 1px solid #00adef;
+	border-width: 1px 1px 0 1px;
+	text-decoration: none;
+	color: #000;
+}
+#tabs a:hover {
+	background-color: #8dd8f8;
+	color: #FFF;
+}
+#tabs a.active-tab {
+	background-color: #00adef;
+	color: #FFF;
+}
+table {
+	border-collapse: collapse;
+}
+
+td, th {
+	padding: 0.5em;
+	border: 1px solid #CCC;
+}
+
+thead, tfoot {
+	background-color: #DDD;
+}
+
+tr.rowodd {
+	background-color: #FFF;
+}
+
+tr.roweven {
+	background-color: #F2F2F2;
+}
+
+.sortcol {
+	cursor: pointer;
+	padding-right: 20px;
+	background-repeat: no-repeat;
+	background-position: right center;
+}
+.sortasc {
+	background-color: #DDFFAC;
+	background-image: url(up.gif);
+}
+.sortdesc {
+	background-color: #B9DDFF;
+	background-image: url(down.gif);
+}
+.nosort {
+	cursor: default;
+}
+
+.urg1, .urg2, .urg3, .urg4, .urg5 {
+	padding: 3px;
+	text-align: center;
+	border: 1px solid #333;
+	width: 3em;
+}
+
+.urg1 {
+	background-color: #FFFACD;
+}
+.urg2 {
+	background-color: #FFD700;
+}
+.urg3 {
+	background-color: #FFA500;
+}
+.urg4 {
+	background-color: #E13E00;
+}
+.urg5 {
+	background-color: Red;
+}
+
+th.resize-handle-active {
+	cursor: e-resize;
+}
+
+div.resize-handle {
+	cursor: e-resize;
+	width: 2px;
+	border-right: 1px dashed #1E90FF;
+	position:absolute;
+	top:0;
+	left:0;
+}

@@ -16,12 +16,14 @@ echo building $ZIP
 rm -f $ZIP
 chmod a+rwx cq/sessions
 
+# NB omit test xqy
+# NB non-recursive add of sessions dir
 zip -9 $ZIP \
   cq/[a-su-z]*.xqy \
   cq/*.xml \
   cq/*.js \
-  cq/cq.css \
-  cq/?arr.gif \
+  cq/*.css \
+  cq/*.gif \
   cq/*.ico \
   cq/*.txt \
   cq/*.html \

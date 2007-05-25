@@ -180,6 +180,16 @@ function setPosition(n, start, top, left) {
     n.scrollLeft = left;
 }
 
+// extend Prototype.js
+if (null == Element.removeChildren) {
+    Element.removeChildren = function(e) {
+        var nodes = $A(e.childNodes);
+        for (var i = 0; i < nodes.length; i++) {
+            e.removeChild(nodes[i]);
+        }
+    }
+}
+
 // classes
 function BrowserIsClass() {
     // convert all characters to lowercase to simplify testing

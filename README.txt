@@ -21,5 +21,9 @@ Apache 2.0 license. You will also find the source code checked into the
 developer.marklogic.com subversion repository. If you make improvements,
 you are welcome to contribute them back to the project.
 
+This application uses code from Prototype.js. This application uses code,
+styles, and images from the TableKit demo. See prototype.js and tablekit.js
+for copyright notices and licensing.
+
 Enjoy!
 

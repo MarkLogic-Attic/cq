@@ -36,25 +36,40 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 
 define variable $v:NBSP as xs:string { codepoints-to-string(160) }
 
-define variable $v:NL { fn:codepoints-to-string((10)) }
+define variable $v:NL as xs:string { codepoints-to-string(10) }
+
+define variable $v:MICRO-SIGN as xs:string { codepoints-to-string(181) }
+
+define variable $v:ELLIPSIS as xs:string { codepoints-to-string(8230) }
 
 define variable $v:PROFILER-COLUMNS as element(columns) {
   element columns {
-    <column>line</column>,
-    <column>count</column>,
+    <column>location</column>,
     <column>expression</column>,
+    <column>count</column>,
+    element column {
+      attribute title {
+        "Time spent in the expression,",
+        "not including time spent in sub-expressions."
+      }, 'shallow-%' },
     element column {
       attribute title {
         "Time spent in the expression,",
         "not including time spent in sub-expressions."
       },
-      'shallow-%' },
+      concat('shallow-', $v:MICRO-SIGN, 's') },
     element column {
       attribute title {
         "Total time spent in the expression,",
         "including time spent in sub-expressions."
       },
-      'deep-%' }
+      'deep-%' },
+    element column {
+      attribute title {
+        "Total time spent in the expression,",
+        "including time spent in sub-expressions."
+      },
+      concat('deep-', $v:MICRO-SIGN, 's') }
   }
 }
 
@@ -87,7 +102,7 @@ define function v:get-html($x)
   v:get-html($x, false())
 }
 
-define function v:get-html($x as item()*, $include-head as xs:boolean)
+define function v:get-html($x as item()*, $profiling as xs:boolean)
  as element(xh:html)
 {
   let $body :=
@@ -100,8 +115,8 @@ define function v:get-html($x as item()*, $include-head as xs:boolean)
     then $body
     else <html xmlns="http://www.w3.org/1999/xhtml">
     {
-      if ($include-head)
-      then v:get-html-head('Query Results')
+      if ($profiling)
+      then v:get-html-head('Profile for Query', true())
       else <head><title>Query Results</title></head>
     }
     <body bgcolor="white">
@@ -235,15 +250,31 @@ define function v:get-html-head()
 define function v:get-html-head($label as xs:string)
  as element(xh:head)
 {
+  v:get-html-head($label, false())
+}
+
+define function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
+ as element(xh:head)
+{
   (: we do not need the js and css here, but it makes reloads easier :)
   <head xmlns="http://www.w3.org/1999/xhtml">
     <title>{ $label, $c:TITLE-TEXT }</title>
     <link rel="stylesheet" type="text/css" href="cq.css">
     </link>
+    {
+      if (not($tablekit)) then () else
+    <link rel="stylesheet" type="text/css" href="tablekit.css">
+    </link>
+    }
     <link rel="Shortcut Icon" href="favicon.ico" type="image/x-icon">
     </link>
     <script language="JavaScript" type="text/javascript" src="prototype.js">
     </script>
+    {
+      if (not($tablekit)) then () else
+    <script language="JavaScript" type="text/javascript" src="tablekit.js">
+    </script>
+    }
     <script language="JavaScript" type="text/javascript" src="debug.js">
     </script>
     <script language="JavaScript" type="text/javascript" src="cookie.js">
@@ -306,60 +337,89 @@ define function v:round-to-sigfig($i as xs:double)
 define function v:format-profiler-report($report as element(prof:report))
   as element(xh:table)
 {
-  let $size := 256
-  let $ellipsis := codepoints-to-string(8230)
+  let $size := 255
   let $elapsed := data($report/prof:metadata/prof:overall-elapsed)
-  let $zero := prof:execution-time('PT0S')
-  return (
-    <table xmlns="http://www.w3.org/1999/xhtml" summary="profiler report">{
-      attribute class { "profiler-report" },
-      element caption {
-        attribute class { "caption" },
-        'Profiled',
-        (sum($report/prof:histogram/prof:expression/prof:count), 0)[1],
-        'expressions in', $elapsed },
-      element tr {
-        for $c in $v:PROFILER-COLUMNS/*
-        return element th {
-          attribute class { "profiler-report" }, $c/@title, $c/text()
-        }
-      },
-      for $i in $report/prof:histogram/prof:expression
-      order by $i/prof:shallow-time descending, $i/prof:deep-time descending
-      return element tr {
-        attribute class { "profiler-report" },
-        element td {
-          attribute class { "profiler-report row-title" },
-          attribute nowrap { 1 },
-          text {
-            ($i/prof:uri/text(), 'main')[1] }, ': ', $i/prof:line/text() },
-        element td {
-          attribute class { "profiler-report numeric" },
-          data($i/prof:count)
+  return <table xmlns="http://www.w3.org/1999/xhtml">{
+    attribute summary { "profiler report" },
+    attribute class { "profiler-report sortable" },
+    element caption {
+      attribute class { "caption" },
+      'Profiled',
+      (sum($report/prof:histogram/prof:expression/prof:count), 0)[1],
+      'expressions in', $elapsed },
+    element tr {
+      for $c in $v:PROFILER-COLUMNS/*
+      return element th {
+        attribute class {
+          "profiler-report sortcol",
+          if ($c eq "shallow-%") then "sortdesc" else ()
         },
-        element td {
-          attribute class { "profiler-report expression" },
-          let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
-          return
-            if (string-length($expr) gt $size)
-            then concat($expr, $ellipsis)
-            else $expr
-        },
-        element td {
-          attribute class { "profiler-report numeric" },
-          if ($elapsed ne $zero)
-          then v:round-to-sigfig(100 * $i/prof:shallow-time div $elapsed)
-          else 0
-        },
-        element td {
-          attribute class { "profiler-report numeric" },
-          if ($elapsed ne $zero)
-          then v:round-to-sigfig(100 * $i/prof:deep-time div $elapsed)
-          else 0
-        }
+        $c/@title, $c/text()
       }
-    }</table>
-  )
+    },
+    for $i in $report/prof:histogram/prof:expression
+    order by $i/prof:shallow-time descending, $i/prof:deep-time descending
+    return v:format-profiler-row($elapsed, $i, $size)
+  }</table>
+}
+
+define function v:format-profiler-row(
+  $elapsed as prof:execution-time, $i as element(prof:expression),
+  $size as xs:integer)
+ as element(xh:tr) {
+  let $shallow := data($i/prof:shallow-time)
+  let $deep := data($i/prof:deep-time)
+  let $uri := text {
+    if (not(string($i/prof:uri)))
+    then 'main'
+    else if (starts-with($i/prof:uri, '/'))
+    then substring-after($i/prof:uri,'/')
+    else $i/prof:uri
+  }
+  return <tr xmlns="http://www.w3.org/1999/xhtml">{
+    attribute class { "profiler-report" },
+    element td {
+      attribute class { "profiler-report row-title" },
+      attribute nowrap { 1 },
+      concat($uri, ': ', $i/prof:line) },
+    element td {
+        attribute class { "profiler-report expression" },
+        let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
+        return
+          if (string-length($expr) gt $size)
+          then concat($expr, $v:ELLIPSIS)
+          else $expr
+    },
+    element td {
+      attribute class { "profiler-report numeric" }, $i/prof:count },
+    element td {
+      attribute class { "profiler-report numeric" },
+      if ($elapsed ne prof:execution-time('PT0S'))
+      then v:round-to-sigfig(100 * $shallow div $elapsed)
+      else '-'
+    },
+    element td {
+      attribute class { "profiler-report numeric" },
+      v:duration-to-microseconds($shallow)
+    },
+    element td {
+      attribute class { "profiler-report numeric" },
+      if ($elapsed ne prof:execution-time('PT0S'))
+      then v:round-to-sigfig(100 * $deep div $elapsed)
+      else '-'
+    },
+    element td {
+      attribute class { "profiler-report numeric" },
+      v:duration-to-microseconds($deep)
+    }
+  }</tr>
+}
+
+define function v:duration-to-microseconds($d as xdt:anyAtomicType)
+ as xs:unsignedLong {
+   xs:unsignedLong(
+     1000 * 1000 * xs:double(
+       replace(string($d), 'PT([\d\.]+).*', '$1') ) )
 }
 
 (: lib-view.xqy :)

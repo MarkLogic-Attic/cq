@@ -25,11 +25,11 @@ var gSessionIdCookie = "/cq:session-id";
 // GLOBAL VARIABLES
 
 // static functions
-function reportError(req, resp) {
+function reportError(req) {
     var old = debug.isEnabled();
     debug.setEnabled(true);
-    debug.print("reportError: req = " + req);
-    debug.print("reportError: resp = " + resp);
+    debug.print("reportError: status = " + req.status);
+    debug.print("reportError: req = " + req.responseText);
     debug.setEnabled(old);
 }
 
@@ -117,7 +117,7 @@ function SessionClass(tabs, id) {
 
     this.autosave = null;
 
-    var syncUrl = "update-session.xqy";
+    var updateSessionUrl = "update-session.xqy";
 
     this.restore = function() {
         var restore = $(this.restoreId);
@@ -203,7 +203,8 @@ function SessionClass(tabs, id) {
         var lastModified = this.history.getLastModified();
         var lastLineStatus = this.buffers.getLastLineStatus();
 
-        debug.print(label + lastModified + " ? " + this.lastSync);
+        debug.print(label + this.sessionId + " "
+                    + lastModified + " ? " + this.lastSync);
         if (null != this.lastSync
             && lastModified < this.lastSync
             && lastLineStatus < this.lastSync)
@@ -212,20 +213,25 @@ function SessionClass(tabs, id) {
             return false;
         }
 
-        var buffers = encodeURIComponent(this.buffers.toXml());
-        var history = encodeURIComponent(this.history.toXml());
-        var tabs = encodeURIComponent(this.tabs.toXml());
-        var params = ('ID=' + this.sessionId
-                      + '&BUFFERS=' + buffers
-                      + '&HISTORY=' + history
-                      + '&TABS=' + tabs
-                      + (debug.isEnabled() ? '&DEBUG=1' : ''));
+        var buffers = this.buffers.toXml();
+        var history = this.history.toXml();
+        var tabs = this.tabs.toXml();
+        var params = {
+            DEBUG: debug.isEnabled() ? true : null,
+            ID: this.sessionId,
+            BUFFERS: buffers,
+            HISTORY: history,
+            TABS: tabs
+        };
+
         debug.print(label + "" + params);
 
-        var req = new Ajax.Request(syncUrl,
+        var req = new Ajax.Request(updateSessionUrl,
             {
                 method: 'post',
                 parameters: params,
+                // workaround, to avoid appending charset info
+                encoding: null,
                 onFailure: reportError
             }
                                    );

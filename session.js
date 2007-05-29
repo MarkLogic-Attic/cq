@@ -73,6 +73,8 @@ function SessionList() {
             var req = new Ajax.Request(deleteUrl,
                 {
                     method: 'post',
+                    // workaround, to avoid appending charset info
+                    encoding: null,
                     parameters: 'ID=' + id,
                     asynchronous: false,
                     onFailure: reportError
@@ -92,6 +94,8 @@ function SessionList() {
         var req = new Ajax.Request(renameUrl,
             {
                 method: 'post',
+                // workaround, to avoid appending charset info
+                encoding: null,
                 parameters: 'ID=' + id + '&NAME=' + name
                   + (debug.isEnabled() ? '&DEBUG=1' : ''),
                 asynchronous: false,

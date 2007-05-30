@@ -181,9 +181,10 @@ define function v:get-error-frame-html(
   (: this may be empty :)
   for $v in $f/err:variables/err:variable
   return (
-    element code { concat("$", string($v/err:name)), ":=", data($v/err:value) },
-    <br/>
-  ),
+    element code {
+      concat("$", string($v/err:name)), ":=", data($v/err:value) },
+    <br/>),
+
   <br/>
 }
 

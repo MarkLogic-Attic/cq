@@ -50,7 +50,7 @@ define variable $c:ACCEPT-XML as xs:boolean {
    : but fails to handle it correctly.
    :)
   contains(xdmp:get-request-header('accept'), 'application/xhtml+xml')
-    and not(contains(xdmp:get-request-header('user-agent'),'Opera'))
+    and not(contains(xdmp:get-request-header('user-agent'), 'Opera'))
 }
 
 define variable $c:APP-SERVER-INFO as element()+ {
@@ -269,12 +269,16 @@ define function c:get-sessions($check-conflicting as xs:boolean)
     for $i in io:list($c:SESSION-DIRECTORY)/sess:session
     where not($check-conflicting)
       or empty(c:get-conflicting-locks(c:get-session-uri($i)))
-    order by xs:dateTime($i/sess:last-modified) descending,
-      xs:dateTime($i/sess:created) descending,
+    order by
+      if ($i/sess:last-modified castable as xs:dateTime)
+      then xs:dateTime($i/sess:last-modified) else () descending,
+      if ($i/sess:created castable as xs:dateTime)
+      then xs:dateTime($i/sess:created) else () descending,
       $i/name
     return $i
   } catch ($ex) {
     (: looks like we have a problem - disable sessions :)
+    d:debug(('c:get-sessions:', $ex)),
     xdmp:set($c:SESSION-EXCEPTION, $ex),
     xdmp:set($c:SESSION-ID, ())
   }
@@ -362,8 +366,8 @@ define function c:new-session()
   let $elements := (
     element sec:user { $su:USER },
     element sec:user-id { $su:USER-ID },
-    element created { current-dateTime() },
-    element last-modified { current-dateTime() }
+    element sess:created { current-dateTime() },
+    element sess:last-modified { current-dateTime() }
   )
   let $element-qnames := for $i in $elements return node-name($i)
   let $new :=

@@ -236,7 +236,7 @@ define function io:delete-fs($path as xs:string)
  as empty()
 {
   (: TODO we cannot delete the document, so save an empty text node. :)
-  xdmp:save($path, text {})
+  xdmp:save($path, text { '' })
 }
 
 (:~ @private :)

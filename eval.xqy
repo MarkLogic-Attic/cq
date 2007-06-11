@@ -132,13 +132,13 @@ try {
     if (empty($x)) then "text/html"
     else if ($PROFILING) then "text/html"
     (: for binaries, let the browser autosense the mime-type :)
-    else if ($x instance of node()
+    else if ($x instance of node()+
       and exists((
-        $x[ . instance of binary() or . instance of document-node() ]
+        $x[ . instance of binary()+ or . instance of document-node()+ ]
         /(self::binary()|child::binary())
       )) ) then ()
-    else if (($x[1] instance of attribute() and count($x) gt 1)
-      or (count($x) eq 1 and $x instance of document-node()
+    else if (($x instance of attribute()+ and count($x) gt 1)
+      or (count($x) eq 1 and $x instance of document-node()+
         and empty($x/node()))
     )
     then "text/plain"

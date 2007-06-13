@@ -160,6 +160,8 @@ c:set-content-type(),
        value="{$c:POLICY-TITLE}"/>
       <input id="/cq:policy/accent-color" type="hidden"
        value="{$c:POLICY-ACCENT-COLOR}"/>
+      <input id="{$d:DEBUG-FIELD}" name="{$d:DEBUG-FIELD}"
+       type="hidden" value="{ $d:DEBUG }"/>
       <div class="hidden" xml:space="preserve"
        id="/cq:restore-session" name="/cq:restore-session">{
 

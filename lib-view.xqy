@@ -141,51 +141,53 @@ define function v:get-error-frame-html(
   $f as element(err:frame), $query as xs:string)
  as element()*
 {
+  d:debug(('v:get-error-frame-html:', $f)),
   if (exists($f/err:uri))
   then concat("in ", string($f/err:uri))
   else (),
   if (exists($f/err:line))
-  then (
-    concat("line ", string($f/err:line), ": "),
+  then
+    let $line-no := xs:integer($f/err:line)
+    return (
+    concat("line ", string($line-no), ": "),
     (: display the error lines, if it's in a main module :)
     if (exists($f/err:uri)) then ()
-    else <div id="error-lines"><code>
+    else <xh:div id="error-lines" class="code">
     {
-      let $line-no := xs:integer($f/err:line)
       for $l at $x in tokenize($query, "\r\n|\r|\n", "m")
       where $x gt ($line-no - 3) and $x lt (3 + $line-no)
       return (
         concat(string($x), ": "),
-        element span {
+        element xh:span {
           if ($x eq $line-no) then attribute class { "error" } else (),
           $l
         },
-        <br/>
+        <xh:br/>
       )
     }
-    </code></div>,
-    <br/>
+    </xh:div>,
+    <xh:br/>
   )
   else (),
 
   $f/err:operation/text(),
-  <br/>,
+  <xh:br/>,
 
   if (exists($f/err:format-string/text()))
   then $f/err:format-string/text()
   else $f/err:code/text(),
-  <br/>,
+  <xh:br/>,
 
   text { $f/err:data/err:datum },
 
   (: this may be empty :)
   for $v in $f/err:variables/err:variable
   return (
-    element code {
+    element xh:code {
       concat("$", string($v/err:name)), ":=", data($v/err:value) },
-    <br/>),
+    <xh:br/>),
 
-  <br/>
+  <xh:br/>
 }
 
 define function v:get-error-html(
@@ -194,37 +196,39 @@ define function v:get-error-html(
   $query as xs:string)
  as element(xh:html)
 {
+  d:debug(('v:get-error-html:', $ex)),
 <html xmlns="http://www.w3.org/1999/xhtml">
+  { element head { v:get-html-head() } }
   <body bgcolor="white">
-    <div>
-  <code>
-    <b>{
+    <div>{
+      element b {
+        (: NOTE: format-string is sometimes empty. if so, we omit the br :)
+        if (exists($ex/err:format-string/text()))
+        then ($ex/err:format-string/text(), <br/>)
+        else if (exists($ex/err:code/text()))
+        then (text { $ex/err:code, $ex/err:data/err:datum }, <br/>)
+        else ()
+      },
+      <br/>,
       (: display eval-in information :)
-      "ERROR: eval-in",
-      xdmp:database-name($db), "at",
-      concat(
-        if ($modules eq 0) then "file" else xdmp:database-name($modules),
-        ":", $root
-      ),
+      element i {
+        "query evaluated in",
+        xdmp:database-name($db), "at",
+        concat(
+          if ($modules eq 0) then "file" else xdmp:database-name($modules),
+          ":", $root )
+      },
       <br/>,
       <br/>,
-      (: NOTE: format-string is sometimes empty. if so, we omit the br :)
-      if (exists($ex/err:format-string/text()))
-      then ($ex/err:format-string/text(), <br/>)
-      else if (exists($ex/err:code/text()))
-      then (text { $ex/err:code, $ex/err:data/err:datum }, <br/>)
-      else ()
-    }</b><br/>
-    <b><i>Stack trace:</i></b><br/><br/>
-    {
+      <b><i>Stack trace:</i></b>,
+      <br/>,
+      <br/>,
       for $f in $ex/err:stack/err:frame
       return v:get-error-frame-html($f, $query),
       <br/>,
       (: for debugging :)
       comment { xdmp:quote($ex) }
-    }
-  </code>
-    </div>
+    }</div>
   </body>
 </html>
 }

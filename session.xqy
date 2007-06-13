@@ -47,7 +47,7 @@ c:set-content-type(),
   v:get-html-head(),
   <body>
     <form action="" method="post" id="/cq:session-form">
-      <input type="hidden" name="debug" value="{$d:DEBUG}"/>
+      <input type="hidden" name="{$d:DEBUG-FIELD}" value="{$d:DEBUG}"/>
 
       <h1 class="head1 accent-color">Welcome to cq</h1>
 

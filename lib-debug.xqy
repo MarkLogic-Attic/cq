@@ -29,6 +29,8 @@ define variable $d:NL { fn:codepoints-to-string((10)) }
 
 define variable $d:DEBUG as xs:boolean { false() }
 
+define variable $d:DEBUG-FIELD as xs:string { "debug" }
+
 define function d:get-debug() as xs:boolean { $d:DEBUG }
 
 define function d:debug-on()
@@ -53,7 +55,7 @@ define function d:debug($s as item()*)
 define function d:check-debug()
  as empty()
 {
-  if (xs:boolean(xdmp:get-request-field("debug", string($d:DEBUG))))
+  if (xs:boolean(xdmp:get-request-field($d:DEBUG-FIELD, string($d:DEBUG))))
   then d:debug-on()
   else ()
 }

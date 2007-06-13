@@ -179,9 +179,16 @@ input[type = "button"]
 }
 
 /* for display of stack traces */
+.code
+{
+  font-family: monospace, -moz-fixed !important;
+}
+
+/* for display of stack traces */
 .error
 {
   color: red;
+  font-weight: bold;
 }
 
 .caption, .row-title

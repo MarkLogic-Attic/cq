@@ -99,6 +99,7 @@ try {
   (: set the mime-type inside the try-catch block,
    : so errors can override it.
    :)
+  (: TODO add collation, when options supports it :)
   let $options := <options xmlns="xdmp:eval">
   {
     element database { $DATABASE-ID },
@@ -110,7 +111,7 @@ try {
   let $x :=
     if (not($PROFILING)) then xdmp:eval($QUERY, (), $options)
     else if ($c:PROFILING-ALLOWED)
-    then v:format-profiler-report(prof:eval($QUERY, (), $options)[1])
+    then prof:eval($QUERY, (), $options)[1]
     else <p class="head1 error">
       Profiling is disabled for the application server
       <b>{$c:SERVER-NAME}</b>.
@@ -130,6 +131,7 @@ try {
      : Binaries should not be viewed as html or text.
      :)
     if (empty($x)) then "text/html"
+    (: try to autosense profiler output :)
     else if ($PROFILING) then "text/html"
     (: for binaries, let the browser autosense the mime-type :)
     else if ($x instance of node()+
@@ -153,10 +155,8 @@ try {
     (: does this fix the IE6 text/plain helper-app issue? cf Q239750 :)
     xdmp:add-response-header('Content-Disposition', 'inline; filename=a.txt')
   return
-    if ($mimetype eq "text/xml")
-    then v:get-xml($x)
-    else if ($mimetype eq "text/html")
-    then v:get-html($x, $PROFILING)
+    if ($mimetype eq "text/xml") then v:get-xml($x)
+    else if ($mimetype eq "text/html") then v:get-html($x)
     else v:get-text($x)
 } catch ($ex) {
   (: errors are always displayed as html :)

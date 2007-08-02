@@ -99,18 +99,14 @@ define function v:get-xml($x)
   }
 }
 
-define function v:get-html($x)
+define function v:get-html($x as item()*)
  as element(xh:html)
 {
-  v:get-html($x, false())
-}
-
-define function v:get-html($x as item()*, $profiling as xs:boolean)
- as element(xh:html)
-{
+  let $profile := $x[. instance of element(prof:report)]
   let $body :=
-    for $i in $x
-    return if ($i instance of document-node()) then $i/node() else $i
+    if ($profile) then $profile else
+      for $i in $x
+      return if ($i instance of document-node()) then $i/node() else $i
   return
     if (count($body) eq 1
       and ($body instance of element())
@@ -118,14 +114,15 @@ define function v:get-html($x as item()*, $profiling as xs:boolean)
     then $body
     else <html xmlns="http://www.w3.org/1999/xhtml">
     {
-      if ($profiling)
+      if ($profile)
       then v:get-html-head('Profile for Query', true())
       else <head><title>Query Results</title></head>
     }
     <body bgcolor="white">
     {
-      if (exists($body)) then $body
-      else <i>your query returned an empty sequence</i>
+      if (empty($body)) then <i>your query returned an empty sequence</i>
+      else if ($profile) then v:format-profiler-report($profile)
+      else $body
     }
     </body>
   </html>
@@ -367,7 +364,11 @@ define function v:format-profiler-report($report as element(prof:report))
     let $size := 255
     let $max-line-length := string-length(string(max(
       $report/prof:histogram/prof:expression/prof:line)))
+    (: NB - all elements should have line and expr-source,
+     : but 3.2-1 sometimes produces output that we can't use.
+     :)
     for $i in $report/prof:histogram/prof:expression
+      [ prof:line ][ prof:expr-source ]
     order by $i/prof:shallow-time descending, $i/prof:deep-time descending
     return v:format-profiler-row($elapsed, $i, $size, $max-line-length)
   }</table>
@@ -383,7 +384,7 @@ define function v:format-profiler-row(
     if (not(string($i/prof:uri)))
     then '.main'
     else if (starts-with($i/prof:uri, '/'))
-    then substring-after($i/prof:uri,'/')
+    then substring-after($i/prof:uri, '/')
     else $i/prof:uri
   }
   return <tr xmlns="http://www.w3.org/1999/xhtml">{

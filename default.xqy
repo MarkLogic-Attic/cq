@@ -85,7 +85,7 @@ return
         <li>namespace: http://marklogic.com/xdmp/security</li>
         <li>database: (filesystem)</li>
         <li>uri: /MarkLogic/security.xqy</li>
-        <li>roles: admin</li>
+        <li>roles: security</li>
       </ul>
       </p>
     )

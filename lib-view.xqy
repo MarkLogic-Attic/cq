@@ -102,11 +102,11 @@ define function v:get-xml($x)
 define function v:get-html($x as item()*)
  as element(xh:html)
 {
-  let $profile := $x[. instance of element(prof:report)]
+  let $profile as element(prof:report)? :=
+    $x[1][. instance of element(prof:report)]
   let $body :=
-    if ($profile) then $profile else
-      for $i in $x
-      return if ($i instance of document-node()) then $i/node() else $i
+    for $i in $x
+    return if ($i instance of document-node()) then $i/node() else $i
   return
     if (count($body) eq 1
       and ($body instance of element())
@@ -121,8 +121,13 @@ define function v:get-html($x as item()*)
     <body bgcolor="white">
     {
       if (empty($body)) then <i>your query returned an empty sequence</i>
-      else if ($profile) then v:format-profiler-report($profile)
-      else $body
+      else
+        for $i at $x in $body
+        return
+          if ($i instance of element(prof:report))
+          then v:format-profiler-report($i)
+          else if ($profile) then xdmp:quote($i)
+          else $i
     }
     </body>
   </html>

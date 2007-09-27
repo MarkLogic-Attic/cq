@@ -92,15 +92,9 @@ define variable $PROFILING as xs:boolean {
   $MIMETYPE eq 'application/x-com.marklogic.developer.cq.profiling'
 }
 
-d:check-debug(),
-d:debug(("eval:", $MIMETYPE)),
-d:debug(("eval:", $DATABASE-ID, $MODULES-ID, $MODULES-ROOT, $QUERY)),
-try {
-  (: set the mime-type inside the try-catch block,
-   : so errors can override it.
-   :)
-  (: TODO add collation, when options supports it :)
-  let $options := <options xmlns="xdmp:eval">
+(: TODO add collation, when options supports it :)
+define variable $OPTIONS as element() {
+  <options xmlns="xdmp:eval">
   {
     element database { $DATABASE-ID },
     element modules { $MODULES-ID },
@@ -108,28 +102,37 @@ try {
     element isolation { "different-transaction" }
   }
   </options>
-  let $x :=
-    if (not($PROFILING)) then xdmp:eval($QUERY, (), $options)
-    else if ($c:PROFILING-ALLOWED)
-    then prof:eval($QUERY, (), $options)[1]
+}
+
+d:check-debug(),
+d:debug(("eval:", $MIMETYPE)),
+d:debug(("eval:", $DATABASE-ID, $MODULES-ID, $MODULES-ROOT, $QUERY)),
+try {
+  (: set the mime-type inside the try-catch block,
+   : so errors can override it.
+   :)
+  let $x as item()* :=
+    if (not($PROFILING)) then xdmp:eval($QUERY, (), $OPTIONS)
+    else if ($c:PROFILING-ALLOWED) then prof:eval($QUERY, (), $OPTIONS)
     else <p class="head1 error">
       Profiling is disabled for the application server
       <b>{$c:SERVER-NAME}</b>.
       You may enable profiling in the admin server.
     </p>
+  let $d := d:debug(("eval:", $x))
+  (: Sometimes we override the user's request,
+   : and display the results as text/plain instead
+   :
+   : Problem: sometimes IE6 insists on using a helper app for text/plain.
+   : The 'Content-Disposition: inline' header trick does not fix this.
+   : So can we use html and pre instead? Not for binary....
+   : Note that there's a registry fix: isTextPlainHonored.
+   : http://support.microsoft.com/default.aspx?scid=kb;EN-US;q239750
+   :
+   : It is dangerous to view a sequence of attributes as xml: XDMP-DUPATTR.
+   : Binaries should not be viewed as html or text.
+   :)
   let $mimetype :=
-    (: Sometimes we override the user's request,
-     : and display the results as text/plain instead
-     :
-     : Problem: sometimes IE6 insists on using a helper app for text/plain.
-     : The 'Content-Disposition: inline' header trick does not fix this.
-     : So can we use html and pre instead? Not for binary....
-     : Note that there's a registry fix: isTextPlainHonored.
-     : http://support.microsoft.com/default.aspx?scid=kb;EN-US;q239750
-     :
-     : It is dangerous to view a sequence of attributes as xml: XDMP-DUPATTR.
-     : Binaries should not be viewed as html or text.
-     :)
     if (empty($x)) then "text/html"
     (: try to autosense profiler output :)
     else if ($PROFILING) then "text/html"
@@ -147,8 +150,8 @@ try {
     else $MIMETYPE
   let $set :=
     if (exists($mimetype))
-    then xdmp:set-response-content-type(string-join(
-      ($mimetype, 'charset=utf-8'), '; '))
+    then xdmp:set-response-content-type(
+      string-join(($mimetype, 'charset=utf-8'), '; '))
     else ()
   let $set :=
     if (empty($mimetype) or $mimetype ne "text/plain") then () else

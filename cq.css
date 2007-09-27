@@ -63,7 +63,7 @@ input[type = "button"]
 #cq-textarea-status
 {
   font-weight: normal;
-  font-size: small;
+  font-size: smaller;
 }
 
 .resizable-e,.resizable-s,.resizable-w,.resizable-n
@@ -81,7 +81,7 @@ input[type = "button"]
 
 .head1 
 {
-  font-size: medium;
+  font-size: larger;
   font-weight: bold;
   margin-bottom: 3px;
 }
@@ -94,7 +94,7 @@ input[type = "button"]
 .buffer-tab, .buffer-tab-active
 {
   cursor: pointer;
-  font-size: medium;
+  font-size: larger;
   font-weight: bold;
   margin: 0 1em 0 1em;
   padding: 0 1em 0 1em;
@@ -106,13 +106,13 @@ input[type = "button"]
   color: grey;
 }
 
-.query-history
+.buffer-history-wrapper
 {  
   overflow: auto;
   /* initial value only:
    * JavaScript will match the height of the query-buffers area.
    */
-  height: 21em;
+  height: 30em;
 }
 
 .delete-widget
@@ -124,7 +124,7 @@ input[type = "button"]
 .instruction
 { 
   font-weight: normal;
-  font-size: small;
+
   font-style: italic;
   margin-right: .5em;
 }
@@ -147,9 +147,11 @@ input[type = "button"]
   line-height: 1.5;
   height: 1.5em;
   cursor: pointer;
+
+  font-size: smaller;
 }
 
-.bufferlabel-active 
+.bufferlabel-active
 {
   overflow: hidden !important;
 /*  text-overflow: clip !important; */
@@ -163,6 +165,8 @@ input[type = "button"]
 
   line-height: 1.5;
   height: 3em;
+
+  font-size: smaller;
 }
 
 /* IE6 hack, to allow 'white-space: nowrap' for gecko browsers. 

@@ -41,6 +41,7 @@ define variable $su:USER-IS-ADMIN as xs:boolean {
  : Sometimes we need the id.
  :)
 define function su:get-user-id($username as xs:string)
+ as xs:unsignedLong
 {
   xdmp:eval(
     'define variable $USER as xs:string external

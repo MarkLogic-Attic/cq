@@ -301,6 +301,7 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         this.buffersTitle.className = "buffer-tab";
         this.historyTitle.className = "buffer-tab-active accent-color";
 
+        // match the buffers-history-wrapper height to the rest of the UI
         // must ensure that buffers are visible for this to work.
         Element.show(buffersNode);
         Element.hide(historyNode);

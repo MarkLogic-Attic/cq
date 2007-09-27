@@ -143,11 +143,13 @@ c:set-content-type(),
               </td>
             </tr>
             </table>
+            <div id="/cq:buffer-history-wrapper" class="buffer-history-wrapper">
             <table id="/cq:buffer-list" border="1"/>
-            <div id="/cq:history" class="query-history">
+            <div id="/cq:history">
             <span><i>
             This is an empty query history list:
             populate it by submitting queries.</i></span>
+            </div>
             </div>
           </td>
         </tr>

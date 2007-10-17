@@ -126,7 +126,10 @@ define function v:get-html($x as item()*)
         return
           if ($i instance of element(prof:report))
           then v:format-profiler-report($i)
-          else if ($profile) then xdmp:quote($i)
+          else if ($profile) then
+            if ($i instance of binary())
+            then xdmp:describe($i)
+            else xdmp:quote($i)
           else $i
     }
     </body>

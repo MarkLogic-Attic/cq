@@ -18,6 +18,7 @@
 //////////////////////////////////////////////////////////////////////
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
+var kBufferHistoryWrapperId = "/cq:buffer-history-wrapper";
 var kFramesetId = "/cq:frameset";
 var kQueryFrameId = "/cq:queryFrame";
 var kResultFrameId = "/cq:resultFrame";
@@ -266,6 +267,42 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         this.refresh((0 == this.current) ? 1 : 0);
     }
 
+    this.resize = function() {
+        var label = "BufferTabsClass.resize: ";
+
+        // match the buffers-history-wrapper height to the rest of the UI
+        var visibleNode = $(kQueryFormId);
+        if (null == visibleNode) {
+            debug.print("nothing to resize from!");
+        } else {
+            var wrapperNode = $(kBufferHistoryWrapperId);
+            var visibleHeight = visibleNode.offsetHeight;
+            var visibleOffset = visibleNode.offsetTop;
+            // TODO use the form, instead?
+            var wrapperOffset = wrapperNode.offsetTop;
+            debug.print(label + "visible height + offset = "
+                        + visibleHeight + " " + visibleOffset);
+            // adjust height
+            var height = "" + (visibleHeight
+                               - (visibleOffset + wrapperOffset)) + "px";
+            debug.print(label + "new height = " + height);
+            wrapperNode.style.minHeight = height;
+            wrapperNode.style.height = height;
+        }
+
+        // set the history and buffers to have the same width
+        // must ensure that buffers are visible for this to work.
+        var buffersNode = this.buffers.labelList;
+        var historyNode = this.history.node;
+        Element.show(buffersNode);
+        Element.hide(historyNode);
+        var bufferWidth = buffersNode.clientWidth;
+        debug.print(label + "buffer width = " + bufferWidth);
+        // this works with IE6 and gecko
+        historyNode.style.width = bufferWidth + "px";
+        debug.print(label + "history width = " + historyNode.clientWidth);
+    }
+
     this.refresh = function(n) {
         var label = "BufferTabsClass.refresh: ";
         debug.print(label + n + ", " + this.current);
@@ -283,14 +320,15 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         var buffersNode = this.buffers.labelList;
         var historyNode = this.history.node;
 
+        // highlight the active tab
+        // hide and show the appropriate list
+
         // simple for now: node 0 is buffer list, 1 is history
         // TODO move the instruction text too?
         if (this.current == 0) {
             debug.print(label + "displaying buffers");
-            // highlight the active tab
             this.buffersTitle.className = "buffer-tab-active accent-color";
             this.historyTitle.className = "buffer-tab";
-            // hide and show the appropriate list
             Element.show(buffersNode);
             Element.hide(historyNode);
             return;
@@ -300,33 +338,6 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         // highlight the active tab
         this.buffersTitle.className = "buffer-tab";
         this.historyTitle.className = "buffer-tab-active accent-color";
-
-        // match the buffers-history-wrapper height to the rest of the UI
-        // must ensure that buffers are visible for this to work.
-        Element.show(buffersNode);
-        Element.hide(historyNode);
-        // TODO use the form, instead?
-        var bufferHeight = this.buffers.input.clientHeight;
-        var bufferOffset = this.buffers.input.offsetTop;
-        var bufferWidth = buffersNode.clientWidth;
-        debug.print(label + "buffer width = " + buffersNode.clientWidth);
-
-        // must ensure that history is visible for this to work.
-        Element.hide(buffersNode);
-        Element.show(historyNode);
-        var historyOffset = historyNode.offsetTop;
-
-        // match the textarea height
-        var height = bufferHeight + bufferOffset - historyOffset;
-        debug.print(label + "new height = " + height);
-        historyNode.style.minHeight = height + "px";
-
-        // set the history and buffers to have the same width
-        // this works with IE6 and gecko
-        historyNode.style.width = bufferWidth + "px";
-        debug.print(label + "history width = " + historyNode.clientWidth);
-
-        // hide and show the appropriate list
         Element.hide(buffersNode);
         Element.show(historyNode);
     }
@@ -1172,6 +1183,8 @@ function cqOnLoad() {
 
     gBufferTabs.setSession(gSession);
 
+    resizeFrameset();
+
     // enforce local policy, if any
     var policy = new PolicyClass("/cq:title",
                                  $F("/cq:policy/title"),
@@ -1179,19 +1192,15 @@ function cqOnLoad() {
                                  $F("/cq:policy/accent-color"));
     policy.enforce();
 
+    gBufferTabs.resize();
+    gBufferTabs.refresh();
+
     // display the buffer list, exposing buffer 0
     gBuffers.activate();
 
-    // once more, to fix widths
-    gBufferTabs.refresh();
-
-    resizeFrameset();
-
-    // TODO save on unload
-    // looks like we need prototype 1.5 for this:
-    // "$A is not defined" at line 48, in the bind() code....
+    // TODO save on unload: "$A is not defined"
     //Event.observe(parent.window, "unload",
-    //              gBufferTabs.unload.bindAsEventListener(gBufferTabs));
+    //gBufferTabs.unload.bindAsEventListener(gBufferTabs));
 }
 
 function resizeFrameset() {
@@ -1207,12 +1216,7 @@ function resizeFrameset() {
     // in this case we'll use the total height of the query form
     // this might be called from the queryframe or from the parent frameset
     var visible = $(kQueryFormId);
-    if (visible == null) {
-        // hackish
-        var documentNode = window.frames[0].window.document;
-        visible = documentNode.getElementById(kQueryFormId);
-    }
-    if (visible == null) {
+    if (null == visible) {
         debug.print("nothing to resize from!");
         return;
     }
@@ -1220,10 +1224,10 @@ function resizeFrameset() {
     debug.print("resizeFrameset: visible " + visible
           + ", " + visible.offsetTop + ", " + visible.offsetHeight);
     // add a smidgen for fudge-factor, so we don't activate scrolling:
-    // 15px is enough for gecko, but IE6 wants 17px
-    rows = 17 + visible.offsetTop + visible.offsetHeight;
+    // 9px is enough for gecko, but IE6 wants 17px
+    rows = (gBrowserIs.ie ? 17 : 9) + visible.offsetTop + visible.offsetHeight;
     frameset.rows = rows + ",*";
-} // resizeFrameset
+}
 
 // keycode support:
 //   ctrl-ENTER for XML, alt-ENTER for HTML, shift-ENTER for text/plain

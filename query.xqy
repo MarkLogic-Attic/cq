@@ -86,7 +86,6 @@ c:set-content-type(),
               attribute rows { (data($c:SESSION/@rows), 16)[1] },
               attribute cols { (data($c:SESSION/@cols), 80)[1] }
             }</textarea>
-            <input type="hidden" id="/cq:query" name="/cq:query"/>
             <table width="100%">
               <tr>
                 <td width="100%" nowrap="1">
@@ -116,8 +115,45 @@ c:set-content-type(),
                       $c:SERVER-NAME }
                   }
                 }</input>
-                <input type="hidden" value="text/xml"
-                id="/cq:mime-type" name="/cq:mime-type"/>
+            <input type="hidden" class="hidden"
+             id="/cq:query" name="/cq:query"/>
+            <input type="hidden" class="hidden" value="text/xml"
+             id="/cq:mime-type" name="/cq:mime-type"/>
+            <input type="hidden" class="hidden"  value="{$c:POLICY-TITLE}"
+             id="/cq:policy/title"/>
+            <input type="hidden" class="hidden" value="{$c:POLICY-ACCENT-COLOR}"
+             id="/cq:policy/accent-color"/>
+            <input type="hidden" class="hidden" value="{$d:DEBUG}"
+             id="{$d:DEBUG-FIELD}"  name="{$d:DEBUG-FIELD}"/>
+            <div class="hidden" xml:space="preserve"
+            id="/cq:restore-session" name="/cq:restore-session">{
+
+        if ($c:SESSION)
+        then attribute session-id { $c:SESSION-ID }
+        else (),
+
+        let $active := data($c:SESSION/sess:active-tab)
+        where $active
+        return attribute active-tab { $active },
+
+        (: Initial session state as hidden divs, for the onload method.
+         : Be careful to preserve all whitespace.
+         : For IE6, this means we must use pre elements.
+         :)
+        element div {
+          attribute id { "/cq:restore-session-buffers" },
+          $c:SESSION/sess:query-buffers/@*,
+          for $i in $QUERY-BUFFERS return element pre {
+            $i/@*, $i/node() }
+        },
+
+        element div {
+          attribute id { "/cq:restore-session-history" },
+          $c:SESSION/sess:query-history/@*,
+          for $i in $QUERY-HISTORY return element pre {
+            $i/@*, $i/node() }
+        }
+      }</div>
                 </td>
                 <td id="/cq:textarea-status" nowrap="1" class="status"
                 title="Current position of the caret, as LINE,COLUMN."></td>
@@ -158,41 +194,6 @@ c:set-content-type(),
           </td>
         </tr>
       </table>
-      <input id="/cq:policy/title" type="hidden"
-       value="{$c:POLICY-TITLE}"/>
-      <input id="/cq:policy/accent-color" type="hidden"
-       value="{$c:POLICY-ACCENT-COLOR}"/>
-      <input id="{$d:DEBUG-FIELD}" name="{$d:DEBUG-FIELD}"
-       type="hidden" value="{ $d:DEBUG }"/>
-      <div class="hidden" xml:space="preserve"
-       id="/cq:restore-session" name="/cq:restore-session">{
-
-        if ($c:SESSION)
-        then attribute session-id { $c:SESSION-ID }
-        else (),
-
-        let $active := data($c:SESSION/sess:active-tab)
-        where $active
-        return attribute active-tab { $active },
-
-        (: Initial session state as hidden divs, for the onload method.
-         : Be careful to preserve all whitespace.
-         : For IE6, this means we must use pre elements.
-         :)
-        element div {
-          attribute id { "/cq:restore-session-buffers" },
-          $c:SESSION/sess:query-buffers/@*,
-          for $i in $QUERY-BUFFERS return element pre {
-            $i/@*, $i/node() }
-        },
-
-        element div {
-          attribute id { "/cq:restore-session-history" },
-          $c:SESSION/sess:query-history/@*,
-          for $i in $QUERY-HISTORY return element pre {
-            $i/@*, $i/node() }
-        }
-      }</div>
     </form>
   </body>
 </html>

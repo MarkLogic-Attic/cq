@@ -23,6 +23,7 @@ body
   background-color: white;
   font-family: sans-serif;
   font-size: small;
+  margin: 1px 1px 1px 1px;
 }
 
 td 
@@ -49,15 +50,15 @@ ol
 select
 {
   width: 16em;
-  margin-right: 5px;
-  margin-left: 5px;
+  margin-right: 0.5em;
+  margin-left: 0.5em;
 }
 
 input[type = "button"]
 {
   font-family: sans-serif;
-  margin-left: 5px;
-  margin-left: 5px;
+  margin-left: 0.5em;
+  margin-left: 0.5em;
 }
 
 #cq-textarea-status
@@ -68,7 +69,7 @@ input[type = "button"]
 
 .resizable-e,.resizable-s,.resizable-w,.resizable-n
 {
-  margin-right: 5px;
+  margin-right: 0.5em;
   vertical-align: middle;
 }
 
@@ -83,7 +84,7 @@ input[type = "button"]
 {
   font-size: larger;
   font-weight: bold;
-  margin-bottom: 3px;
+  margin-bottom: 0.2em;
 }
 
 .buffer-tab, .buffer-tab-active, .query-history, .profiler-report
@@ -96,8 +97,8 @@ input[type = "button"]
   cursor: pointer;
   font-size: larger;
   font-weight: bold;
-  margin: 0 1em 0 1em;
-  padding: 0 1em 0 1em;
+  margin: 0 0.5em 0 0.5em;
+  padding: 0 0.5em 0 0.5em;
   float: left;
 }
 
@@ -112,7 +113,7 @@ input[type = "button"]
   /* initial value only:
    * JavaScript will match the height of the query-buffers area.
    */
-  height: 30em;
+  height: 2em;
 }
 
 .delete-widget
@@ -180,6 +181,7 @@ input[type = "button"]
 .hidden
 {
   display: none;
+  height: 0px;
 }
 
 /* for display of stack traces */

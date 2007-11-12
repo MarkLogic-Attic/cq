@@ -45,7 +45,7 @@ function DebugClass(flag) {
         if (this.enabled != true) { return; }
 
         var id = "__debugNode";
-        var debugNode = document.getElementById(id);
+        var debugNode = $(id);
         if (debugNode == null) {
             // add as new child of the html body
             var debugNode = document.createElement("div");

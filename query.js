@@ -1204,11 +1204,6 @@ function cqOnLoad() {
 }
 
 function resizeFrameset() {
-    var frameset = parent.document.getElementById(kFramesetId);
-    if (frameset == null) {
-        debug.print("resizeFrameset: null frameset");
-        return;
-    }
     // set the result-frame height to fill the available space
     // pick a reasonable default value
     var rows = 500;
@@ -1226,6 +1221,13 @@ function resizeFrameset() {
     // add a smidgen for fudge-factor, so we don't activate scrolling:
     // 9px is enough for gecko, but IE6 wants 17px
     rows = (gBrowserIs.ie ? 17 : 9) + visible.offsetTop + visible.offsetHeight;
+
+    // can't use $() here...
+    var frameset = parent.document.getElementById(kFramesetId);
+    if (frameset == null) {
+        debug.print("resizeFrameset: null frameset");
+        return;
+    }
     frameset.rows = rows + ",*";
 }
 

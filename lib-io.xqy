@@ -1,3 +1,4 @@
+xquery version "0.9-ml"
 (:
  : Client Query Application
  :
@@ -198,7 +199,8 @@ define function io:exists-db($uri as xs:string)
  as xs:boolean
 {
   xdmp:eval(
-    'define variable $URI as xs:string external
+    'xquery version "0.9-ml"
+     define variable $URI as xs:string external
      xdmp:exists(doc($URI))',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -224,7 +226,8 @@ define function io:delete-db($uri as xs:string)
  as empty()
 {
   xdmp:eval(
-    'define variable $URI as xs:string external
+    'xquery version "0.9-ml"
+     define variable $URI as xs:string external
      xdmp:document-delete($URI)',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -244,7 +247,8 @@ define function io:list-db($uri as xs:string)
   as document-node()*
 {
   xdmp:eval(
-    'define variable $URI as xs:string external
+    'xquery version "0.9-ml"
+     define variable $URI as xs:string external
      xdmp:directory($URI, "1")',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -288,7 +292,8 @@ define function io:read-db($uri as xs:string)
   as document-node()?
 {
   xdmp:eval(
-    'define variable $URI as xs:string external
+    'xquery version "0.9-ml"
+     define variable $URI as xs:string external
      doc($URI)',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -319,7 +324,8 @@ define function io:write-db($uri as xs:string, $new as document-node())
   as empty()
 {
   xdmp:eval(
-    'define variable $URI as xs:string external
+    'xquery version "0.9-ml"
+     define variable $URI as xs:string external
      define variable $NEW as document-node() external
      define variable $EXISTS as xs:boolean { xdmp:exists(doc($URI)) }
      xdmp:document-insert(
@@ -348,7 +354,8 @@ define function io:lock-release-db($uri as xs:string)
  as empty()
 {
   xdmp:eval(
-    'define variable $URI as xs:string external
+    'xquery version "0.9-ml"
+     define variable $URI as xs:string external
      xdmp:lock-release($URI)',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
@@ -403,7 +410,8 @@ define function io:lock-acquire-db(
   as empty()
 {
   xdmp:eval(
-    'define variable $URI as xs:string external
+    'xquery version "0.9-ml"
+     define variable $URI as xs:string external
      define variable $SCOPE as xs:string external
      define variable $DEPTH as xs:string external
      define variable $OWNER as xs:string external
@@ -496,7 +504,8 @@ define function io:document-locks-db($uris as xs:string*)
  as document-node()*
 {
   xdmp:eval(
-    'define variable $URIS-SSV as xs:string external
+    'xquery version "0.9-ml"
+     define variable $URIS-SSV as xs:string external
      define variable $URIS as xs:string+ { tokenize($URIS-SSV, "\s+") }
      xdmp:document-locks($URIS)',
     (xs:QName('URIS-SSV'), string-join($uris, ' ')),

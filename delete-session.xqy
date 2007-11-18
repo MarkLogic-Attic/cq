@@ -1,3 +1,4 @@
+xquery version "0.9-ml"
 (:
  : Client Query Application
  :

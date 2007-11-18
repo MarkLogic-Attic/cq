@@ -1,3 +1,4 @@
+xquery version "0.9-ml"
 (:
  : cq: lib-security-utils.xqy
  :
@@ -44,7 +45,8 @@ define function su:get-user-id($username as xs:string)
  as xs:unsignedLong
 {
   xdmp:eval(
-    'define variable $USER as xs:string external
+    'xquery version "0.9-ml"
+     define variable $USER as xs:string external
      import module "http://marklogic.com/xdmp/security"
       at "/MarkLogic/security.xqy"
      sec:uid-for-name($USER)',

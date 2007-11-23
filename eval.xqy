@@ -100,7 +100,10 @@ define variable $OPTIONS as element() {
     element database { $DATABASE-ID },
     element modules { $MODULES-ID },
     element root { $MODULES-ROOT },
-    element isolation { "different-transaction" }
+    element isolation { "different-transaction" },
+    if (fn:starts-with (xdmp:version(), "4"))
+      then element default-xquery-version { "app-server" }
+      else ()
   }
   </options>
 }

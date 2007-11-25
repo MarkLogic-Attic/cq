@@ -54,8 +54,8 @@ define variable $EVAL-STRING as xs:string+ {
    :   to look up the database-id, modules-id, and root-path.
    :)
   let $toks := tokenize(xdmp:get-request-field(
-    "/cq:eval-in", string(xdmp:database())), ":")
-  return if ($toks[1] ne "as") then $toks else (
+    '/cq:eval-in', string(xdmp:database())), ':')
+  return if ($toks[1] ne 'as') then $toks else (
     let $server :=
       xdmp:server-status(xs:unsignedLong($toks[3]), xs:unsignedLong($toks[2]))
     for $i in ($server/mlss:database, $server/mlss:modules, $server/mlss:root)

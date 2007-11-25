@@ -44,7 +44,7 @@ c:set-content-type(),
 <html xmlns="http://www.w3.org/1999/xhtml">
   { v:get-html-head() }
   <body onload="cqOnLoad()">
-    <!-- TODO query path on our form may keep IE6 from launching a helper -->
+    <!-- query path on our form may keep IE6 from launching a helper -->
     <form action="eval.xqy?iefix.txt" method="post" id="/cq:form"
      target="/cq:resultFrame">
       <table summary="query form">

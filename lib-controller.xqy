@@ -30,6 +30,10 @@ declare namespace mlhs = "http://marklogic.com/xdmp/status/host"
 
 declare namespace mlss = "http://marklogic.com/xdmp/status/server"
 
+declare namespace mlgc = "http://marklogic.com/xdmp/group"
+
+declare namespace mlhc = "http://marklogic.com/xdmp/hosts"
+
 declare namespace sess = "com.marklogic.developer.cq.session"
 
 declare namespace pol = "com.marklogic.developer.cq.policy"
@@ -452,30 +456,30 @@ define function c:get-app-server-info()
   (: first, list all the app-servers (except webdav and task servers).
    : next, list all databases that aren't part of an app-server.
    : NOTE: requires MarkLogic Server 3.1-1 or later.
+   : NOTE: this used to use a mix of xdmp:hosts(), xdmp:host-status(),
+   :   and xdmp:server-status(), but it was too slow on large clusters.
    : TODO provide a mechanism to update the list, to pull admin changes.
    :)
-   let $hosts-status := for $h in xdmp:hosts() return xdmp:host-status($h)
-   let $groups := distinct-values($hosts-status/mlhs:group-id)
-   for $g in $groups
-   let $host-status := ($hosts-status[ mlhs:group-id eq $g])[1]
-   let $host-id := data($host-status/mlhs:host-id)
-   for $s in $host-status
-     /(mlhs:http-servers|mlhs:xdbc-servers)
-     /(mlhs:http-server[not(xs:boolean(mlhs:webDAV))]|mlhs:xdbc-server)
-   let $server-id := data($s/(mlhs:http-server-id|mlhs:xdbc-server-id))
-   let $server-status := xdmp:server-status($host-id, $server-id)
-   (: convert the namespaces from the output :)
+   let $hosts as element(mlhc:host)+ :=
+     xdmp:read-cluster-config-file('hosts.xml')/mlhc:hosts/mlhc:host
+   for $g in xdmp:read-cluster-config-file('groups.xml')
+     /mlgc:groups/mlgc:group
+   let $group-id as xs:unsignedLong := $g/mlgc:group-id
+   let $host-id as xs:unsignedLong :=
+     $hosts[mlhc:group eq $group-id][1]/mlhc:host-id
+   (: skip any webdav servers, since it makes little sense to query them :)
+   for $i in $g/*/*[mlgc:webDAV ne true()]
+   let $server-id as xs:unsignedLong :=
+     $i/(mlgc:http-server-id|mlgc:xdbc-server-id)
+   let $server-name as xs:string :=
+     $i/(mlgc:http-server-name|mlgc:xdbc-server-name)
    return element c:app-server-info {
      element c:host-id { $host-id },
      element c:server-id { $server-id },
-     element c:server-name {
-       data($server-status/mlss:server-name) },
-     element c:database {
-       data($server-status/mlss:database) },
-     element c:modules {
-       data($server-status/mlss:modules) },
-     element c:root {
-       data($server-status/mlss:root) }
+     element c:server-name { $server-name },
+     element c:database { data($i/mlgc:database) },
+     element c:modules { data($i/mlgc:modules) },
+     element c:root { data($i/mlgc:root) }
    }
 }
 

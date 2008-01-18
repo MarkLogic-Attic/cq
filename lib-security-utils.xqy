@@ -1,4 +1,3 @@
-xquery version "0.9-ml"
 (:
  : cq: lib-security-utils.xqy
  :
@@ -20,6 +19,8 @@ xquery version "0.9-ml"
  : affiliated with the Apache Software Foundation.
  :
  :)
+xquery version "0.9-ml"
+
 module "com.marklogic.developer.cq.security"
 
 default function namespace = "http://www.w3.org/2003/05/xpath-functions"
@@ -31,31 +32,11 @@ import module "http://marklogic.com/xdmp/security"
 
 define variable $su:USER as xs:string { xdmp:get-current-user() }
 
-define variable $su:USER-ID as xs:unsignedLong {
-  su:get-user-id($su:USER) }
+define variable $su:USER-ID as xs:unsignedLong { xdmp:get-request-user() }
 
 define variable $su:USER-IS-ADMIN as xs:boolean {
-  (: apparently this does not need to eval in the security database? :)
-  try { sec:check-admin(), true() } catch ($ex) { false() } }
-
-(: Sadly, xdmp:get-current-user() only returns the username.
- : Sometimes we need the id.
- :)
-define function su:get-user-id($username as xs:string)
- as xs:unsignedLong
-{
-  xdmp:eval(
-    'xquery version "0.9-ml"
-     define variable $USER as xs:string external
-     import module "http://marklogic.com/xdmp/security"
-      at "/MarkLogic/security.xqy"
-     sec:uid-for-name($USER)',
-     (xs:QName('USER'), $username),
-     <options xmlns="xdmp:eval">
-       <database>{ xdmp:security-database() }</database>
-       <isolation>different-transaction</isolation>
-     </options>
-  )
+  (: apparently this does not need to eval in the security database :)
+  try { sec:check-admin(), true() } catch ($ex) { false() }
 }
 
 (: lib-security-utils.xqy :)

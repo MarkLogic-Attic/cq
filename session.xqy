@@ -38,7 +38,8 @@ import module namespace v = "com.marklogic.developer.cq.view"
 declare namespace sess = "com.marklogic.developer.cq.session"
 
 define variable $SESSIONS as element(sess:session)* {
-  c:get-sessions() }
+  c:get-sessions()
+}
 
 d:check-debug(),
 c:set-content-type(),
@@ -120,6 +121,7 @@ c:set-content-type(),
           </script>
 {
   (: TODO allow users to duplicate locked sessions :)
+  (: TODO allow privileged users to break session locks :)
   let $sessions := c:get-sessions()
   let $d := d:debug(("sessions:", count($sessions)))
   return

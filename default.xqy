@@ -44,6 +44,7 @@ let $priv-errors :=
     "http://marklogic.com/xdmp/privileges/xdmp-eval-in",
     "http://marklogic.com/xdmp/privileges/xdmp-filesystem-directory",
     "http://marklogic.com/xdmp/privileges/xdmp-invoke",
+    "http://marklogic.com/xdmp/privileges/xdmp-read-cluster-config-file",
     "http://marklogic.com/xdmp/privileges/xdmp-save"
   )
   return try {
@@ -51,11 +52,8 @@ let $priv-errors :=
 (: We also require an amp on sec:uid-for-name - unless user is admin.
  : If this amp exists, then su:USER-ID will have a value.
  :)
-let $uid-errors :=
-  if ($su:USER-IS-ADMIN) then ()
-  else try { $su:USER-ID[ false() ] } catch ($ex) { $ex }
 return
-  if (exists(($priv-errors, $uid-errors))) then
+  if ($priv-errors) then
 <html xmlns="http://www.w3.org/1999/xhtml">
 {
   v:get-html-head(),
@@ -75,20 +73,6 @@ return
       and assign the <code>cq</code> role to the {$su:USER} user.
       </p>,
       element ul { for $e in $priv-errors return element li { $e } }
-    ),
-    if (empty($uid-errors)) then () else (
-      <p>The current user does not seem to have the security role.
-      Please make sure that there is a security amp on
-      <code>sec:uid-for-name()</code>.
-      The amp must have the following configuration:
-      <ul>
-        <li>localname: uid-for-name</li>
-        <li>namespace: http://marklogic.com/xdmp/security</li>
-        <li>database: (filesystem)</li>
-        <li>uri: /MarkLogic/security.xqy</li>
-        <li>roles: security</li>
-      </ul>
-      </p>
     )
   }
 }

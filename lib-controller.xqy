@@ -468,11 +468,12 @@ define function c:get-app-server-info()
    let $host-id as xs:unsignedLong :=
      $hosts[mlhc:group eq $group-id][1]/mlhc:host-id
    (: skip any webdav servers, since it makes little sense to query them :)
-   for $i in $g/*/*[mlgc:http-server-id|mlgc:xdbc-server-id][not(mlgc:webDAV)]
+   for $i in $g/*/*[mlgc:http-server-id|mlgc:xdbc-server-id]
    let $server-id as xs:unsignedLong :=
      $i/(mlgc:http-server-id|mlgc:xdbc-server-id)
    let $server-name as xs:string :=
      $i/(mlgc:http-server-name|mlgc:xdbc-server-name)
+   where $i instance of element(mlgc:xdbc-server) or not(data($i/mlgc:webDAV))
    return element c:app-server-info {
      element c:host-id { $host-id },
      element c:server-id { $server-id },

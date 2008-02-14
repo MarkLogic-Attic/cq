@@ -270,7 +270,7 @@ define function v:get-html-head($label as xs:string)
 define function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
  as element(xh:head)
 {
-  (: we do not need the js and css here, but it makes reloads easier :)
+  (: we do not always need the js and css here, but it makes reloads easier :)
   <head xmlns="http://www.w3.org/1999/xhtml">
     <title>{ $label, $c:TITLE-TEXT }</title>
     <link rel="stylesheet" type="text/css" href="cq.css">

@@ -49,9 +49,6 @@ let $priv-errors :=
   )
   return try {
     xdmp:security-assert($priv, "execute") } catch ($ex) { $priv }
-(: We also require an amp on sec:uid-for-name - unless user is admin.
- : If this amp exists, then su:USER-ID will have a value.
- :)
 return
   if ($priv-errors) then
 <html xmlns="http://www.w3.org/1999/xhtml">

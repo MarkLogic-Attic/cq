@@ -1393,7 +1393,7 @@ function cqListDocuments() {
         + " else element p { $est, 'documents total' },"
         + " for $i in doc()[1 to $limit]"
         + " let $uri := xdmp:node-uri($i)"
-        + " let $n := $i/(binary()|element()|text())[1]"
+        + " let $n := ($i/*[1], $i/(binary()|element()|text())[1])[1]"
         + " where exists($n)"
         + " order by $uri"
         + " return ( $uri,"

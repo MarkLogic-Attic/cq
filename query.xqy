@@ -80,6 +80,7 @@ c:set-content-type(),
             </div>
             <div nowrap="1" id="queryBuffers">
             <textarea id="/cq:input" name="/cq:input"
+             itsalltext-extension=".xqy"
              xml:space="preserve" spellcheck="false">{
               (: NB @spellcheck above turns off gecko inline spellcheck.
                : Dynamic buffer size, restored from session state.

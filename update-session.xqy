@@ -74,6 +74,8 @@ define variable $new-tabs as element(sess:active-tab) {
 }
 
 if ($DEBUG) then d:debug-on() else (),
-c:update-session($ID, ($new-buffers, $new-history, $new-tabs))
+c:update-session($ID, ($new-buffers, $new-history, $new-tabs)),
+(: firefox 3 logs an error if the result is empty :)
+<update-ok/>
 
 (: update-session.xqy :)

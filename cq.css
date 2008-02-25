@@ -26,6 +26,11 @@ body
   margin: 1px 1px 1px 1px;
 }
 
+table 
+{
+  width: 100%;
+}
+
 td 
 {
   vertical-align: top;
@@ -35,11 +40,6 @@ textarea
 {
   /* weird gecko hack */
   font-family: monospace, -moz-fixed !important;
-}
-
-table 
-{
-  width: 100%;
 }
 
 ol
@@ -138,7 +138,7 @@ input[type = "button"]
 .bufferlabel 
 {
   overflow: hidden !important;
-/*  text-overflow: clip !important; */
+  /*text-overflow: clip !important;*/
 /* 
  * I want to use 'white-space: nowrap', 
  * so gecko won't swallow long lines.
@@ -180,6 +180,7 @@ input[type = "button"]
 
 .hidden
 {
+  overflow: hidden !important;
   display: none;
   height: 0px;
 }

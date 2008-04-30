@@ -1,7 +1,8 @@
+xquery version "0.9-ml"
 (:
  : cq: lib-security-utils.xqy
  :
- : Copyright (c)2002-2007 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c)2002-2008 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -19,7 +20,6 @@
  : affiliated with the Apache Software Foundation.
  :
  :)
-xquery version "0.9-ml"
 
 module "com.marklogic.developer.cq.security"
 
@@ -35,7 +35,7 @@ define variable $su:USER as xs:string { xdmp:get-current-user() }
 define variable $su:USER-ID as xs:unsignedLong { xdmp:get-request-user() }
 
 define variable $su:USER-IS-ADMIN as xs:boolean {
-  (: apparently this does not need to eval in the security database :)
+  (: apparently this does *not* need to eval in the security database :)
   try { sec:check-admin(), true() } catch ($ex) { false() }
 }
 

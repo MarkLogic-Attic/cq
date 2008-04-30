@@ -2,7 +2,7 @@ xquery version "0.9-ml"
 (:
  : eval.xqy
  :
- : Copyright (c)2002-2007 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c)2002-2008 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -160,7 +160,7 @@ try {
   let $set :=
     if (empty($mimetype) or $mimetype ne "text/plain") then () else
     (: does this fix the IE6 text/plain helper-app issue? cf Q239750 :)
-    xdmp:add-response-header('Content-Disposition', 'inline; filename=a.txt')
+    xdmp:add-response-header('Content-Disposition', 'inline; filename=cq.txt')
   return
     if ($mimetype eq "text/xml") then v:get-xml($x)
     else if ($mimetype eq "text/html") then v:get-html($x)

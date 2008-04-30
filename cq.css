@@ -1,4 +1,4 @@
-/* Copyright (c) 2004-2007 Mark Logic Corporation. All Rights Reserved.
+/* Copyright (c) 2004-2008 Mark Logic Corporation. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -116,20 +116,6 @@ input[type = "button"]
   height: 2em;
 }
 
-.delete-widget
-{
-  color: red;
-  cursor: crosshair;
-}
-
-.instruction
-{ 
-  font-weight: normal;
-
-  font-style: italic;
-  margin-right: .5em;
-}
-
 /* clipping doesn't work quite how I'd like it to:
  * long lines that contain no breakable characters
  * tend to disappear entirely!
@@ -139,17 +125,33 @@ input[type = "button"]
 {
   overflow: hidden !important;
   /*text-overflow: clip !important;*/
-/* 
- * I want to use 'white-space: nowrap', 
- * so gecko won't swallow long lines.
- */
-  white-space: nowrap;
+  /* 
+   * I want to use 'white-space: nowrap', 
+   * so gecko won't swallow long lines.
+   * Unfortunately, this broke in FireFox 3.0,
+   * but repeated declarations seem to do the job.
+   * Browsers should use the last supported value.
+   */
+  white-space: pre; /* CSS2 */
+  white-space: -moz-pre-wrap; /* Mozilla */
+  white-space: -o-pre-wrap; /* Opera 7 */
+  white-space: -pre-wrap; /* Opera 4-6 */
+  white-space: pre-wrap; /* CSS 2.1 */
+  white-space: pre-line; /* CSS 3 and 2.1 */
 
   line-height: 1.5;
   height: 1.5em;
   cursor: pointer;
 
   font-size: smaller;
+}
+
+/* IE6 hack: '* html' makes this invisible to non-IE browsers. */
+* html .bufferlabel
+{
+  word-break: break-all !important;
+  word-wrap: break-word !important;
+  white-space: pre !important;
 }
 
 .bufferlabel-active
@@ -170,12 +172,33 @@ input[type = "button"]
   font-size: smaller;
 }
 
-/* IE6 hack, to allow 'white-space: nowrap' for gecko browsers. 
- * the '* html' makes this invisible to non-IE browsers.
- */
-* html .bufferlabel 
+/* for display of stack traces */
+.code
 {
-  white-space: normal !important;
+  font-family: monospace, -moz-fixed !important;
+}
+
+.delete-widget
+{
+  color: red;
+  cursor: crosshair;
+}
+
+.disabled
+{
+  color: grey;
+}
+
+/* for display of stack traces */
+.error
+{
+  color: red;
+  font-weight: bold;
+}
+
+.expression
+{
+  width: 80%
 }
 
 .hidden
@@ -185,17 +208,12 @@ input[type = "button"]
   height: 0px;
 }
 
-/* for display of stack traces */
-.code
-{
-  font-family: monospace, -moz-fixed !important;
-}
+.instruction
+{ 
+  font-weight: normal;
 
-/* for display of stack traces */
-.error
-{
-  color: red;
-  font-weight: bold;
+  font-style: italic;
+  margin-right: .5em;
 }
 
 .caption, .row-title
@@ -209,19 +227,9 @@ input[type = "button"]
   white-space: pre;
 }
 
-.expression
-{
-  width: 80%
-}
-
 .status
 {
   width: 7em;
-}
-
-.disabled
-{
-  color: grey;
 }
 
 /* end cq.css */

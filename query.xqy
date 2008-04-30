@@ -2,7 +2,7 @@ xquery version "0.9-ml"
 (:
  : Client Query Application
  :
- : Copyright (c) 2002-2007 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2008 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -83,6 +83,7 @@ c:set-content-type(),
              itsalltext-extension=".xqy"
              xml:space="preserve" spellcheck="false">{
               (: NB @spellcheck above turns off gecko inline spellcheck.
+               : NB @itsalltext-extension for the eponymous firefox extension.
                : Dynamic buffer size, restored from session state.
                :)
               attribute rows { (data($c:SESSION/@rows), 16)[1] },
@@ -182,8 +183,8 @@ c:set-content-type(),
             </tr>
             </table>
             <div id="/cq:buffer-history-wrapper" class="buffer-history-wrapper">
-            <table id="/cq:buffer-list" border="1"/>
-            <div id="/cq:history">
+              <table id="/cq:buffer-list" border="1"/>
+              <div id="/cq:history">
             <span><i>
             This is an empty query history list:
             populate it by submitting queries.</i></span>

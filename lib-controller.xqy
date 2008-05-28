@@ -294,18 +294,24 @@ define function c:get-session(
  as element(sess:session)?
 {
   let $session :=
-    let $path := c:get-uri-from-id($id)
-    let $d := d:debug(('c:get-session:',
-      'id =', $id, ', root =', $io:MODULES-ROOT, ', path =', $path))
-    let $exists := io:exists($path)
-    let $conflicts :=
-      if (not($check-conflicting)) then ()
-      else c:get-conflicting-locks($path)
-    let $lock :=
-      if (not($check-conflicting) or exists($conflicts)) then ()
-      else c:lock-acquire($id)
-    where $exists and empty($conflicts)
-    return io:read($path)/sess:session
+    try {
+      let $path := c:get-uri-from-id($id)
+      let $d := d:debug(('c:get-session:',
+        'id =', $id, ', root =', $io:MODULES-ROOT, ', path =', $path))
+      let $exists := io:exists($path)
+      let $conflicts :=
+        if (not($check-conflicting)) then ()
+        else c:get-conflicting-locks($path)
+      let $lock :=
+        if (not($check-conflicting) or exists($conflicts)) then ()
+        else c:lock-acquire($id)
+      where $exists and empty($conflicts)
+      return io:read($path)/sess:session
+    } catch ($ex) {
+      (: if we can't open the file, returning empty will disable sessions :)
+      if ($ex/err:code eq 'SVC-FILOPN') then ()
+      else error($ex/err:code, $ex/err:format-string)
+    }
   let $d := d:debug(('c:get-session:', $session))
   return $session
 }

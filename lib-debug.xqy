@@ -56,7 +56,7 @@ define function d:debug($s as item()*)
 define function d:check-debug()
  as empty()
 {
-  if (xs:boolean(xdmp:get-request-field($d:DEBUG-FIELD, string($d:DEBUG))))
+  if (xs:boolean(xdmp:get-request-field($d:DEBUG-FIELD, string($d:DEBUG))[1]))
   then d:debug-on()
   else ()
 }

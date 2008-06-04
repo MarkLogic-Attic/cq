@@ -495,9 +495,11 @@ define function c:get-orphan-database-ids()
 {
   (: list the databases that aren't exposed via an app-server -
    : use reasonable defaults for modules, root values: current server.
-   : note that we can default to one of these, too!
+   : NB - we can default to one of these, too!
+   : NB - c:database needs promotion to unsignedLong, for correct comparison.
    :)
-  let $exposed := data($c:APP-SERVER-INFO/c:database)
+  let $exposed :=
+    for $i in $c:APP-SERVER-INFO/c:database return xs:unsignedLong($i)
   return xdmp:databases()[not(. = $exposed)]
 }
 

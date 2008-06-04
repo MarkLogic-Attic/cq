@@ -1384,7 +1384,8 @@ function cqListDocuments() {
     // TODO paginate?
     // TODO use cts:uris(), if available? interferes with element-display...
     var theQuery =
-        "let $limit := 5000 "
+        "xquery version \"0.9-ml\""
+        + "let $limit := 5000 "
         + "let $est := xdmp:estimate(doc()) "
         + "return ("
         + " if ($est gt $limit)"

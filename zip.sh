@@ -10,7 +10,7 @@ cd $DIRNAME
 pwd
 
 DATE=`date +%Y%m%d`
-ZIP=$DIRNAME/releases/mark-logic-cq-3.2.3-$DATE.zip
+ZIP=$DIRNAME/releases/mark-logic-cq-3.2.4-$DATE.zip
 echo building $ZIP
 
 rm -f $ZIP

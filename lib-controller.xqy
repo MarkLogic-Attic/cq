@@ -174,7 +174,7 @@ define variable $c:SESSION-OWNER as xs:string {
 define variable $c:SESSION-TIMEOUT as xs:unsignedLong {
   xs:unsignedLong(300) }
 
-define variable $c:SESSION as element(sess:session)? {
+define variable $c:SESSION as element(sess:session) {
   (: get the current session,
    : falling back to the last session or a new one.
    :)
@@ -186,25 +186,29 @@ define variable $c:SESSION as element(sess:session)? {
      else ()
    let $d := d:debug((
      "$c:SESSION: session =", $session, data($session/sess:last-modified)))
+   (: If we were explicitly asked for a new session, honor that :)
    let $session :=
-     if (exists($session)) then $session
-     (: We were explicitly asked for a new session,
-      : so do not use the last session.
-      :)
+     if ($session) then $session
      else if ($c:SESSION-ID eq 'NEW') then ()
      else c:get-last-session()
    (: if none of the above worked, generate a new session :)
-   let $session := if ($session) then $session else c:new-session()
-   let $d := d:debug(("$c:SESSION: session =", $session/sess:created))
-   where $session
-   return
-     let $id :=
-       if ($c:SESSION-EXCEPTION) then () else c:get-session-id($session)
-     let $set := xdmp:set($c:SESSION-ID, $id)
-     let $lock :=
-       if (empty($c:SESSION-ID) or $c:SESSION-ID eq '') then ()
-       else c:lock-acquire($c:SESSION-ID)
-     return $session
+   let $session :=
+     if ($session) then $session else c:new-session()
+   let $id := c:get-session-id($session)
+   let $d := d:debug(("$c:SESSION: session-id =", $id))
+   (: locking may fail - if it does, disable sessions :)
+   let $lock :=
+     if ($c:SESSION-EXCEPTION) then () else try {
+       c:lock-acquire($c:id)
+     } catch ($ex) {
+       xdmp:set($c:SESSION-EXCEPTION, $ex)
+     }
+   (: ensure that the module session-id matches the final session :)
+   let $set := xdmp:set($c:SESSION-ID, $id)
+   let $d := d:debug((
+     "$c:SESSION: session-id =", $id,
+     ' exception =', exists($c:SESSION-EXCEPTION)))
+   return $session
 }
 
 define variable $c:SESSION-NAME as xs:string? {
@@ -471,10 +475,14 @@ define function c:get-app-server-info()
    for $g in xdmp:read-cluster-config-file('groups.xml')
      /mlgc:groups/mlgc:group
    let $group-id as xs:unsignedLong := $g/mlgc:group-id
-   let $host-id as xs:unsignedLong :=
+   (: some groups may have no hosts - for 3.2, we must ignore their servers :)
+   let $host-id as xs:unsignedLong? :=
      $hosts[mlhc:group eq $group-id][1]/mlhc:host-id
    (: skip any webdav servers, since it makes little sense to query them :)
-   for $i in $g/*/*[mlgc:http-server-id|mlgc:xdbc-server-id]
+   let $servers as element()* :=
+     if ($host-id) then $g/*/*[mlgc:http-server-id|mlgc:xdbc-server-id]
+     else ()
+   for $i in $servers
    let $server-id as xs:unsignedLong :=
      $i/(mlgc:http-server-id|mlgc:xdbc-server-id)
    let $server-name as xs:string :=

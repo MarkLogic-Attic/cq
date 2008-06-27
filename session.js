@@ -130,21 +130,23 @@ function SessionClass(tabs, id) {
         //alert(label + restore + " " + restore.hasChildNodes());
 
         if (null == restore) {
-          debug.print(label + "null restore");
-          this.tabs.refresh();
-          return;
+            debug.print(label + "null restore");
+            this.syncDisabled = true;
+            this.tabs.refresh();
+            return;
         }
 
         // handle session id cookie
         this.sessionId = restore.getAttribute('session-id');
-        // sessionId may be null, or empty string
+        // sessionId may be null, or empty string - this disables sync
         if (this.sessionId) {
             this.syncDisabled = false;
             setCookie(gSessionIdCookie, this.sessionId);
             debug.print(label + "set session id cookie = " + this.sessionId);
         } else {
-            debug.print(label + "missing session id!");
+            debug.print(label + "missing session id! disabling sync");
             this.syncDisabled = true;
+            // not fatal - keep restoring
         }
 
         // handle exposed tab

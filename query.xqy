@@ -60,9 +60,11 @@ c:set-content-type(),
               &#160;|&#160;<span class="instruction">
               <a href="session.xqy{"?debug=1"[ $d:DEBUG ]}"
            target="_parent">{
-                if ($c:SESSION and empty($c:SESSION-EXCEPTION))
-                then concat("session: ", $c:SESSION-NAME)
-                else "sessions disabled"
+             (: make sure lazy module variable is initialized :)
+             let $lazy := $c:SESSION
+             return
+               if ($c:SESSION-EXCEPTION) then "sessions disabled"
+               else concat("session: ", $c:SESSION-NAME)
               }</a></span>
               &#160;|&#160;<span class="instruction">resize:</span>
               <img src="darr.gif" class="resizable-s" width="13" height="10"
@@ -131,9 +133,8 @@ c:set-content-type(),
             <div class="hidden" xml:space="preserve"
             id="/cq:restore-session" name="/cq:restore-session">{
 
-        if ($c:SESSION)
-        then attribute session-id { $c:SESSION-ID }
-        else (),
+        if ($c:SESSION-EXCEPTION) then ()
+        else attribute session-id { $c:SESSION-ID },
 
         let $active := data($c:SESSION/sess:active-tab)
         where $active
@@ -149,7 +150,6 @@ c:set-content-type(),
           for $i in $QUERY-BUFFERS return element pre {
             $i/@*, $i/node() }
         },
-
         element div {
           attribute id { "/cq:restore-session-history" },
           $c:SESSION/sess:query-history/@*,

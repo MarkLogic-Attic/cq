@@ -148,52 +148,53 @@ define function v:get-error-frame-html(
  as element()*
 {
   d:debug(('v:get-error-frame-html:', $f)),
-  if (exists($f/err:uri))
-  then concat("in ", string($f/err:uri))
-  else (),
-  if (exists($f/err:line))
-  then
-    let $line-no := xs:integer($f/err:line)
-    return (
-    concat("line ", string($line-no), ": "),
-    (: display the error lines, if it's in a main module :)
-    if (exists($f/err:uri)) then ()
-    else <xh:div id="error-lines" class="code">
-    {
-      for $l at $x in tokenize($query, "\r\n|\r|\n", "m")
-      where $x gt ($line-no - 3) and $x lt (3 + $line-no)
+  element xh:div {
+    if (exists($f/err:uri))
+    then concat("in ", string($f/err:uri))
+    else (),
+    if (not($f/err:line)) then ()
+    else
+      let $line-no := xs:integer($f/err:line)
       return (
-        concat(string($x), ": "),
-        element xh:span {
-          if ($x eq $line-no) then attribute class { "error" } else (),
-          $l
-        },
+        concat("line ", string($line-no), ": "),
+        (: display the error lines, if it is in a main module :)
+        if ($f/err:uri) then ()
+        else <xh:div id="error-lines" class="code">
+        {
+          for $l at $x in tokenize($query, "\r\n|\r|\n", "m")
+          where $x gt ($line-no - 3) and $x lt (3 + $line-no)
+          return (
+            concat(string($x), ": "),
+            element xh:span {
+              if ($x eq $line-no) then attribute class { "error" } else (),
+              $l
+            },
+            <xh:br/>
+          )
+        }
+        </xh:div>,
         <xh:br/>
       )
-    }
-    </xh:div>,
+    ,
+    text { $f/err:operation },
+    <xh:br/>,
+    text {
+      if (exists($f/err:format-string/text()))
+      then $f/err:format-string
+      else $f/err:code
+    },
+    <xh:br/>,
+    text { $f/err:data/err:datum },
+    (: this may be empty :)
+    for $v in $f/err:variables/err:variable
+    return (
+      element xh:code {
+        concat("$", string($v/err:name)), ":=", data($v/err:value)
+      },
+      <xh:br/>
+    ),
     <xh:br/>
-  )
-  else (),
-
-  $f/err:operation/text(),
-  <xh:br/>,
-
-  if (exists($f/err:format-string/text()))
-  then $f/err:format-string/text()
-  else $f/err:code/text(),
-  <xh:br/>,
-
-  text { $f/err:data/err:datum },
-
-  (: this may be empty :)
-  for $v in $f/err:variables/err:variable
-  return (
-    element xh:code {
-      concat("$", string($v/err:name)), ":=", data($v/err:value) },
-    <xh:br/>),
-
-  <xh:br/>
+  }
 }
 
 define function v:get-error-html(
@@ -469,7 +470,9 @@ define function v:lead-string(
 
 define function v:duration-to-microseconds($d as xdt:dayTimeDuration)
  as xs:unsignedLong {
-   1000 * 1000 * io:cumulative-seconds-from-duration($d)
+   xs:unsignedLong(
+     1000 * 1000 * io:cumulative-seconds-from-duration($d)
+   )
 }
 
 (: lib-view.xqy :)

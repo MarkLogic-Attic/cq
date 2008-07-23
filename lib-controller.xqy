@@ -104,6 +104,7 @@ define variable $c:DEFAULT-WORKSHEET as element(sess:session) {
       element query-buffers {
         for $i in (1 to 10) return element query {
           concat(
+            'xquery version "0.9-ml"', $v:NL,
             '(: buffer ', string($i), ' :)', $v:NL,
             '<p>hello world</p>'
           )
@@ -222,6 +223,10 @@ define variable $c:TITLE-TEXT as xs:string {
     "-", xdmp:product-name(), xdmp:version(),
     "-", xdmp:platform()
   }
+}
+
+define variable $c:VERSION as xs:string {
+  io:read(c:build-document-path('VERSION.txt'))
 }
 
 define function c:lock-acquire($id as xs:string)

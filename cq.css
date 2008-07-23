@@ -13,11 +13,11 @@
  * limitations under the License.
  *
  * The use of the Apache License does not indicate that this project is
- * affiliated with the Apache Software Foundation. 
+ * affiliated with the Apache Software Foundation.
  */
 @import "local.css";
 
-body 
+body
 {
   color: black;
   background-color: white;
@@ -26,12 +26,12 @@ body
   margin: 1px 1px 1px 1px;
 }
 
-table 
+table
 {
   width: 100%;
 }
 
-td 
+td
 {
   vertical-align: top;
 }
@@ -43,7 +43,7 @@ textarea
 }
 
 ol
-{  
+{
   cursor: pointer;
 }
 
@@ -80,7 +80,7 @@ input[type = "button"]
 
 .accent-color { background-color: #FFCC33; }
 
-.head1 
+.head1
 {
   font-size: larger;
   font-weight: bold;
@@ -88,7 +88,7 @@ input[type = "button"]
 }
 
 .buffer-tab, .buffer-tab-active, .query-history, .profiler-report
-{ 
+{
   border: 1px solid black;
 }
 
@@ -159,7 +159,7 @@ input[type = "button"]
   overflow: hidden !important;
 /*  text-overflow: clip !important; */
 /*
- * no nowrap here! 
+ * no nowrap here!
  * two lines high, instead:
  * we count on finding a breaking character by the end of line 2...
  */
@@ -209,7 +209,7 @@ input[type = "button"]
 }
 
 .instruction
-{ 
+{
   font-weight: normal;
 
   font-style: italic;
@@ -218,13 +218,20 @@ input[type = "button"]
 
 .caption, .row-title
 {
-  font-weight: bold;  
+  font-weight: bold;
 }
 
 .numeric
 {
   text-align: right;
   white-space: pre;
+}
+
+.version
+{
+  font-weight: normal;
+  font-style: italic;
+  text-align: right;
 }
 
 .status

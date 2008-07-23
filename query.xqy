@@ -53,6 +53,10 @@ c:set-content-type(),
             <table class="head1 accent-color">
               <tr>
                 <td nowrap="1" id="/cq:title">Current XQuery</td>
+                <td nowrap="1" id="/cq:version" class="version">
+                cq v{
+                  $c:VERSION
+                }</td>
               </tr>
             </table>
             <div>

@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : Client Query Application
  :
@@ -20,24 +20,26 @@ xquery version "0.9-ml"
  : affiliated with the Apache Software Foundation.
  :)
 
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 
-declare namespace sess = "com.marklogic.developer.cq.session"
+declare namespace sess = "com.marklogic.developer.cq.session";
 
 import module namespace v = "com.marklogic.developer.cq.view"
-  at "lib-view.xqy"
+  at "lib-view.xqy";
 
 import module namespace c = "com.marklogic.developer.cq.controller"
-  at "lib-controller.xqy"
+  at "lib-controller.xqy";
 
 import module namespace d = "com.marklogic.developer.cq.debug"
- at "lib-debug.xqy"
+ at "lib-debug.xqy";
 
-define variable $QUERY-BUFFERS as element(sess:query)* {
-  $c:SESSION/sess:query-buffers/sess:query }
+declare variable $QUERY-BUFFERS as element(sess:query)* :=
+  $c:SESSION/sess:query-buffers/sess:query
+;
 
-define variable $QUERY-HISTORY as element(sess:query)* {
-  $c:SESSION/sess:query-history/sess:query }
+declare variable $QUERY-HISTORY as element(sess:query)* :=
+  $c:SESSION/sess:query-history/sess:query
+;
 
 d:check-debug(),
 c:set-content-type(),
@@ -60,7 +62,7 @@ c:set-content-type(),
               </tr>
             </table>
             <div>
-              list:&#160;<a href="javascript:cqListDocuments()">all</a>
+              <a href="javascript:cqListDocuments()">explore</a>
               &#160;|&#160;<span class="instruction">
               <a href="session.xqy{"?debug=1"[ $d:DEBUG ]}"
            target="_parent">{
@@ -69,20 +71,8 @@ c:set-content-type(),
              return
                if ($c:SESSION-EXCEPTION) then "sessions disabled"
                else concat("session: ", $c:SESSION-NAME)
-              }</a></span>
-              &#160;|&#160;<span class="instruction">resize:</span>
-              <img src="darr.gif" class="resizable-s" width="13" height="10"
-              title="increase the number of rows"
-              onclick="gBuffers.resize(0, 1); return false;"/>
-              <img src="rarr.gif" class="resizable-e" width="10" height="13"
-              title="increase the number of columns"
-              onclick="gBuffers.resize(1, 0); return false;"/>
-              <img src="uarr.gif" class="resizable-n" width="13" height="10"
-              title="reduce the number of rows"
-              onclick="gBuffers.resize(0, -1); return false;"/>
-              <img src="larr.gif" class="resizable-w" width="10" height="13"
-              title="reduce the number of columns"
-              onclick="gBuffers.resize(-1, 0); return false;"/>
+              }</a>&#160;<a href="javascript:renameSession()">(rename)</a>
+            </span>
             </div>
             <div nowrap="1" id="queryBuffers">
             <textarea id="/cq:input" name="/cq:input"
@@ -124,10 +114,9 @@ c:set-content-type(),
                       $c:SERVER-NAME }
                   }
                 }</input>
-            <input type="hidden" class="hidden"
-             id="/cq:query" name="/cq:query"/>
+            <input type="hidden" class="hidden" id="query" name="query"/>
             <input type="hidden" class="hidden" value="text/xml"
-             id="/cq:mime-type" name="/cq:mime-type"/>
+             id="mime-type" name="mime-type"/>
             <input type="hidden" class="hidden"  value="{$c:POLICY-TITLE}"
              id="/cq:policy/title"/>
             <input type="hidden" class="hidden" value="{$c:POLICY-ACCENT-COLOR}"

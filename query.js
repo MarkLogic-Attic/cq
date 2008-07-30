@@ -23,8 +23,8 @@ var kFramesetId = "/cq:frameset";
 var kQueryFrameId = "/cq:queryFrame";
 var kResultFrameId = "/cq:resultFrame";
 var kQueryFormId = "/cq:form";
-var kQueryInput = "/cq:query";
-var kQueryMimeType = "/cq:mime-type";
+var kQueryInput = "query";
+var kQueryMimeType = "mime-type";
 
 // I would prefer something like \u2715, but many systems don't display it.
 var kDeleteWidget = " (x) ";
@@ -891,6 +891,10 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         return this.buffers[n]
     }
 
+    this.getContentSource = function(n) {
+        this.getBuffer(n).getContentSource();
+    }
+
     this.resize = function(x, y) {
         debug.print("QueryBufferListClass.resize: " + x + "," + y);
         this.input.cols += x;
@@ -909,6 +913,62 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             return;
         }
         this.input.cols = y;
+    }
+
+    this.resizeTo = function(x, y) {
+        var label = "QueryBufferListClass.resizeTo: ";
+        debug.print(label + x + " x " + y);
+        if (null == x) {
+            this.resizeTo(this.input.offsetWidth, y);
+            return;
+        }
+        if (null == y) {
+            this.resizeTo(x, this.input.offsetHeight);
+            return;
+        }
+        if (null != x) {
+            this.setWidth(x);
+        }
+        if (null != y) {
+            this.setHeight(y);
+        }
+        debug.print(label + this.input.cols + " x " + this.input.rows);
+    }
+
+    // TODO this does not work, because the resize has already happened
+    this.setHeight = function(y) {
+        if (null == y) { return; }
+        // setting offsetHeight directly does not change the rows
+        // use a margin, or else this grows a little every time
+        var tries = 500;
+        while (tries > 0 && this.input.offsetHeight - y > 3) {
+            this.input.rows = this.input.rows - 1;
+            tries--;
+        }
+        while (tries > 0 && y - this.input.offsetHeight > 3) {
+            this.input.rows = this.input.rows + 1;
+            tries--;
+        }
+        debug.print("QueryBufferListClass.setHeight: "
+                    + y + " " + this.input.offsetHeight + " " + tries);
+    }
+
+    // TODO this does not work, because the resize has already happened
+    this.setWidth = function(x) {
+        if (null == x) { return; }
+        // setting offsetWidth directly does not change the cols
+        // use a margin, or else this grows a little every time
+        var tries = 500;
+        while (tries > 0 && this.input.offsetWidth - x > 3) {
+            this.input.cols = this.input.cols - 1;
+            tries--;
+        }
+        while (tries > 0 && x - this.input.offsetWidth > 3) {
+            this.input.cols = this.input.cols + 1;
+            tries--;
+        }
+        debug.print("QueryBufferListClass.setWidth: "
+                    + x + " " + this.input.offsetWidth + " " + tries);
     }
 
     this.nextBuffer = function() {
@@ -1161,7 +1221,7 @@ function cqOnLoad() {
 
     // set up the UI objects
     gBuffers = new QueryBufferListClass("/cq:input",
-                                        "/cq:eval-in",
+                                        "eval",
                                         "/cq:buffer-list",
                                         "/cq:textarea-status");
     gBuffers.initHandlers();
@@ -1195,6 +1255,14 @@ function cqOnLoad() {
     gBufferTabs.resize();
     gBufferTabs.refresh();
 
+    // make the textarea resizable
+    var resizeOptions = {
+        is_vertical: true,
+        is_horizontal: true,
+        onResizeEnd: function() { gBuffers.resizeTo(); resizeFrameset(); }
+    };
+    var resize = new Resizable("/cq:input", resizeOptions);
+
     // display the buffer list, exposing buffer 0
     gBuffers.activate();
 
@@ -1203,28 +1271,34 @@ function cqOnLoad() {
     //gBufferTabs.unload.bindAsEventListener(gBufferTabs));
 }
 
-function resizeFrameset() {
+function resizeFrameset(rows) {
     // set the result-frame height to fill the available space
-    // pick a reasonable default value
-    var rows = 500;
-    // figure out where some well-known element ended up
-    // in this case we'll use the total height of the query form
-    // this might be called from the queryframe or from the parent frameset
-    var visible = $(kQueryFormId);
-    if (null == visible) {
-        debug.print("nothing to resize from!");
+    if (null == rows) {
+        // from in the query document...
+        // pick a reasonable default value
+        var rows = 500;
+        // figure out where some well-known element ended up
+        // in this case we'll use the total height of the query form
+        // this might be called from the queryframe or from the parent frameset
+        var visible = $(kQueryFormId);
+        if (null == visible) {
+            debug.print("nothing to resize from!");
+            return;
+        }
+
+        debug.print("resizeFrameset: visible " + visible
+                    + ", " + visible.offsetTop + ", " + visible.offsetHeight);
+        // add a smidgen for fudge-factor, so we don't activate scrolling:
+        // 9px is enough for gecko, but IE6 wants 17px
+        rows = (gBrowserIs.ie ? 17 : 9) + visible.offsetTop
+            + visible.offsetHeight;
+        parent.resizeFrameset(rows);
         return;
     }
 
-    debug.print("resizeFrameset: visible " + visible
-          + ", " + visible.offsetTop + ", " + visible.offsetHeight);
-    // add a smidgen for fudge-factor, so we don't activate scrolling:
-    // 9px is enough for gecko, but IE6 wants 17px
-    rows = (gBrowserIs.ie ? 17 : 9) + visible.offsetTop + visible.offsetHeight;
-
-    // can't use $() here...
-    var frameset = parent.document.getElementById(kFramesetId);
-    if (frameset == null) {
+    // from the frameset document...
+    var frameset = $(kFramesetId);
+    if (null == frameset) {
         debug.print("resizeFrameset: null frameset");
         return;
     }
@@ -1379,30 +1453,43 @@ function submitFormWrapper(theForm, mimeType) {
 }
 
 function cqListDocuments() {
-    // fancy list of up to N documents, including root node type.
-    // TODO create a link to display each document?
-    // TODO paginate?
-    // TODO use cts:uris(), if available? interferes with element-display...
-    var theQuery =
-        "xquery version \"0.9-ml\""
-        + "let $limit := 5000 "
-        + "let $est := xdmp:estimate(doc()) "
-        + "return ("
-        + " if ($est gt $limit)"
-        + " then element p { 'Too many documents to display!',"
-        + "  'First', $limit, 'documents of', $est, 'total:' }"
-        + " else element p { $est, 'documents total' },"
-        + " for $i in doc()[1 to $limit]"
-        + " let $uri := xdmp:node-uri($i)"
-        + " let $n := ($i/*[1], $i/(binary()|element()|text())[1])[1]"
-        + " where exists($n)"
-        + " order by $uri"
-        + " return ( $uri,"
-        + " <span> - </span>,"
-        + " <i>{ node-kind($n) }</i>,"
-        + " <code>&#160;{ name($n) }</code>, <br/> )"
-        + ")";
-    submitForm($(kQueryFormId), theQuery, "text/html", false);
+    var buf = gBuffers.getBuffer();
+    debug.print("listDocuments: buf = " + buf);
+    var source = buf.getContentSource();
+    debug.print("listDocuments: source = " + source);
+    var src = "explore.xqy?" + (source ? ("eval=" + source) : "");
+    debug.print("listDocuments: src = " + src);
+    parent.parentListDocuments(src);
+}
+
+function parentListDocuments(src) {
+    var resultFrame = $(kResultFrameId);
+    if (null == resultFrame) {
+        alert("listDocuments: null result frame");
+        return;
+    }
+    resultFrame.setAttribute("src", src);
+}
+
+function renameSession() {
+    var label = "renameSession: ";
+    if (null == gSession) {
+        debug.print(label + "null gSession");
+        return;
+    }
+    var id = gSession.getId();
+    if (null == id) {
+        debug.print(label + "null id");
+        return;
+    }
+    // TODO in-line or modal rename
+    var name = null;
+    if (null == name) {
+        debug.print(label + "null name");
+        return;
+    }
+    var sessionList = new SessionList();
+    sessionList.renameSession(id, name);
 }
 
 // query.js

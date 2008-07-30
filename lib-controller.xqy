@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : cq: lib-controller.xqy
  :
@@ -20,48 +20,49 @@ xquery version "0.9-ml"
  : affiliated with the Apache Software Foundation.
  :
  :)
-module "com.marklogic.developer.cq.controller"
+module namespace c = "com.marklogic.developer.cq.controller";
 
-default function namespace = "http://www.w3.org/2003/05/xpath-functions"
+declare default function namespace "http://www.w3.org/2005/xpath-functions";
 
-declare namespace c = "com.marklogic.developer.cq.controller"
+declare namespace sess = "com.marklogic.developer.cq.session";
 
-declare namespace mlhs = "http://marklogic.com/xdmp/status/host"
+declare namespace pol = "com.marklogic.developer.cq.policy";
 
-declare namespace mlss = "http://marklogic.com/xdmp/status/server"
-
-declare namespace mlgc = "http://marklogic.com/xdmp/group"
-
-declare namespace mlhc = "http://marklogic.com/xdmp/hosts"
-
-declare namespace sess = "com.marklogic.developer.cq.session"
-
-declare namespace pol = "com.marklogic.developer.cq.policy"
+import module namespace admin = "http://marklogic.com/xdmp/admin"
+  at "/MarkLogic/admin.xqy";
 
 import module namespace d = "com.marklogic.developer.cq.debug"
-  at "lib-debug.xqy"
+  at "lib-debug.xqy";
 
 import module namespace io = "com.marklogic.developer.cq.io"
-  at "lib-io.xqy"
-
-import module namespace v = "com.marklogic.developer.cq.view"
-  at "lib-view.xqy"
+  at "lib-io.xqy";
 
 import module namespace su = "com.marklogic.developer.cq.security"
-  at "lib-security-utils.xqy"
+  at "lib-security-utils.xqy";
 
-define variable $c:ACCEPT-XML as xs:boolean {
+import module namespace v = "com.marklogic.developer.cq.view"
+  at "lib-view.xqy";
+
+import module namespace x = "com.marklogic.developer.cq.xquery"
+ at "lib-xquery.xqy";
+
+declare variable $c:ACCEPT-XML as xs:boolean :=
   (: per Mary Holstege: Opera says that it accepts xhtml+xml,
    : but fails to handle it correctly.
    :)
   contains(xdmp:get-request-header('accept'), 'application/xhtml+xml')
     and not(contains(xdmp:get-request-header('user-agent'), 'Opera'))
-}
+;
 
-define variable $c:APP-SERVER-INFO as element()+ {
- c:get-app-server-info() }
+declare variable $c:ADMIN-CONFIG as element(configuration) :=
+  admin:get-configuration()
+;
 
-define variable $c:COOKIES as element(c:cookie)* {
+declare variable $c:APP-SERVER-INFO as element()+ :=
+  c:get-app-server-info()
+;
+
+declare variable $c:COOKIES as element(c:cookie)* :=
   for $c in tokenize(xdmp:get-request-header("cookie"), ";\s*")[. ne '']
   return element c:cookie {
     let $toks := tokenize($c, "=")
@@ -70,24 +71,14 @@ define variable $c:COOKIES as element(c:cookie)* {
       attribute value { xdmp:url-decode($toks[2]) }
     )
   }
-}
+;
 
-define variable $c:DATABASE-ID as xs:unsignedLong {
- xdmp:database() }
-
-define variable $c:HOST-ID as xs:unsignedLong {
- xdmp:host() }
-
-define variable $c:POLICY as element(pol:policy)? {
-  let $path := c:build-document-path("policy.xml")
-  where io:exists($path)
-  return io:read($path)/pol:policy
-}
+declare variable $c:DATABASE-ID as xs:unsignedLong := xdmp:database();
 
 (: some deployments like to set their own default worksheet:
  : if it is available, use it.
  :)
-define variable $c:DEFAULT-WORKSHEET as element(sess:session) {
+declare variable $c:DEFAULT-WORKSHEET as element(sess:session) :=
   let $d := d:debug(('DEFAULT-WORKSHEET: init'))
   let $worksheet as element(sess:session)? :=
     let $path := c:build-document-path("worksheet.xml")
@@ -95,17 +86,18 @@ define variable $c:DEFAULT-WORKSHEET as element(sess:session) {
     where io:exists($path)
     return io:read($path)/sess:session
   return
-    (: did someone deletes the template document? be nice about it! :)
-    if ($worksheet)
-    then $worksheet
+    (: usually the query will come from the worksheet.xml template :)
+    if ($worksheet) then $worksheet
+    (: someone removed the worksheet template? try to be nice anyway :)
     else <session xmlns="com.marklogic.developer.cq.session">
     {
       element name { "New Session" },
       element query-buffers {
-        for $i in (1 to 10) return element query {
+        for $i in 1 to 10
+        return element query {
           concat(
-            'xquery version "0.9-ml"', $v:NL,
-            '(: buffer ', string($i), ' :)', $v:NL,
+            'xquery version "1.0-ml";', $x:NL,
+            '(: buffer ', string($i), ' :)', $x:NL,
             '<p>hello world</p>'
           )
         }
@@ -113,38 +105,87 @@ define variable $c:DEFAULT-WORKSHEET as element(sess:session) {
       <query-history/>
     }
     </session>
-}
+;
 
-define variable $c:POLICY-TITLE as xs:string? {
+declare variable $c:FORM-EVAL as xs:string :=
+  xdmp:get-request-field(
+    'eval',
+    string-join(
+      (string($c:DATABASE-ID), string($c:SERVER-ROOT-DB), $c:SERVER-ROOT-PATH),
+      ':'
+    )
+  )
+;
+
+declare variable $c:FORM-EVAL-VALUES as xs:anyAtomicType+ :=
+  (: colon-delimited value, dependent on the first field...
+   : if not "as", then database-id:modules-id:root-path,
+   : otherwise use tokens 2 (group-id) and 3 (server-id)
+   : to look up the database-id, modules-id, and root-path.
+   : NB - possible errors if a server changes groups.
+   :)
+  let $form := $c:FORM-EVAL
+  let $is-appserver := starts-with($c:FORM-EVAL, 'as:')
+  let $server-id as xs:unsignedLong :=
+    if ($is-appserver)
+    then xs:unsignedLong(
+      substring-before(substring-after($form, 'as:'), ':'))
+    else xdmp:server()
+  let $database-id as xs:unsignedLong :=
+    if ($is-appserver)
+    then admin:appserver-get-database($c:ADMIN-CONFIG, $server-id)
+    else xs:unsignedLong(substring-before($c:FORM-EVAL, ':'))
+  return ($database-id, $server-id)
+;
+
+declare variable $c:FORM-EVAL-DATABASE-ID as xs:unsignedLong :=
+  $c:FORM-EVAL-VALUES[1]
+;
+
+declare variable $c:FORM-EVAL-SERVER-ID as xs:unsignedLong :=
+  $c:FORM-EVAL-VALUES[2]
+;
+
+declare variable $c:HOST-ID as xs:unsignedLong :=
+ xdmp:host()
+;
+
+declare variable $c:POLICY as element(pol:policy)? :=
+  let $path := c:build-document-path("policy.xml")
+  where io:exists($path)
+  return io:read($path)/pol:policy
+;
+
+declare variable $c:POLICY-TITLE as xs:string? :=
   d:debug(("policy:", $c:POLICY)),
   $c:POLICY/pol:title
-}
+;
 
-define variable $c:POLICY-ACCENT-COLOR as xs:string? {
+declare variable $c:POLICY-ACCENT-COLOR as xs:string? :=
   $c:POLICY/pol:accent-color
-}
+;
 
-define variable $c:PROFILING-ALLOWED as xs:boolean {
-   prof:allowed(xdmp:request()) }
+declare variable $c:PROFILING-ALLOWED as xs:boolean :=
+  prof:allowed(xdmp:request());
 
-define variable $c:SERVER-ID as xs:unsignedLong {
-  xdmp:server() }
+declare variable $c:SERVER-ID as xs:unsignedLong :=
+  xdmp:server() ;
 
-define variable $c:SERVER-NAME as xs:string {
-  xdmp:server-name($SERVER-ID) }
+declare variable $c:SERVER-NAME as xs:string :=
+  xdmp:server-name($SERVER-ID) ;
 
-define variable $c:SERVER-ROOT-PATH as xs:string {
-  $io:MODULES-ROOT }
+declare variable $c:SERVER-ROOT-PATH as xs:string :=
+  $io:MODULES-ROOT ;
 
-define variable $c:SERVER-ROOT-DB as xs:unsignedLong {
-  $io:MODULES-DB }
+declare variable $c:SERVER-ROOT-DB as xs:unsignedLong :=
+  $io:MODULES-DB ;
 
-define variable $c:SESSION-DB as xs:unsignedLong {
-  $io:MODULES-DB }
+declare variable $c:SESSION-DB as xs:unsignedLong :=
+  $io:MODULES-DB ;
 
-define variable $c:SESSION-RELPATH as xs:string { "sessions/" }
+declare variable $c:SESSION-RELPATH as xs:string := "sessions/" ;
 
-define variable $c:SESSION-DIRECTORY as xs:string {
+declare variable $c:SESSION-DIRECTORY as xs:string :=
   let $path := xdmp:get-request-path()
   (: ensure that the path ends with "/" :)
   let $path :=
@@ -154,12 +195,12 @@ define variable $c:SESSION-DIRECTORY as xs:string {
       string-join(tokenize($path, "/")[ 1 to last() - 1], "/"), "/"
     )
   return concat($path, $c:SESSION-RELPATH)
-}
+;
 
-define variable $c:SESSION-EXCEPTION as element(err:error)? { () }
+declare variable $c:SESSION-EXCEPTION as element(error:error)? := () ;
 
 (: we expect JavaScript to set a cookie for the session uri :)
-define variable $c:SESSION-ID as xs:string? {
+declare variable $c:SESSION-ID as xs:string? :=
   d:debug(('$c:SESSION-ID:', 'cookies =', $c:COOKIES)),
   d:debug(('$c:SESSION-ID:', 'session-dir =', $c:SESSION-RELPATH)),
   let $matches := $c:COOKIES[@key eq '/cq:session-id']
@@ -167,15 +208,15 @@ define variable $c:SESSION-ID as xs:string? {
   let $id := ($matches/@value)[1]
   let $d := d:debug(('$c:SESSION-ID:', 'value =', $id))
   return $id
-}
+;
 
-define variable $c:SESSION-OWNER as xs:string {
-  concat($su:USER, "@", xdmp:get-request-client-address()) }
+declare variable $c:SESSION-OWNER as xs:string :=
+  concat($su:USER, "@", xdmp:get-request-client-address()) ;
 
-define variable $c:SESSION-TIMEOUT as xs:unsignedLong {
-  xs:unsignedLong(300) }
+declare variable $c:SESSION-TIMEOUT as xs:unsignedLong :=
+  xs:unsignedLong(300) ;
 
-define variable $c:SESSION as element(sess:session) {
+declare variable $c:SESSION as element(sess:session) :=
   (: get the current session,
    : falling back to the last session or a new one.
    :)
@@ -210,12 +251,12 @@ define variable $c:SESSION as element(sess:session) {
      "$c:SESSION: session-id =", $id,
      ' exception =', exists($c:SESSION-EXCEPTION)))
    return $session
-}
+;
 
-define variable $c:SESSION-NAME as xs:string? {
-  $c:SESSION/sess:name }
+declare variable $c:SESSION-NAME as xs:string? :=
+  $c:SESSION/sess:name ;
 
-define variable $c:TITLE-TEXT as xs:string {
+declare variable $c:TITLE-TEXT as xs:string :=
   (: show the user what platform and host we're querying :)
   text {
     "cq -",
@@ -223,36 +264,36 @@ define variable $c:TITLE-TEXT as xs:string {
     "-", xdmp:product-name(), xdmp:version(),
     "-", xdmp:platform()
   }
-}
+;
 
-define variable $c:VERSION as xs:string {
+declare variable $c:VERSION as xs:string :=
   io:read(c:build-document-path('VERSION.txt'))
-}
+;
 
-define function c:lock-acquire($id as xs:string)
- as empty()
+declare function c:lock-acquire($id as xs:string)
+ as empty-sequence()
 {
   io:lock-acquire(
     c:get-uri-from-id($id), "exclusive", "0",
     $c:SESSION-OWNER, $c:SESSION-TIMEOUT
   )
-}
+};
 
-define function c:set-content-type()
- as empty()
+declare function c:set-content-type()
+ as empty-sequence()
 {
   xdmp:set-response-content-type( concat(
     if ($c:ACCEPT-XML) then "application/xhtml+xml" else "text/html",
     "; charset=utf-8") )
-}
+};
 
-define function c:get-conflicting-locks($uri as xs:string)
+declare function c:get-conflicting-locks($uri as xs:string)
  as element(lock:active-lock)*
 {
   c:get-conflicting-locks($uri, ())
-}
+};
 
-define function c:get-conflicting-locks(
+declare function c:get-conflicting-locks(
   $uri as xs:string, $limit as xs:integer?)
  as element(lock:active-lock)*
 {
@@ -261,21 +302,21 @@ define function c:get-conflicting-locks(
   let $d := d:debug(('c:get-conflicting-locks',
     $uri, $limit, $c:SESSION-OWNER, $locks))
   return $locks
-}
+};
 
-define function c:get-available-sessions()
+declare function c:get-available-sessions()
  as element(sess:session)*
 {
   c:get-sessions(true())
-}
+};
 
-define function c:get-sessions()
+declare function c:get-sessions()
  as element(sess:session)*
 {
   c:get-sessions(false())
-}
+};
 
-define function c:get-sessions($check-conflicting as xs:boolean)
+declare function c:get-sessions($check-conflicting as xs:boolean)
  as element(sess:session)*
 {
   d:debug(('c:get-sessions:', $c:SESSION-DIRECTORY, $check-conflicting)),
@@ -296,9 +337,9 @@ define function c:get-sessions($check-conflicting as xs:boolean)
     xdmp:set($c:SESSION-EXCEPTION, $ex),
     xdmp:set($c:SESSION-ID, ())
   }
-}
+};
 
-define function c:get-session(
+declare function c:get-session(
   $id as xs:string, $check-conflicting as xs:boolean)
  as element(sess:session)?
 {
@@ -318,32 +359,32 @@ define function c:get-session(
       return io:read($path)/sess:session
     } catch ($ex) {
       (: if we can't open the file, returning empty will disable sessions :)
-      if ($ex/err:code eq 'SVC-FILOPN') then ()
-      else error($ex/err:code, $ex/err:format-string)
+      if ($ex/error:code eq 'SVC-FILOPN') then ()
+      else error($ex/error:code, $ex/error:format-string)
     }
   let $d := d:debug(('c:get-session:', $session))
   return $session
-}
+};
 
-define function c:get-last-session()
+declare function c:get-last-session()
  as element(sess:session)?
 {
   (c:get-available-sessions())[1]
-}
+};
 
-define function c:get-id-from-uri($uri as xs:string)
+declare function c:get-id-from-uri($uri as xs:string)
  as xs:string
 {
   substring-before(tokenize($uri, '/+')[last()], '.xml')
-}
+};
 
-define function c:get-uri-from-id($id as xs:string)
+declare function c:get-uri-from-id($id as xs:string)
  as xs:string
 {
   concat($c:SESSION-DIRECTORY, $id, '.xml')
-}
+};
 
-define function c:get-session-id($session as element(sess:session))
+declare function c:get-session-id($session as element(sess:session))
  as xs:string
 {
   ($session/@id,
@@ -351,9 +392,9 @@ define function c:get-session-id($session as element(sess:session))
     where $uri
     return c:get-id-from-uri($uri)
   )[1]
-}
+};
 
-define function c:get-session-uri($session as element(sess:session))
+declare function c:get-session-uri($session as element(sess:session))
  as xs:string?
 {
   let $id := c:get-session-id($session)
@@ -361,26 +402,26 @@ define function c:get-session-uri($session as element(sess:session))
   let $d := d:debug(('c:get-session-uri', $id, $uri))
   where $id
   return $uri
-}
+};
 
-define function c:generate-id()
+declare function c:generate-id()
  as xs:string
 {
   let $id := xdmp:integer-to-hex(xdmp:random())
   let $uri := c:get-uri-from-id($id)
   return if (io:exists($uri)) then c:generate-id() else $id
-}
+};
 
 (:
  : Create a new session.
  :)
-define function c:new-session()
+declare function c:new-session()
  as element(sess:session)
 {
   let $id :=
     if ($c:SESSION-EXCEPTION) then () else c:generate-id()
   let $d := d:debug((
-    "new-session:", $id, string($c:SESSION-EXCEPTION/err:format-string) ))
+    "new-session:", $id, string($c:SESSION-EXCEPTION/error:format-string) ))
   let $attributes := attribute id { $id }
   let $attribute-qnames := for $i in $attributes return node-name($i)
   let $elements := (
@@ -409,16 +450,16 @@ define function c:new-session()
       xdmp:set($c:SESSION-EXCEPTION, $ex)
     }
   return $new
-}
+};
 
-define function c:save-session($session as element(sess:session))
- as empty()
+declare function c:save-session($session as element(sess:session))
+ as empty-sequence()
 {
   io:write(c:get-uri-from-id($session/@id), document { $session })
-}
+};
 
-define function c:delete-session($id as xs:string)
- as empty()
+declare function c:delete-session($id as xs:string)
+ as empty-sequence()
 {
   (: make sure it really is a session :)
   let $uri := c:get-uri-from-id($id)
@@ -428,17 +469,17 @@ define function c:delete-session($id as xs:string)
     c:lock-acquire($id),
     io:delete($uri) (:, io:lock-release($uri) :)
   )
-}
+};
 
-define function c:rename-session($uri as xs:string, $name as xs:string)
- as empty()
+declare function c:rename-session($uri as xs:string, $name as xs:string)
+ as empty-sequence()
 {
   d:debug(("c:rename-session:", $uri, "to", $name)),
   c:update-session($uri, element sess:name { $name })
-}
+};
 
-define function c:update-session($id as xs:string, $nodes as element()*)
- as empty()
+declare function c:update-session($id as xs:string, $nodes as element()*)
+ as empty-sequence()
 {
   d:debug(("c:update-session: id =", $id, $nodes)),
   let $session := c:get-session($id, true())
@@ -463,60 +504,45 @@ define function c:update-session($id as xs:string, $nodes as element()*)
     $nodes
   }
   return c:save-session($session)
-}
+};
 
-define function c:get-app-server-info()
- as element()+
+declare function c:get-app-server-info()
+ as element(c:app-server-info)+
 {
   (: first, list all the app-servers (except webdav and task servers).
    : next, list all databases that aren't part of an app-server.
-   : NOTE: requires MarkLogic Server 3.1-1 or later.
-   : NOTE: this used to use a mix of xdmp:hosts(), xdmp:host-status(),
-   :   and xdmp:server-status(), but it was too slow on large clusters.
+   : NOTE: requires MarkLogic Server 4.0-1 or later.
    : TODO provide a mechanism to update the list, to pull admin changes.
    :)
-   let $hosts as element(mlhc:host)+ :=
-     xdmp:read-cluster-config-file('hosts.xml')/mlhc:hosts/mlhc:host
-   for $g in xdmp:read-cluster-config-file('groups.xml')
-     /mlgc:groups/mlgc:group
-   let $group-id as xs:unsignedLong := $g/mlgc:group-id
-   (: some groups may have no hosts - for 3.2, we must ignore their servers :)
-   let $host-id as xs:unsignedLong? :=
-     $hosts[mlhc:group eq $group-id][1]/mlhc:host-id
-   (: skip any webdav servers, since it makes little sense to query them :)
-   let $servers as element()* :=
-     if ($host-id) then $g/*/*[mlgc:http-server-id|mlgc:xdbc-server-id]
-     else ()
-   for $i in $servers
-   let $server-id as xs:unsignedLong :=
-     $i/(mlgc:http-server-id|mlgc:xdbc-server-id)
-   let $server-name as xs:string :=
-     $i/(mlgc:http-server-name|mlgc:xdbc-server-name)
-   where $i instance of element(mlgc:xdbc-server) or not(data($i/mlgc:webDAV))
-   return element c:app-server-info {
-     element c:host-id { $host-id },
-     element c:server-id { $server-id },
-     element c:server-name { $server-name },
-     element c:database { data($i/mlgc:database) },
-     element c:modules { data($i/mlgc:modules) },
-     element c:root { data($i/mlgc:root) }
-   }
-}
+  for $group-id in admin:get-group-ids($c:ADMIN-CONFIG)
+  for $server-id in data((
+    admin:group-get-httpserver-ids($c:ADMIN-CONFIG, $group-id),
+    admin:group-get-xdbcserver-ids($c:ADMIN-CONFIG, $group-id)
+  ))
+  let $database-id :=
+    admin:appserver-get-database($ADMIN-CONFIG, $server-id)
+  where $database-id
+  return element c:app-server-info {
+    element c:server-id { $server-id },
+    element c:server-name {
+      admin:appserver-get-name($c:ADMIN-CONFIG, $server-id)
+    },
+    element c:database-id { $database-id }
+  }
+};
 
-define function c:get-orphan-database-ids()
+declare function c:get-orphan-database-ids()
  as xs:unsignedLong*
 {
   (: list the databases that aren't exposed via an app-server -
    : use reasonable defaults for modules, root values: current server.
-   : NB - we can default to one of these, too!
-   : NB - c:database needs promotion to unsignedLong, for correct comparison.
+   : note that we can default to one of these, too!
    :)
-  let $exposed :=
-    for $i in $c:APP-SERVER-INFO/c:database return xs:unsignedLong($i)
-  return xdmp:databases()[not(. = $exposed)]
-}
+  let $exposed := data($c:APP-SERVER-INFO/c:database-id)
+  return admin:get-database-ids($c:ADMIN-CONFIG)[not(. = $exposed)]
+};
 
-define function c:build-document-path($document-name as xs:string)
+declare function c:build-document-path($document-name as xs:string)
  as xs:string {
   let $path := xdmp:get-request-path()
   (: ensure that the path ends with "/" :)
@@ -531,6 +557,24 @@ define function c:build-document-path($document-name as xs:string)
     then $document-name
     else replace($document-name, '^(/+)(.+)', '$2')
   return concat($path, $document-name)
-}
+};
+
+declare function c:build-form-eval-query(
+  $base as xs:string, $keys as item()*, $values as item()*)
+ as xs:string
+{
+  if (count($keys) eq count($values)) then ()
+  else error('CQ-MISMATCH', text { 'keys do not match values' })
+  ,
+  string-join((
+    $base,
+    '?',
+    string-join((
+      concat('eval=', $c:FORM-EVAL),
+      for $x in count($keys)
+      return concat($keys[$x], '=', xdmp:url-encode($values[$x]))
+    ), '&')
+  ), '')
+};
 
 (: lib-controller.xqy :)

@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : cq: lib-view.xqy
  :
@@ -21,32 +21,29 @@ xquery version "0.9-ml"
  :
  :)
 
-module "com.marklogic.developer.cq.view"
+module namespace v = "com.marklogic.developer.cq.view";
 
-declare namespace v = "com.marklogic.developer.cq.view"
+declare default function namespace "http://www.w3.org/2005/xpath-functions";
 
-default function namespace = "http://www.w3.org/2003/05/xpath-functions"
-
-declare namespace xh = "http://www.w3.org/1999/xhtml"
+declare namespace xh = "http://www.w3.org/1999/xhtml";
 
 import module namespace c = "com.marklogic.developer.cq.controller"
- at "lib-controller.xqy"
+ at "lib-controller.xqy";
 
 import module namespace d = "com.marklogic.developer.cq.debug"
- at "lib-debug.xqy"
+ at "lib-debug.xqy";
 
 import module namespace io = "com.marklogic.developer.cq.io"
-  at "lib-io.xqy"
+  at "lib-io.xqy";
 
-define variable $v:NBSP as xs:string { codepoints-to-string(160) }
+import module namespace x = "com.marklogic.developer.cq.xquery"
+ at "lib-xquery.xqy";
 
-define variable $v:NL as xs:string { codepoints-to-string(10) }
+declare variable $v:MICRO-SIGN as xs:string := codepoints-to-string(181);
 
-define variable $v:MICRO-SIGN as xs:string { codepoints-to-string(181) }
+declare variable $v:ELLIPSIS as xs:string := codepoints-to-string(8230);
 
-define variable $v:ELLIPSIS as xs:string { codepoints-to-string(8230) }
-
-define variable $v:PROFILER-COLUMNS as element(columns) {
+declare variable $v:PROFILER-COLUMNS as element(columns) :=
   element columns {
     <column>location</column>,
     <column>expression</column>,
@@ -75,9 +72,9 @@ define variable $v:PROFILER-COLUMNS as element(columns) {
       },
       concat('deep-', $v:MICRO-SIGN, 's') }
   }
-}
+;
 
-define function v:get-xml($x)
+declare function v:get-xml($x)
  as element()
 {
   let $count := count($x)
@@ -98,9 +95,9 @@ define function v:get-xml($x)
       then $i/node()
       else $i
   }
-}
+};
 
-define function v:get-html($x as item()*)
+declare function v:get-html($x as item()*)
  as element(xh:html)
 {
   let $profile as element(prof:report)? :=
@@ -135,30 +132,30 @@ define function v:get-html($x as item()*)
     }
     </body>
   </html>
-}
+};
 
-define function v:get-text($x as item()+)
+declare function v:get-text($x as item()+)
  as item()+
 {
   $x
-}
+};
 
-define function v:get-error-frame-html(
-  $f as element(err:frame), $query as xs:string)
+declare function v:get-error-frame-html(
+  $f as element(error:frame), $query as xs:string)
  as element()*
 {
   d:debug(('v:get-error-frame-html:', $f)),
   element xh:div {
-    if (exists($f/err:uri))
-    then concat("in ", string($f/err:uri))
+    if (exists($f/error:uri))
+    then concat("in ", string($f/error:uri))
     else (),
-    if (not($f/err:line)) then ()
+    if (not($f/error:line)) then ()
     else
-      let $line-no := xs:integer($f/err:line)
+      let $line-no := xs:integer($f/error:line)
       return (
         concat("line ", string($line-no), ": "),
         (: display the error lines, if it is in a main module :)
-        if ($f/err:uri) then ()
+        if ($f/error:uri) then ()
         else <xh:div id="error-lines" class="code">
         {
           for $l at $x in tokenize($query, "\r\n|\r|\n", "m")
@@ -176,103 +173,92 @@ define function v:get-error-frame-html(
         <xh:br/>
       )
     ,
-    text { $f/err:operation },
+    text { $f/error:operation },
     <xh:br/>,
     text {
-      if (exists($f/err:format-string/text()))
-      then $f/err:format-string
-      else $f/err:code
+      if (exists($f/error:format-string/text()))
+      then $f/error:format-string
+      else $f/error:code
     },
     <xh:br/>,
-    text { $f/err:data/err:datum },
+    text { $f/error:data/error:datum },
     (: this may be empty :)
-    for $v in $f/err:variables/err:variable
+    for $v in $f/error:variables/error:variable
     return (
       element xh:code {
-        concat("$", string($v/err:name)), ":=", data($v/err:value)
+        concat("$", string($v/error:name)), ":=", data($v/error:value)
       },
       <xh:br/>
     ),
     <xh:br/>
   }
-}
+};
 
-define function v:get-error-html(
+declare function v:get-error-html(
   $db as xs:unsignedLong, $modules as xs:unsignedLong,
-  $root as xs:string, $ex as element(err:error),
+  $root as xs:string, $ex as element(error:error),
   $query as xs:string)
  as element(xh:html)
 {
   d:debug(('v:get-error-html:', $ex)),
 <html xmlns="http://www.w3.org/1999/xhtml">
   { element head { v:get-html-head() } }
-  <body bgcolor="white">
-    <div>{
-      element b {
-        (: NOTE: format-string is sometimes empty. if so, we omit the br :)
-        if (exists($ex/err:format-string/text()))
-        then ($ex/err:format-string/text(), <br/>)
-        else if (exists($ex/err:code/text()))
-        then (text { $ex/err:code, $ex/err:data/err:datum }, <br/>)
-        else ()
-      },
-      <br/>,
-      (: display eval-in information :)
-      element i {
+  <body bgcolor="white">{
+    let $version as xs:string? := $ex/error:xquery-version
+    return element div {
+      (: display eval information :)
+      element p {
+        attribute class { 'instruction' },
         "query evaluated in",
         xdmp:database-name($db), "at",
         concat(
-          if ($modules eq 0) then "file" else xdmp:database-name($modules),
-          ":", $root )
+          if ($modules eq 0) then "file:"
+          else xdmp:database-name($modules),
+          ":", $root
+        ),
+        if ($ex/error:xquery-version) then (
+          'as', $ex/error:xquery-version
+        ) else ()
       },
-      <br/>,
-      <br/>,
-      <b><i>Stack trace:</i></b>,
-      <br/>,
-      <br/>,
-      for $f in $ex/err:stack/err:frame
-      return v:get-error-frame-html($f, $query),
-      <br/>,
-      (: for debugging :)
-      comment { xdmp:quote($ex) }
-    }</div>
-  </body>
+      element p {
+        attribute class { 'head1' },
+        if ($version) then concat('[', $version, '] ') else (),
+        (: NB - format-string is sometimes empty. if so, we omit the br :)
+        text {
+          if ($ex/error:format-string/text())
+          then $ex/error:format-string
+          else (
+            concat($ex/error:code, ':'),
+            concat('(', $ex/error:name, ')'),
+            $ex/error:data/error:datum
+          )
+        }
+      },
+      element p {
+        <b><i>Stack trace:</i></b>
+      },
+      element p {
+        for $f in $ex/error:stack/error:frame
+        return v:get-error-frame-html($f, $query)
+      }
+    }
+  }</body>
 </html>
-}
+};
 
-define function v:get-eval-label(
-  $db as xs:unsignedLong, $modules as xs:unsignedLong?,
-  $root as xs:string?, $name as xs:string?)
- as xs:string
-{
-  concat(
-    try { xdmp:database-name($db) } catch ($ex) {
-      (: TODO - should we handle this? it suggests a server bug. :)
-      if ($ex/err:code eq 'XDMP-NOSUCHDB') then 'n/a'
-      else error($ex/err:code, $ex/err:format-string)
-    },
-    " (",
-    if (exists($name)) then $name
-    else if ($modules eq 0) then "file:"
-    else concat(xdmp:database-name($modules), ":"),
-    $root,
-    ")"
-  )
-}
-
-define function v:get-html-head()
+declare function v:get-html-head()
  as element(xh:head)
 {
   v:get-html-head("")
-}
+};
 
-define function v:get-html-head($label as xs:string)
+declare function v:get-html-head($label as xs:string)
  as element(xh:head)
 {
   v:get-html-head($label, false())
-}
+};
 
-define function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
+declare function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
  as element(xh:head)
 {
   (: we do not always need the js and css here, but it makes reloads easier :)
@@ -288,6 +274,8 @@ define function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
     <link rel="Shortcut Icon" href="favicon.ico" type="image/x-icon">
     </link>
     <script language="JavaScript" type="text/javascript" src="prototype.js">
+    </script>
+    <script language="JavaScript" type="text/javascript" src="resizable.js">
     </script>
     {
       if (not($tablekit)) then () else
@@ -307,9 +295,29 @@ define function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
       <script>debug.setEnabled(true);</script>[ d:get-debug() ]
     }
   </head>
-}
+};
 
-define function v:get-eval-selector() as element(xh:select)
+declare function v:get-eval-label(
+  $db as xs:unsignedLong, $modules as xs:unsignedLong?,
+  $root as xs:string?, $name as xs:string?)
+ as xs:string
+{
+  concat(
+    try { xdmp:database-name($db) } catch ($ex) {
+      (: TODO - should we handle this? it suggests a server bug. :)
+      if ($ex/error:code eq 'XDMP-NOSUCHDB') then 'n/a'
+      else error($ex/error:code, $ex/error:format-string)
+    },
+    " (",
+    if (exists($name)) then $name
+    else if ($modules eq 0) then "file:"
+    else concat(xdmp:database-name($modules), ":"),
+    $root,
+    ")"
+  )
+};
+
+declare function v:get-eval-selector() as element(xh:select)
 {
   (: first, list all the app-server labels
    : next, list all databases that aren't part of an app-server.
@@ -320,13 +328,15 @@ define function v:get-eval-selector() as element(xh:select)
    : NOTE: requires MarkLogic Server 3.1 or later.
    :)
   element xh:select {
-    attribute name { "/cq:eval-in" },
-    attribute id { "/cq:eval-in" },
+    attribute name { "eval" },
+    attribute id { "eval" },
     attribute title {
       "Select the database in which this query will evaluate." },
     for $s in $c:APP-SERVER-INFO
+    let $database-id as xs:unsignedLong := $s/c:database-id
+    let $server-name as xs:string := $s/c:server-name
     let $label :=
-      v:get-eval-label($s/c:database, (), (), $s/c:server-name)
+      v:get-eval-label($database-id, (), (), $server-name)
     let $value := string-join(
       ('as', string($s/c:server-id), string($s/c:host-id)), ":")
     (: sort current app-server to the top, for bootstrap selection :)
@@ -344,16 +354,16 @@ define function v:get-eval-selector() as element(xh:select)
     order by ($db eq $c:DATABASE-ID) descending, $label
     return element xh:option { attribute value { $value }, $label }
   }
-}
+};
 
-define function v:round-to-sigfig($i as xs:double)
+declare function v:round-to-sigfig($i as xs:double)
  as xs:double {
   if ($i eq 0) then 0
   else round-half-to-even(
     $i, xs:integer(2 - ceiling(math:log10($i))))
-}
+};
 
-define function v:format-profiler-report($report as element(prof:report))
+declare function v:format-profiler-report($report as element(prof:report))
   as element(xh:table)
 {
   let $elapsed := data($report/prof:metadata/prof:overall-elapsed)
@@ -379,16 +389,16 @@ define function v:format-profiler-report($report as element(prof:report))
     let $max-line-length := string-length(string(max(
       $report/prof:histogram/prof:expression/prof:line)))
     (: NB - all elements should have line and expr-source,
-     : but 3.2-1 sometimes produces output that we can't use.
+     : but 3.2-1 sometimes produces different output.
      :)
     for $i in $report/prof:histogram/prof:expression
       [ prof:line ][ prof:expr-source ]
     order by $i/prof:shallow-time descending, $i/prof:deep-time descending
     return v:format-profiler-row($elapsed, $i, $size, $max-line-length)
   }</table>
-}
+};
 
-define function v:format-profiler-row(
+declare function v:format-profiler-row(
   $elapsed as prof:execution-time, $i as element(prof:expression),
   $size as xs:integer, $max-line-length as xs:integer)
  as element(xh:tr) {
@@ -411,7 +421,7 @@ define function v:format-profiler-row(
         element span {
           attribute class { "numeric" },
           attribute xml:space { "preserve" },
-          v:lead-space(string($i/prof:line), $max-line-length) } } },
+          x:lead-space(string($i/prof:line), $max-line-length) } } },
     element td {
         attribute class { "profiler-report expression" },
         element code {
@@ -432,7 +442,7 @@ define function v:format-profiler-row(
     },
     element td {
       attribute class { "profiler-report numeric" },
-      v:duration-to-microseconds($shallow)
+      x:duration-to-microseconds($shallow)
     },
     element td {
       attribute class { "profiler-report numeric" },
@@ -442,37 +452,9 @@ define function v:format-profiler-row(
     },
     element td {
       attribute class { "profiler-report numeric" },
-      v:duration-to-microseconds($deep)
+      x:duration-to-microseconds($deep)
     }
   }</tr>
-}
-
-define function v:lead-nbsp($v as xs:string, $len as xs:integer)
- as xs:string {
-  v:lead-string($v, $v:NBSP, $len)
-}
-
-define function v:lead-space($v as xs:string, $len as xs:integer)
- as xs:string {
-  v:lead-string($v, ' ', $len)
-}
-
-define function v:lead-zero($v as xs:string, $len as xs:integer)
- as xs:string {
-  v:lead-string($v, '0', $len)
-}
-
-define function v:lead-string(
-  $v as xs:string, $pad as xs:string, $len as xs:integer)
- as xs:string {
-  concat(string-pad($pad, $len - string-length(string($v))), string($v))
-}
-
-define function v:duration-to-microseconds($d as xdt:dayTimeDuration)
- as xs:unsignedLong {
-   xs:unsignedLong(
-     1000 * 1000 * io:cumulative-seconds-from-duration($d)
-   )
-}
+};
 
 (: lib-view.xqy :)

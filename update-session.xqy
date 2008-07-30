@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : cq: update-session.xqy
  :
@@ -21,57 +21,53 @@ xquery version "0.9-ml"
  :
  :)
 
-define variable $ID as xs:string {
-  xdmp:get-request-field("ID") }
+import module namespace c = "com.marklogic.developer.cq.controller"
+ at "lib-controller.xqy";
 
-define variable $BUFFERS as xs:string {
-  xdmp:get-request-field("BUFFERS") }
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy";
 
-define variable $HISTORY as xs:string {
-  xdmp:get-request-field("HISTORY") }
+declare namespace sess = "com.marklogic.developer.cq.session";
 
-define variable $TABS as xs:string {
-  xdmp:get-request-field("TABS") }
+declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
-define variable $DEBUG as xs:boolean {
+declare variable $BUFFERS as xs:string := xdmp:get-request-field("BUFFERS");
+
+declare variable $HISTORY as xs:string := xdmp:get-request-field("HISTORY");
+
+declare variable $TABS as xs:string := xdmp:get-request-field("TABS");
+
+declare variable $DEBUG as xs:boolean :=
   let $v := xdmp:get-request-field("DEBUG", "0")
   return
     if ($v castable as xs:boolean)
     then xs:boolean($v)
     else boolean($v)
-}
+;
 
-import module namespace c = "com.marklogic.developer.cq.controller"
- at "lib-controller.xqy"
+declare variable $UNQUOTE-OPTS as xs:string* :=
+  ('repair-none', 'format-xml');
 
-import module namespace d = "com.marklogic.developer.cq.debug"
- at "lib-debug.xqy"
+declare variable $SESSION-NAMESPACE as xs:string :=
+  namespace-uri(<sess:x/>);
 
-declare namespace sess = "com.marklogic.developer.cq.session"
-
-define variable $UNQUOTE-OPTS as xs:string* {
-    ('repair-none', 'format-xml') }
-
-define variable $SESSION-NAMESPACE as xs:string {
-  namespace-uri(<sess:x/>) }
-
-define variable $new-buffers as element(sess:query-buffers) {
+declare variable $new-buffers as element(sess:query-buffers) :=
   d:debug(("update-session.xqy", $BUFFERS)),
   xdmp:unquote($BUFFERS, $SESSION-NAMESPACE, $UNQUOTE-OPTS)
   /sess:query-buffers
-}
+;
 
-define variable $new-history as element(sess:query-history) {
+declare variable $new-history as element(sess:query-history) :=
   d:debug(("update-session.xqy", $HISTORY)),
   xdmp:unquote($HISTORY, $SESSION-NAMESPACE, $UNQUOTE-OPTS)
   /sess:query-history
-}
+;
 
-define variable $new-tabs as element(sess:active-tab) {
+declare variable $new-tabs as element(sess:active-tab) :=
   d:debug(("update-session.xqy", $TABS)),
   xdmp:unquote($TABS, $SESSION-NAMESPACE, $UNQUOTE-OPTS)
   /sess:active-tab
-}
+;
 
 if ($DEBUG) then d:debug-on() else (),
 c:update-session($ID, ($new-buffers, $new-history, $new-tabs)),

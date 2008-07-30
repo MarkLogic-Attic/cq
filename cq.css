@@ -87,6 +87,12 @@ input[type = "button"]
   margin-bottom: 0.2em;
 }
 
+.head2
+{
+  font-size: larger;
+  margin-bottom: 0.2em;
+}
+
 .buffer-tab, .buffer-tab-active, .query-history, .profiler-report
 {
   border: 1px solid black;
@@ -108,7 +114,7 @@ input[type = "button"]
 }
 
 .buffer-history-wrapper
-{  
+{
   overflow: auto;
   /* initial value only:
    * JavaScript will match the height of the query-buffers area.
@@ -121,12 +127,12 @@ input[type = "button"]
  * tend to disappear entirely!
  *
  */
-.bufferlabel 
+.bufferlabel
 {
   overflow: hidden !important;
   /*text-overflow: clip !important;*/
-  /* 
-   * I want to use 'white-space: nowrap', 
+  /*
+   * I want to use 'white-space: nowrap',
    * so gecko won't swallow long lines.
    * Unfortunately, this broke in FireFox 3.0,
    * but repeated declarations seem to do the job.
@@ -237,6 +243,18 @@ input[type = "button"]
 .status
 {
   width: 7em;
+}
+
+.resizable-active
+{
+}
+
+.resizable-wrapper
+{
+}
+
+.resizable-handle
+{
 }
 
 /* end cq.css */

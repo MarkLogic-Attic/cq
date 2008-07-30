@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : Client Query Application
  :
@@ -20,11 +20,10 @@ xquery version "0.9-ml"
  : affiliated with the Apache Software Foundation.
  :)
 
-define variable $ID as xs:string {
-  xdmp:get-request-field("ID") }
-
 import module namespace c = "com.marklogic.developer.cq.controller"
- at "lib-controller.xqy"
+ at "lib-controller.xqy";
+
+declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
 c:delete-session($ID)
 

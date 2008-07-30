@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : Client Query Application
  :
@@ -20,22 +20,22 @@ xquery version "0.9-ml"
  : affiliated with the Apache Software Foundation.
  :)
 
-define variable $ID as xs:string {
-  xdmp:get-request-field("ID") }
-
-define variable $NAME as xs:string {
-  xdmp:get-request-field("NAME") }
-
-define variable $DEBUG as xs:boolean {
-  xs:boolean(xdmp:get-request-field("DEBUG", 'false')) }
-
 import module namespace c = "com.marklogic.developer.cq.controller"
- at "lib-controller.xqy"
+ at "lib-controller.xqy";
 
 import module namespace d = "com.marklogic.developer.cq.debug"
- at "lib-debug.xqy"
+ at "lib-debug.xqy";
 
-if ($DEBUG) then d:debug-on() else (),
+declare variable $ID as xs:string := xdmp:get-request-field("ID");
+
+declare variable $NAME as xs:string :=
+  xdmp:get-request-field("NAME");
+
+declare variable $DEBUG as xs:boolean :=
+  xs:boolean(xdmp:get-request-field("DEBUG", 'false'));
+
+if ($DEBUG) then d:debug-on() else ()
+,
 c:rename-session($ID, $NAME)
 
 (: rename-session.xqy :)

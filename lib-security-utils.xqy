@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : cq: lib-security-utils.xqy
  :
@@ -21,22 +21,20 @@ xquery version "0.9-ml"
  :
  :)
 
-module "com.marklogic.developer.cq.security"
+module namespace su = "com.marklogic.developer.cq.security";
 
-default function namespace = "http://www.w3.org/2003/05/xpath-functions"
-
-declare namespace su = "com.marklogic.developer.cq.security"
+declare default function namespace "http://www.w3.org/2005/xpath-functions";
 
 import module "http://marklogic.com/xdmp/security"
-  at "/MarkLogic/security.xqy"
+  at "/MarkLogic/security.xqy";
 
-define variable $su:USER as xs:string { xdmp:get-current-user() }
+declare variable $su:USER as xs:string := xdmp:get-current-user();
 
-define variable $su:USER-ID as xs:unsignedLong { xdmp:get-request-user() }
+declare variable $su:USER-ID as xs:unsignedLong := xdmp:get-request-user();
 
-define variable $su:USER-IS-ADMIN as xs:boolean {
+declare variable $su:USER-IS-ADMIN as xs:boolean :=
   (: apparently this does *not* need to eval in the security database :)
   try { sec:check-admin(), true() } catch ($ex) { false() }
-}
+;
 
 (: lib-security-utils.xqy :)

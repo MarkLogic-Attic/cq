@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : Client Query Application
  :
@@ -21,25 +21,23 @@ xquery version "0.9-ml"
  :)
 
 import module namespace c = "com.marklogic.developer.cq.controller"
- at "lib-controller.xqy"
+ at "lib-controller.xqy";
 
 import module namespace d = "com.marklogic.developer.cq.debug"
- at "lib-debug.xqy"
+ at "lib-debug.xqy";
 
 import module namespace io = "com.marklogic.developer.cq.io"
- at "lib-io.xqy"
+ at "lib-io.xqy";
 
 import module namespace su = "com.marklogic.developer.cq.security"
- at "lib-security-utils.xqy"
+ at "lib-security-utils.xqy";
 
 import module namespace v = "com.marklogic.developer.cq.view"
- at "lib-view.xqy"
+ at "lib-view.xqy";
 
-declare namespace sess = "com.marklogic.developer.cq.session"
+declare namespace sess = "com.marklogic.developer.cq.session";
 
-define variable $SESSIONS as element(sess:session)* {
-  c:get-sessions()
-}
+declare variable $SESSIONS as element(sess:session)* := c:get-sessions();
 
 d:check-debug(),
 c:set-content-type(),

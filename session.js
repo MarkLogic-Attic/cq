@@ -123,6 +123,8 @@ function SessionClass(tabs, id) {
 
     var updateSessionUrl = "update-session.xqy";
 
+    this.getId = function() { return this.sessionId }
+
     this.restore = function() {
         var restore = $(this.restoreId);
         var label = "SessionClass.restore: ";

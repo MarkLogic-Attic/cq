@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : Client Query Application
  :
@@ -24,72 +24,45 @@ xquery version "0.9-ml"
  : This library provides routines for reading and writing server modules,
  : whether stored on the filesystem or in a database.
  :)
-module "com.marklogic.developer.cq.io"
+module namespace io = "com.marklogic.developer.cq.io";
 
-default function namespace = "http://www.w3.org/2003/05/xpath-functions"
+declare default function namespace "http://www.w3.org/2005/xpath-functions";
+
+import module namespace admin = "http://marklogic.com/xdmp/admin"
+  at "/MarkLogic/admin.xqy";
 
 import module namespace su = "com.marklogic.developer.cq.security"
-  at "lib-security-utils.xqy"
+  at "lib-security-utils.xqy";
 
-declare namespace io = "com.marklogic.developer.cq.io"
-declare namespace gr = "http://marklogic.com/xdmp/group"
-declare namespace dir = "http://marklogic.com/xdmp/directory"
+import module namespace x = "com.marklogic.developer.cq.xquery"
+ at "lib-xquery.xqy";
 
-(:~ @private :)
-define variable $io:MODULES-DB as xs:unsignedLong {
-  xdmp:modules-database() }
+declare namespace dir = "http://marklogic.com/xdmp/directory";
 
 (:~ @private :)
-define variable $io:MODULES-ROOT as xs:string {
+declare variable $io:MODULES-DB as xs:unsignedLong :=
+  xdmp:modules-database()
+;
+
+(:~ @private :)
+declare variable $io:MODULES-ROOT as xs:string :=
   (: life is easier if the root does not end in "/" :)
   let $root := xdmp:modules-root()
   return
     if (ends-with($root, "/"))
     then substring($root, 1, string-length($root) - 1)
     else $root
-}
+;
 
 (:~ @private :)
-define variable $io:EVAL-OPTIONS as element() {
+declare variable $io:EVAL-OPTIONS as element() :=
   <options xmlns="xdmp:eval">
     <database>{ $io:MODULES-DB }</database>
   </options>
-}
-
-define function io:cumulative-seconds-from-duration($d as xdt:dayTimeDuration)
- as xs:double
-{
-  86400 * days-from-duration($d)
-  + 3600 * hours-from-duration($d)
-  + 60 * minutes-from-duration($d)
-  + seconds-from-duration($d)
-}
-
-(:~ get the epoch seconds :)
-define function io:get-epoch-seconds($dt as xs:dateTime)
-  as xs:unsignedLong
-{
-  xs:unsignedLong(io:cumulative-seconds-from-duration(
-    $dt - xs:dateTime('1970-01-01T00:00:00Z')))
-}
-
-(:~ get the epoch seconds :)
-define function io:get-epoch-seconds()
-  as xs:unsignedLong
-{
-  io:get-epoch-seconds(current-dateTime())
-}
-
-(:~ convert epoch seconds to dateTime :)
-define function io:epoch-seconds-to-dateTime($v)
-  as xs:dateTime
-{
-  xs:dateTime("1970-01-01T00:00:00-00:00")
-  + xdt:dayTimeDuration(concat("PT", $v, "S"))
-}
+;
 
 (:~ read the contents of a path :)
-define function io:read($path as xs:string)
+declare function io:read($path as xs:string)
   as document-node()?
 {
   let $path := io:canonicalize($path)
@@ -97,21 +70,21 @@ define function io:read($path as xs:string)
     if ($io:MODULES-DB eq 0)
     then io:read-fs($path)
     else io:read-db($path)
-}
+};
 
 (:~ write a document-node to a path :)
-define function io:write($path as xs:string, $new as document-node())
-  as empty()
+declare function io:write($path as xs:string, $new as document-node())
+  as empty-sequence()
 {
   let $path := io:canonicalize($path)
   return
     if ($io:MODULES-DB eq 0)
     then io:write-fs($path, $new)
     else io:write-db($path, $new)
-}
+};
 
 (:~ list contents of a directory path :)
-define function io:list($path as xs:string)
+declare function io:list($path as xs:string)
   as document-node()*
 {
   (: TODO pagination :)
@@ -120,21 +93,21 @@ define function io:list($path as xs:string)
     if ($io:MODULES-DB eq 0)
     then io:list-fs($path)
     else io:list-db($path)
-}
+};
 
 (:~ delete a path :)
-define function io:delete($path as xs:string)
- as empty()
+declare function io:delete($path as xs:string)
+ as empty-sequence()
 {
   let $path := io:canonicalize($path)
   return
     if ($io:MODULES-DB eq 0)
     then io:delete-fs($path)
     else io:delete-db($path)
-}
+};
 
 (:~ return true if path exists :)
-define function io:exists($path as xs:string)
+declare function io:exists($path as xs:string)
  as xs:boolean
 {
   let $path := io:canonicalize($path)
@@ -142,32 +115,32 @@ define function io:exists($path as xs:string)
     if ($io:MODULES-DB eq 0)
     then io:exists-fs($path)
     else io:exists-db($path)
-}
+};
 
 (:~ release a lock :)
-define function io:lock-release($path as xs:string)
-  as empty()
+declare function io:lock-release($path as xs:string)
+  as empty-sequence()
 {
   let $path := io:canonicalize($path)
   return
     if ($io:MODULES-DB eq 0)
     then io:lock-release-fs($path)
     else io:lock-release-db($path)
-}
+};
 
 (:~ acquire a lock :)
-define function io:lock-acquire($path as xs:string)
-  as empty()
+declare function io:lock-acquire($path as xs:string)
+  as empty-sequence()
 {
   io:lock-acquire($path, (), (), (), xs:unsignedLong(300))
-}
+};
 
 (:~ acquire a lock :)
-define function io:lock-acquire(
+declare function io:lock-acquire(
   $path as xs:string, $scope as xs:string?,
   $depth as xs:string?, $owner as item()?,
   $timeout as xs:unsignedLong?)
-  as empty()
+  as empty-sequence()
 {
   if ($path eq '' or ends-with($path, '/'))
   then error('IO-BADPATH', text { $path }) else (),
@@ -181,10 +154,10 @@ define function io:lock-acquire(
     if ($io:MODULES-DB eq 0)
     then io:lock-acquire-fs($path, $scope, $depth, $owner, $timeout)
     else io:lock-acquire-db($path, $scope, $depth, $owner, $timeout)
-}
+};
 
 (:~ list locks :)
-define function io:document-locks($paths as xs:string*)
+declare function io:document-locks($paths as xs:string*)
  as document-node()*
 {
   let $paths := for $path in $paths return io:canonicalize($path)
@@ -192,71 +165,71 @@ define function io:document-locks($paths as xs:string*)
     if ($io:MODULES-DB eq 0)
     then io:document-locks-fs($paths)
     else io:document-locks-db($paths)
-}
+};
 
 (:~ @private :)
-define function io:exists-db($uri as xs:string)
+declare function io:exists-db($uri as xs:string)
  as xs:boolean
 {
   xdmp:eval(
-    'xquery version "0.9-ml"
-     define variable $URI as xs:string external
+    'xquery version "1.0-ml";
+     declare variable $URI as xs:string external;
      xdmp:exists(doc($URI))',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
   )
-}
+};
 
 (:~ @private :)
-define function io:exists-fs($path as xs:string)
+declare function io:exists-fs($path as xs:string)
  as xs:boolean
 {
   try {
     exists(xdmp:document-get($path))
   } catch ($ex) {
     false(),
-    if ($ex/err:code eq 'SVC-FILOPN') then ()
+    if ($ex/error:code eq 'SVC-FILOPN') then ()
     else xdmp:log(text {
       "io:exists-fs:", normalize-space(xdmp:quote($ex)) })
   }
-}
+};
 
 (:~ @private :)
-define function io:delete-db($uri as xs:string)
- as empty()
+declare function io:delete-db($uri as xs:string)
+ as empty-sequence()
 {
   xdmp:eval(
-    'xquery version "0.9-ml"
-     define variable $URI as xs:string external
+    'xquery version "1.0-ml";
+     declare variable $URI as xs:string external;
      xdmp:document-delete($URI)',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
   )
-}
+};
 
 (:~ @private :)
-define function io:delete-fs($path as xs:string)
- as empty()
+declare function io:delete-fs($path as xs:string)
+ as empty-sequence()
 {
   (: TODO we cannot delete the document, so save an empty text node. :)
   xdmp:save($path, text { '' })
-}
+};
 
 (:~ @private :)
-define function io:list-db($uri as xs:string)
+declare function io:list-db($uri as xs:string)
   as document-node()*
 {
   xdmp:eval(
-    'xquery version "0.9-ml"
-     define variable $URI as xs:string external
+    'xquery version "1.0-ml";
+     declare variable $URI as xs:string external;
      xdmp:directory($URI, "1")',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
   )
-}
+};
 
 (:~ @private :)
-define function io:list-fs($path as xs:string)
+declare function io:list-fs($path as xs:string)
   as document-node()*
 {
   for $p in data(xdmp:filesystem-directory($path)/dir:entry
@@ -266,10 +239,10 @@ define function io:list-fs($path as xs:string)
     <options xmlns="xdmp:document-get">{
       element format { 'xml' } }</options>
   )
-}
+};
 
 (:~ @private :)
-define function io:canonicalize($path as xs:string)
+declare function io:canonicalize($path as xs:string)
   as xs:string
 {
   concat(
@@ -277,31 +250,31 @@ define function io:canonicalize($path as xs:string)
     "/"[not(starts-with($path, "/"))],
     $path
   )
-}
+};
 
 (:~ @private :)
-define function io:lock-path-fs($path as xs:string)
+declare function io:lock-path-fs($path as xs:string)
   as xs:string
 {
   (: primitive, yet messy :)
   concat($path, ".lock")
-}
+};
 
 (:~ @private :)
-define function io:read-db($uri as xs:string)
+declare function io:read-db($uri as xs:string)
   as document-node()?
 {
   xdmp:eval(
-    'xquery version "0.9-ml"
-     define variable $URI as xs:string external
+    'xquery version "1.0-ml";
+     declare variable $URI as xs:string external;
      doc($URI)',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
   )
-}
+};
 
 (:~ @private :)
-define function io:read-fs($path as xs:string)
+declare function io:read-fs($path as xs:string)
   as document-node()?
 {
   if (ends-with($path, "/")) then () else try {
@@ -313,21 +286,21 @@ define function io:read-fs($path as xs:string)
       </options>
     )[1]
   } catch ($ex) {
-    if ($ex/err:code eq 'SVC-FILOPN') then ()
+    if ($ex/error:code eq 'SVC-FILOPN') then ()
     else xdmp:log(text {
       "io:read-fs:", normalize-space(xdmp:quote($ex)) })
   }
-}
+};
 
 (:~ @private :)
-define function io:write-db($uri as xs:string, $new as document-node())
-  as empty()
+declare function io:write-db($uri as xs:string, $new as document-node())
+  as empty-sequence()
 {
   xdmp:eval(
-    'xquery version "0.9-ml"
-     define variable $URI as xs:string external
-     define variable $NEW as document-node() external
-     define variable $EXISTS as xs:boolean { xdmp:exists(doc($URI)) }
+    'xquery version "1.0-ml";
+     declare variable $URI as xs:string external;
+     declare variable $NEW as document-node() external;
+     declare variable $EXISTS as xs:boolean := xdmp:exists(doc($URI));
      xdmp:document-insert(
        $URI, $NEW,
        if ($EXISTS) then xdmp:document-get-permissions($URI)
@@ -340,31 +313,31 @@ define function io:write-db($uri as xs:string, $new as document-node())
     (xs:QName('URI'), $uri, xs:QName('NEW'), $new),
     $io:EVAL-OPTIONS
   )
-}
+};
 
 (:~ @private :)
-define function io:write-fs($path as xs:string, $new as document-node())
-  as empty()
+declare function io:write-fs($path as xs:string, $new as document-node())
+  as empty-sequence()
 {
   xdmp:save($path, $new)
-}
+};
 
 (:~ @private :)
-define function io:lock-release-db($uri as xs:string)
- as empty()
+declare function io:lock-release-db($uri as xs:string)
+ as empty-sequence()
 {
   xdmp:eval(
-    'xquery version "0.9-ml"
-     define variable $URI as xs:string external
+    'xquery version "1.0-ml";
+     declare variable $URI as xs:string external;
      xdmp:lock-release($URI)',
     (xs:QName('URI'), $uri),
     $io:EVAL-OPTIONS
   )
-}
+};
 
 (:~ @private :)
-define function io:lock-release-fs($path as xs:string)
- as empty()
+declare function io:lock-release-fs($path as xs:string)
+ as empty-sequence()
 {
   (: filesystem lock-release - check and release.
    : This might do ok with multiple locks.
@@ -400,31 +373,31 @@ define function io:lock-release-fs($path as xs:string)
         }
       }
     } )
-}
+};
 
 (:~ @private :)
-define function io:lock-acquire-db(
+declare function io:lock-acquire-db(
   $uri as xs:string, $scope as xs:string,
   $depth as xs:string, $owner as item(),
   $timeout as xs:unsignedLong)
-  as empty()
+  as empty-sequence()
 {
   xdmp:eval(
-    'xquery version "0.9-ml"
-     define variable $URI as xs:string external
-     define variable $SCOPE as xs:string external
-     define variable $DEPTH as xs:string external
-     define variable $OWNER as xs:string external
-     define variable $TIMEOUT as xs:unsignedLong external
+    'xquery version "1.0-ml";
+     declare variable $URI as xs:string external;
+     declare variable $SCOPE as xs:string external;
+     declare variable $DEPTH as xs:string external;
+     declare variable $OWNER as xs:string external;
+     declare variable $TIMEOUT as xs:unsignedLong external;
      xdmp:lock-acquire($URI, $SCOPE, $DEPTH, $OWNER, $TIMEOUT)',
     (xs:QName('URI'), $uri, xs:QName('SCOPE'), $scope,
      xs:QName('DEPTH'), $depth, xs:QName('OWNER'), $owner,
      xs:QName('TIMEOUT'), $timeout),
     $io:EVAL-OPTIONS
   )
-}
+};
 
-define function io:get-conflicting-locks(
+declare function io:get-conflicting-locks(
   $uri as xs:string, $limit as xs:integer?, $owner as xs:string
 )
  as element(lock:active-lock)*
@@ -434,7 +407,7 @@ define function io:get-conflicting-locks(
    :   2. the owner is not $owner
    :   3. it has an active-lock which has not expired
    :)
-  let $now := io:get-epoch-seconds()
+  let $now := x:get-epoch-seconds()
   let $locks :=
     for $c in io:document-locks($uri)
       /lock:lock[lock:lock-type eq 'write']
@@ -452,14 +425,14 @@ define function io:get-conflicting-locks(
     return $c
   return
     if (empty($limit)) then $locks else subsequence($locks, 1, $limit)
-}
+};
 
 (:~ @private :)
-define function io:lock-acquire-fs(
+declare function io:lock-acquire-fs(
   $path as xs:string, $scope as xs:string,
   $depth as xs:string, $owner as item(),
   $timeout as xs:unsignedLong?)
- as empty()
+ as empty-sequence()
 {
   (: NB: the caller is responsible for checking our arguments! :)
   (: TODO does not handle multiple locks, shared vs exclusive :)
@@ -489,7 +462,7 @@ define function io:lock-acquire-fs(
               xdmp:integer-to-hex(xdmp:random())
             )
           },
-          element lock:timestamp { io:get-epoch-seconds() },
+          element lock:timestamp { x:get-epoch-seconds() },
           element sec:user-id { $su:USER-ID }
         }
       }
@@ -497,30 +470,30 @@ define function io:lock-acquire-fs(
   }
   let $path := io:lock-path-fs($path)
   return io:write-fs($path, $lock)
-}
+};
 
 (:~ @private :)
-define function io:document-locks-db($uris as xs:string*)
+declare function io:document-locks-db($uris as xs:string*)
  as document-node()*
 {
   xdmp:eval(
-    'xquery version "0.9-ml"
-     define variable $URIS-SSV as xs:string external
-     define variable $URIS as xs:string+ { tokenize($URIS-SSV, "\s+") }
+    'xquery version "1.0-ml";
+     declare variable $URIS-SSV as xs:string external;
+     declare variable $URIS as xs:string+ := tokenize($URIS-SSV, "\s+");
      xdmp:document-locks($URIS)',
     (xs:QName('URIS-SSV'), string-join($uris, ' ')),
     $io:EVAL-OPTIONS
   )
-}
+};
 
 (:~ @private :)
-define function io:document-locks-fs($paths as xs:string*)
+declare function io:document-locks-fs($paths as xs:string*)
  as document-node()*
 {
   for $path in $paths
   let $lock-path := io:lock-path-fs($path)
   let $fs := io:read-fs($lock-path)
   return $fs
-}
+};
 
 (: lib-io.xqy :)

@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : Client Query Application
  :
@@ -21,15 +21,16 @@ xquery version "0.9-ml"
  :)
 
 import module namespace c = "com.marklogic.developer.cq.controller"
- at "lib-controller.xqy"
+ at "lib-controller.xqy";
 
 import module namespace d = "com.marklogic.developer.cq.debug"
- at "lib-debug.xqy"
+ at "lib-debug.xqy";
 
 import module namespace v = "com.marklogic.developer.cq.view"
- at "lib-view.xqy"
+ at "lib-view.xqy";
 
-d:check-debug(),
+d:check-debug()
+,
 <html xmlns="http://www.w3.org/1999/xhtml">
 {
   v:get-html-head(),

@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : Client Query Application
  :
@@ -21,16 +21,16 @@ xquery version "0.9-ml"
  :)
 
 import module namespace c = "com.marklogic.developer.cq.controller"
- at "lib-controller.xqy"
+ at "lib-controller.xqy";
 
 import module namespace d = "com.marklogic.developer.cq.debug"
- at "lib-debug.xqy"
+ at "lib-debug.xqy";
 
 import module namespace su = "com.marklogic.developer.cq.security"
- at "lib-security-utils.xqy"
+ at "lib-security-utils.xqy";
 
 import module namespace v = "com.marklogic.developer.cq.view"
- at "lib-view.xqy"
+ at "lib-view.xqy";
 
 d:check-debug(),
 c:set-content-type(),
@@ -38,7 +38,7 @@ c:set-content-type(),
 (: before we go any further, make sure we have the right exec privs :)
 let $priv-errors :=
   for $priv in (
-    "http://marklogic.com/xdmp/privileges/status",
+    "http://marklogic.com/xdmp/privileges/admin-module-read",
     "http://marklogic.com/xdmp/privileges/xdmp-document-get",
     "http://marklogic.com/xdmp/privileges/xdmp-eval",
     "http://marklogic.com/xdmp/privileges/xdmp-eval-in",
@@ -48,7 +48,8 @@ let $priv-errors :=
     "http://marklogic.com/xdmp/privileges/xdmp-save"
   )
   return try {
-    xdmp:security-assert($priv, "execute") } catch ($ex) { $priv }
+    xdmp:security-assert($priv, "execute")
+  } catch ($ex) { $priv }
 return
   if ($priv-errors) then
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -76,4 +77,4 @@ return
 </html>
 else xdmp:invoke("frameset.xqy")
 
-(: cq.xqy :)
+(: default.xqy :)

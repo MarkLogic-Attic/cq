@@ -1,4 +1,4 @@
-xquery version "0.9-ml"
+xquery version "1.0-ml";
 (:
  : cq: lib-debug.xqy
  :
@@ -20,45 +20,49 @@ xquery version "0.9-ml"
  : affiliated with the Apache Software Foundation.
  :
  :)
-module "com.marklogic.developer.cq.debug"
+module namespace d = "com.marklogic.developer.cq.debug";
 
-default function namespace = "http://www.w3.org/2003/05/xpath-functions"
+declare default function namespace "http://www.w3.org/2005/xpath-functions";
 
-declare namespace d = "com.marklogic.developer.cq.debug"
+declare variable $d:NL := fn:codepoints-to-string(10);
 
-define variable $d:NL { fn:codepoints-to-string((10)) }
+declare variable $d:DEBUG as xs:boolean := false();
 
-define variable $d:DEBUG as xs:boolean { false() }
+declare variable $d:DEBUG-FIELD as xs:string := "debug";
 
-define variable $d:DEBUG-FIELD as xs:string { "debug" }
+declare function d:get-debug()
+ as xs:boolean
+{
+  $d:DEBUG
+};
 
-define function d:get-debug() as xs:boolean { $d:DEBUG }
-
-define function d:debug-on()
- as empty()
+declare function d:debug-on()
+ as empty-sequence()
 {
   xdmp:set($d:DEBUG, true()),
   d:debug("debug is on")
-}
+};
 
-define function d:debug-off() as empty() {
+declare function d:debug-off()
+ as empty-sequence()
+{
   xdmp:set($d:DEBUG, false())
-}
+};
 
-define function d:debug($s as item()*)
- as empty()
+declare function d:debug($s as item()*)
+ as empty-sequence()
 {
   if (not($d:DEBUG)) then () else xdmp:log(
     string-join(("DEBUG:", translate(xdmp:quote($s), $d:NL, " ")), " ")
   )
-}
+};
 
-define function d:check-debug()
- as empty()
+declare function d:check-debug()
+ as empty-sequence()
 {
   if (xs:boolean(xdmp:get-request-field($d:DEBUG-FIELD, string($d:DEBUG))[1]))
   then d:debug-on()
   else ()
-}
+};
 
 (: lib-debug.xqy :)

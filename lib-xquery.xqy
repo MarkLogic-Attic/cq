@@ -33,12 +33,6 @@ define variable $x:NBSP as xs:string { codepoints-to-string(160) }
 define variable $x:NL as xs:string { codepoints-to-string(10) }
 
 (:~ for 1.0-ml modules - why did the committee remove useful functions? :)
-define function x:node-kind($n as node()?)
-{
-  node-kind($n)
-}
-
-(:~ for 1.0-ml modules - why did the committee remove useful functions? :)
 define function x:string-pad(
   $padString as xs:string?,
   $padCount as xs:integer)

@@ -91,7 +91,7 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
         $uri
       },
       <span> - </span>,
-      <i>{ x:node-kind($n) }</i>,
+      <i>{ xdmp:node-kind($n) }</i>,
       (: why not node-name? because this is a human-readable context :)
       <code>&#160;{ name($n) }</code>,
       <br/>

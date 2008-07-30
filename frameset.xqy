@@ -43,7 +43,7 @@ d:check-debug()
         string-join(
           for $f in xdmp:get-request-field-names()
           return string-join(($f, xdmp:get-request-field($f)), '=')
-            , '&') )
+            , '&amp;') )
       },
       attribute id { "/cq:queryFrame" }
     }

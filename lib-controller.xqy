@@ -573,7 +573,7 @@ declare function c:build-form-eval-query(
       concat('eval=', $c:FORM-EVAL),
       for $x in count($keys)
       return concat($keys[$x], '=', xdmp:url-encode($values[$x]))
-    ), '&')
+    ), '&amp;')
   ), '')
 };
 

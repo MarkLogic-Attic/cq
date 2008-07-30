@@ -21,12 +21,15 @@ Apache 2.0 license. You will also find the source code checked into the
 developer.marklogic.com subversion repository. If you make improvements,
 you are welcome to contribute them back to the project.
 
-This application uses code from Prototype.js. This application uses code,
-styles, and images from the TableKit demo. See prototype.js and tablekit.js
+This application uses code from Prototype.js and script.aculo.us. See
+See js/prototype.js, js/effects.js, and js/controls.js
 for copyright and license information.
 
+This application uses code, styles, and images from the TableKit demo.
+See js/tablekit.js for copyright and license information.
+
 This application uses a modified version of Kazuki Ohta's resizable.js.
-See resizable.js for copyright and license information.
+See js/resizable.js for copyright and license information.
 
 Enjoy!
 

@@ -37,13 +37,7 @@ declare variable $HISTORY as xs:string := xdmp:get-request-field("HISTORY");
 
 declare variable $TABS as xs:string := xdmp:get-request-field("TABS");
 
-declare variable $DEBUG as xs:boolean :=
-  let $v := xdmp:get-request-field("DEBUG", "0")
-  return
-    if ($v castable as xs:boolean)
-    then xs:boolean($v)
-    else boolean($v)
-;
+declare variable $DEBUG := xs:boolean(xdmp:get-request-field("DEBUG", "0"));
 
 declare variable $UNQUOTE-OPTS as xs:string* :=
   ('repair-none', 'format-xml');
@@ -69,9 +63,11 @@ declare variable $new-tabs as element(sess:active-tab) :=
   /sess:active-tab
 ;
 
-if ($DEBUG) then d:debug-on() else (),
-c:update-session($ID, ($new-buffers, $new-history, $new-tabs)),
+if ($DEBUG) then d:debug-on() else ()
+,
+c:update-session($ID, ($new-buffers, $new-history, $new-tabs))
+,
 (: firefox 3 logs an error if the result is empty :)
-<update-ok/>
+$ID
 
 (: update-session.xqy :)

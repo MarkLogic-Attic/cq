@@ -65,14 +65,16 @@ c:set-content-type(),
               <a href="javascript:cqListDocuments()">explore</a>
               &#160;|&#160;<span class="instruction">
               <a href="session.xqy{"?debug=1"[ $d:DEBUG ]}"
-           target="_parent">{
-             (: make sure lazy module variable is initialized :)
-             let $lazy := $c:SESSION
-             return
-               if ($c:SESSION-EXCEPTION) then "sessions disabled"
-               else concat("session: ", $c:SESSION-NAME)
-              }</a>&#160;<a href="javascript:renameSession()">(rename)</a>
-            </span>
+              target="_parent">{
+                (: make sure lazy module variable is initialized :)
+                let $lazy := $c:SESSION
+                return
+                  if ($c:SESSION-EXCEPTION) then "sessions disabled"
+                  else "session:"
+              }</a>&#160;{
+                if ($c:SESSION-EXCEPTION) then ()
+                else <span id="rename-session">{ $c:SESSION-NAME }</span>
+              }</span>
             </div>
             <div nowrap="1" id="queryBuffers">
             <textarea id="/cq:input" name="/cq:input"

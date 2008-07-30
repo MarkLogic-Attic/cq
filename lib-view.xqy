@@ -273,13 +273,17 @@ declare function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
     }
     <link rel="Shortcut Icon" href="favicon.ico" type="image/x-icon">
     </link>
-    <script language="JavaScript" type="text/javascript" src="prototype.js">
+    <script language="JavaScript" type="text/javascript" src="js/prototype.js">
     </script>
-    <script language="JavaScript" type="text/javascript" src="resizable.js">
+    <script language="JavaScript" type="text/javascript" src="js/resizable.js">
+    </script>
+    <script language="JavaScript" type="text/javascript" src="js/effects.js">
+    </script>
+    <script language="JavaScript" type="text/javascript" src="js/controls.js">
     </script>
     {
       if (not($tablekit)) then () else
-    <script language="JavaScript" type="text/javascript" src="tablekit.js">
+    <script language="JavaScript" type="text/javascript" src="js/tablekit.js">
     </script>
     }
     <script language="JavaScript" type="text/javascript" src="debug.js">

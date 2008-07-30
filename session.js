@@ -35,8 +35,8 @@ function reportError(req) {
 
 // SessionList class
 function SessionList() {
-    var deleteUrl = 'delete-session.xqy';
-    var renameUrl = 'rename-session.xqy';
+    this.deleteUrl = 'delete-session.xqy';
+    this.renameUrl = 'rename-session.xqy';
 
     this.refresh = function() {
         if (debug.isEnabled()) {
@@ -70,7 +70,7 @@ function SessionList() {
         debug.print("deleteSession: " + id);
         if (confirm("Are you sure you want to delete this session?")) {
             // call session-delete
-            var req = new Ajax.Request(deleteUrl,
+            var req = new Ajax.Request(this.deleteUrl,
                 {
                     method: 'post',
                     // workaround, to avoid appending charset info
@@ -91,16 +91,20 @@ function SessionList() {
     this.renameSession = function(id, name) {
         debug.print("renameSession: " + id + " to " + name);
         // call the rename xqy
-        var req = new Ajax.Request(renameUrl,
+        var req = new Ajax.Request(this.renameUrl,
             {
                 method: 'post',
                 // workaround, to avoid appending charset info
                 encoding: null,
-                parameters: 'ID=' + id + '&NAME=' + name
-                  + (debug.isEnabled() ? '&DEBUG=1' : ''),
+                parameters: this.buildRenameQueryString(id, name),
                 asynchronous: false,
                 onFailure: reportError
             });
+    }
+
+    this.buildRenameQueryString = function(id, name) {
+        return 'ID=' + id + '&NAME=' + escape(name)
+          + (debug.isEnabled() ? '&DEBUG=1' : '')
     }
 
 } // SessionListClass
@@ -121,7 +125,7 @@ function SessionClass(tabs, id) {
 
     this.autosave = null;
 
-    var updateSessionUrl = "update-session.xqy";
+    this.updateSessionUrl = "update-session.xqy";
 
     this.getId = function() { return this.sessionId }
 
@@ -225,7 +229,7 @@ function SessionClass(tabs, id) {
         var history = this.history.toXml();
         var tabs = this.tabs.toXml();
         var params = {
-            DEBUG: debug.isEnabled() ? true : null,
+            DEBUG: debug.isEnabled() ? true : false,
             ID: this.sessionId,
             BUFFERS: buffers,
             HISTORY: history,
@@ -234,7 +238,7 @@ function SessionClass(tabs, id) {
 
         debug.print(label + "" + params);
 
-        var req = new Ajax.Request(updateSessionUrl,
+        var req = new Ajax.Request(this.updateSessionUrl,
             {
                 method: 'post',
                 parameters: params,

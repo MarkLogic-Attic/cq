@@ -26,14 +26,14 @@ import module namespace c = "com.marklogic.developer.cq.controller"
 import module namespace d = "com.marklogic.developer.cq.debug"
  at "lib-debug.xqy";
 
-import module namespace io = "com.marklogic.developer.cq.io"
- at "lib-io.xqy";
-
 import module namespace su = "com.marklogic.developer.cq.security"
  at "lib-security-utils.xqy";
 
 import module namespace v = "com.marklogic.developer.cq.view"
  at "lib-view.xqy";
+
+import module namespace x = "com.marklogic.developer.cq.xquery"
+ at "lib-xquery.xqy";
 
 declare namespace sess = "com.marklogic.developer.cq.session";
 
@@ -158,7 +158,7 @@ c:set-content-type(),
                 text {
                   "by", $conflicting/lock:owner,
                   "until", adjust-dateTime-to-timezone(
-                    io:epoch-seconds-to-dateTime(
+                    x:epoch-seconds-to-dateTime(
                       $conflicting/lock:timestamp + $conflicting/lock:timeout
                     )
                   )
@@ -173,7 +173,7 @@ c:set-content-type(),
                   attribute value {
                     "Resume", (' ', $id)[ $d:DEBUG ] }
                 }[ empty($conflicting) ],
-                $v:NBSP,
+                $x:NBSP,
                 element input {
                   attribute type { "button" },
                   attribute title { "permanently delete this session" },

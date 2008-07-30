@@ -22,6 +22,7 @@ zip -9 $ZIP \
   cq/[a-su-z]*.xqy \
   cq/*.xml \
   cq/*.js \
+  cq/js/*.js \
   cq/*.css \
   cq/*.gif \
   cq/*.ico \

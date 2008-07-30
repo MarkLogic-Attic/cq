@@ -1240,6 +1240,23 @@ function cqOnLoad() {
     gSession.restore();
     // enable autosave
     gSession.setAutoSave();
+    // enable in-place session rename
+    var sessionId = gSession.getId();
+    if (null == sessionId) {
+        debug.print(label + "null session id");
+        return;
+    }
+    var sessionList = new SessionList();
+    var callbackQuery = function(form, value) {
+        return sessionList.buildRenameQueryString(sessionId, value);
+    };
+    var editorOptions = {
+        callback: callbackQuery,
+        onFailure: reportError
+    };
+    new Ajax.InPlaceEditor('rename-session',
+                           sessionList.renameUrl,
+                           editorOptions);
 
     gBufferTabs.setSession(gSession);
 
@@ -1469,27 +1486,6 @@ function parentListDocuments(src) {
         return;
     }
     resultFrame.setAttribute("src", src);
-}
-
-function renameSession() {
-    var label = "renameSession: ";
-    if (null == gSession) {
-        debug.print(label + "null gSession");
-        return;
-    }
-    var id = gSession.getId();
-    if (null == id) {
-        debug.print(label + "null id");
-        return;
-    }
-    // TODO in-line or modal rename
-    var name = null;
-    if (null == name) {
-        debug.print(label + "null name");
-        return;
-    }
-    var sessionList = new SessionList();
-    sessionList.renameSession(id, name);
 }
 
 // query.js

@@ -29,13 +29,18 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
 declare variable $NAME as xs:string :=
-  xdmp:get-request-field("NAME");
+  normalize-space(xdmp:get-request-field("NAME"));
 
-declare variable $DEBUG as xs:boolean :=
-  xs:boolean(xdmp:get-request-field("DEBUG", 'false'));
+declare variable $DEBUG := xs:boolean(xdmp:get-request-field("DEBUG", '0'));
 
 if ($DEBUG) then d:debug-on() else ()
 ,
+if (string-length($NAME) gt 0) then ()
+else error('CQ-EMPTYNAME', text { 'session name may not be empty' })
+,
 c:rename-session($ID, $NAME)
+,
+(: firefox 3 logs an error if the result is empty :)
+$NAME
 
 (: rename-session.xqy :)

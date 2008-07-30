@@ -26,5 +26,8 @@ import module namespace c = "com.marklogic.developer.cq.controller"
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
 c:delete-session($ID)
+,
+(: firefox 3 logs an error if the result is empty :)
+$ID
 
 (: delete-session.xqy :)

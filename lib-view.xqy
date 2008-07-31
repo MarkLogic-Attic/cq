@@ -74,64 +74,60 @@ declare variable $v:PROFILER-COLUMNS as element(columns) :=
   }
 ;
 
-declare function v:get-xml($x)
+declare function v:get-xml($x as item()+)
  as element()
 {
   let $count := count($x)
   return
-  if ($count eq 1
-    and ($x instance of element()
-      or ($x instance of document-node() and exists($x/element())) )
-  ) then ($x/descendant-or-self::*)[1]
-  else element results {
-    attribute warning {
-      if (empty($x)) then "empty list"
-      else if ($count eq 1) then "non-element node"
-      else "more than one node"
-    },
-    for $i in $x
-    return
-      if ($i instance of document-node())
-      then $i/node()
-      else $i
-  }
+    if ($count eq 1 and $x instance of element()) then $x
+    else if ($count eq 1 and $x instance of document-node() and $x/element())
+    then v:get-xml($x/node())
+    else element v:results {
+      attribute v:warning {
+        if ($count eq 1) then "non-element item"
+        else "more than one node"
+      },
+      for $i in $x return typeswitch($i)
+        (: handle corner-case where (1, $i/@id) throws XQTY0024 :)
+        case attribute() return text { $i }
+        case document-node() return $i/node()
+        default return $i
+    }
 };
 
 declare function v:get-html($x as item()*)
  as element(xh:html)
 {
-  let $profile as element(prof:report)? :=
-    $x[1][. instance of element(prof:report)]
-  let $body :=
-    for $i in $x
-    return if ($i instance of document-node()) then $i/node() else $i
+  let $is-profile as xs:boolean := $x[1] instance of element(prof:report)
   return
-    if (count($body) eq 1
-      and ($body instance of element())
-      and node-name($body) eq xs:QName('xh:html'))
-    then $body
+    if (count($x) eq 1 and $x instance of element(xh:html)) then $x
     else <html xmlns="http://www.w3.org/1999/xhtml">
     {
-      if ($profile)
-      then v:get-html-head('Profile for Query', true())
+      if ($is-profile) then v:get-html-head('Profile for Query', true())
       else <head><title>Query Results</title></head>
     }
-    <body bgcolor="white">
-    {
-      if (empty($body)) then <i>your query returned an empty sequence</i>
-      else
-        for $i at $x in $body
-        return
-          if ($i instance of element(prof:report))
-          then v:format-profiler-report($i)
-          else if ($profile) then
-            if ($i instance of binary())
-            then xdmp:describe($i)
-            else xdmp:quote($i)
-          else $i
-    }
-    </body>
+    <body bgcolor="white">{ v:get-html-body($x, $is-profile) }</body>
   </html>
+};
+
+declare function v:get-html-body($body as item()*, $is-profile as xs:boolean)
+ as node()*
+{
+  if (empty($body)) then <i>your query returned an empty sequence</i>
+  else
+    for $i in $body
+    return typeswitch($i)
+      (: an attribute result throws XQTY0024 - show the text :)
+      case attribute() return text { $i }
+      (: unwrap document nodes :)
+      case document-node() return v:get-html-body($i/node(), $is-profile)
+      case element(prof:report) return v:format-profiler-report($i)
+      (: wrap binaries when mixed with profiler results :)
+      case binary() return
+        if ($is-profile) then xdmp:describe($i) else $i
+      case xs:anyAtomicType return text { $i }
+      default return
+        if ($is-profile) then xdmp:quote($i) else $i
 };
 
 declare function v:get-text($x as item()+)

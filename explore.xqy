@@ -32,6 +32,9 @@ import module namespace admin = "http://marklogic.com/xdmp/admin"
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy";
 
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy";
+
 import module namespace v = "com.marklogic.developer.cq.view"
   at "lib-view.xqy";
 
@@ -60,6 +63,9 @@ declare variable $QUERY as xs:string :=
    doc()[1 to $LIMIT]
   '
 ;
+
+d:check-debug(),
+d:debug(('explore:', $OPTIONS)),
 
 c:set-content-type(),
 

@@ -47,15 +47,15 @@ c:set-content-type(),
   { v:get-html-head() }
   <body onload="cqOnLoad()">
     <!-- query path on our form may keep IE6 from launching a helper -->
-    <form action="eval.xqy?iefix.txt" method="post" id="/cq:form"
-     target="/cq:resultFrame">
+    <form action="eval.xqy?iefix.txt" method="post" id="form"
+     target="resultFrame">
       <table summary="query form">
         <tr>
           <td nowrap="1">
             <table class="head1 accent-color">
               <tr>
-                <td nowrap="1" id="/cq:title">Current XQuery</td>
-                <td nowrap="1" id="/cq:version" class="version">
+                <td nowrap="1" id="title">Current XQuery</td>
+                <td nowrap="1" id="version" class="version">
                 cq v{
                   $c:VERSION
                 }</td>
@@ -77,7 +77,7 @@ c:set-content-type(),
               }</span>
             </div>
             <div nowrap="1" id="queryBuffers">
-            <textarea id="/cq:input" name="/cq:input"
+            <textarea id="query" name="query"
              itsalltext-extension=".xqy"
              xml:space="preserve" spellcheck="false">{
               (: NB @spellcheck above turns off gecko inline spellcheck.
@@ -93,15 +93,15 @@ c:set-content-type(),
                 <span class="instruction">content-source:</span>
                 { v:get-eval-selector() }
                 <span class="instruction">as</span>
+                <input type="button" onclick="submitText(this.form);"
+                value="TEXT"
+                title="Submit query as text/plain. Shortcut: ctrl-shift-enter"/>
                 <input type="button" onclick="submitXML(this.form);"
                 value="XML"
                 title="Submit query as text/xml. Shortcut: ctrl-enter"/>
                 <input type="button" onclick="submitHTML(this.form);"
                 value="HTML"
                 title="Submit query as text/html. Shortcut: alt-enter"/>
-                <input type="button" onclick="submitText(this.form);"
-                value="TEXT"
-                title="Submit query as text/plain. Shortcut: ctrl-shift-enter"/>
                 <input type="button" value="Profile"
                 onclick="submitProfile(this.form);">{
                   if ($c:PROFILING-ALLOWED)
@@ -116,17 +116,16 @@ c:set-content-type(),
                       $c:SERVER-NAME }
                   }
                 }</input>
-            <input type="hidden" class="hidden" id="query" name="query"/>
             <input type="hidden" class="hidden" value="text/xml"
              id="mime-type" name="mime-type"/>
             <input type="hidden" class="hidden"  value="{$c:POLICY-TITLE}"
-             id="/cq:policy/title"/>
+             id="policy-title"/>
             <input type="hidden" class="hidden" value="{$c:POLICY-ACCENT-COLOR}"
-             id="/cq:policy/accent-color"/>
+             id="policy-accent-color"/>
             <input type="hidden" class="hidden" value="{$d:DEBUG}"
              id="{$d:DEBUG-FIELD}"  name="{$d:DEBUG-FIELD}"/>
             <div class="hidden" xml:space="preserve"
-            id="/cq:restore-session" name="/cq:restore-session">{
+            id="restore-session" name="restore-session">{
 
         if ($c:SESSION-EXCEPTION) then ()
         else attribute session-id { $c:SESSION-ID },
@@ -140,20 +139,20 @@ c:set-content-type(),
          : For IE6, this means we must use pre elements.
          :)
         element div {
-          attribute id { "/cq:restore-session-buffers" },
+          attribute id { "restore-session-buffers" },
           $c:SESSION/sess:query-buffers/@*,
           for $i in $QUERY-BUFFERS return element pre {
             $i/@*, $i/node() }
         },
         element div {
-          attribute id { "/cq:restore-session-history" },
+          attribute id { "restore-session-history" },
           $c:SESSION/sess:query-history/@*,
           for $i in $QUERY-HISTORY return element pre {
             $i/@*, $i/node() }
         }
       }</div>
                 </td>
-                <td id="/cq:textarea-status" nowrap="1" class="status"
+                <td id="textarea-status" nowrap="1" class="status"
                 title="Current position of the caret, as LINE,COLUMN."></td>
               </tr>
             </table>
@@ -161,25 +160,25 @@ c:set-content-type(),
           </td>
           <td>
             <table>
-            <tr id="/cq:buffer-tabs">
-              <td class="buffer-tab" id="/cq:buffer-tabs-0"
+            <tr id="buffer-tabs">
+              <td class="buffer-tab" id="buffer-tabs-0"
               title="Select any query buffer. Shortcut: ctrl-0 to 9, or alt-0 to 9."
                onclick="gBufferTabs.refresh(0)">Queries&#160;<span
                class="instruction" nowrap="1">(<span
-               id="/cq:buffer-accesskey-text">alt</span>)</span>
-              <span id="/cq:buffers-add"
+               id="buffer-accesskey-text">alt</span>)</span>
+              <span id="buffers-add"
                title="Add another buffer to the list."
                onclick="gBuffers.add('(: new query :)\n1')"> + </span>
               </td>
-              <td class="buffer-tab" id="/cq:buffer-tabs-1"
+              <td class="buffer-tab" id="buffer-tabs-1"
               title="Query history, listing the most recent queries."
                onclick="gBufferTabs.refresh(1)">History
               </td>
             </tr>
             </table>
-            <div id="/cq:buffer-history-wrapper" class="buffer-history-wrapper">
-              <table id="/cq:buffer-list" border="1"/>
-              <div id="/cq:history">
+            <div id="buffer-history-wrapper" class="buffer-history-wrapper">
+              <table id="buffer-list" border="1"/>
+              <div id="history">
             <span><i>
             This is an empty query history list:
             populate it by submitting queries.</i></span>

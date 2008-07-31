@@ -18,11 +18,11 @@
 //////////////////////////////////////////////////////////////////////
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
-var kBufferHistoryWrapperId = "/cq:buffer-history-wrapper";
-var kFramesetId = "/cq:frameset";
-var kQueryFrameId = "/cq:queryFrame";
-var kResultFrameId = "/cq:resultFrame";
-var kQueryFormId = "/cq:form";
+var kBufferHistoryWrapperId = "buffer-history-wrapper";
+var kFramesetId = "frameset";
+var kQueryFrameId = "queryFrame";
+var kResultFrameId = "resultFrame";
+var kQueryFormId = "form";
 var kQueryInput = "query";
 var kQueryMimeType = "mime-type";
 
@@ -879,6 +879,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         if (null == n) {
             n = this.pos;
         }
+        debug.print("QueryBufferListClass.getBuffer: " + n);
         if (n < 0) {
             debug.print("QueryBufferListClass.getBuffer: negative index " + n);
             n = 0;
@@ -889,10 +890,6 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         }
 
         return this.buffers[n]
-    }
-
-    this.getContentSource = function(n) {
-        this.getBuffer(n).getContentSource();
     }
 
     this.resize = function(x, y) {
@@ -1034,6 +1031,12 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         setPosition(this.input, buf.getSelectionStart(),
                     buf.getScrollTop(), buf.getScrollLeft());
         this.focus();
+    }
+
+    this.getContentSource = function() {
+        // in theory we could get this via getBuffer().getContentSource(),
+        // but it may not be synchronized yet.
+        return this.eval.value;
     }
 
     this.setContentSource = function(v) {
@@ -1220,23 +1223,23 @@ function cqOnLoad() {
     Event.observe(this, "keypress", handleKeyPress);
 
     // set up the UI objects
-    gBuffers = new QueryBufferListClass("/cq:input",
+    gBuffers = new QueryBufferListClass("query",
                                         "eval",
-                                        "/cq:buffer-list",
-                                        "/cq:textarea-status");
+                                        "buffer-list",
+                                        "textarea-status");
     gBuffers.initHandlers();
 
-    gHistory = new QueryHistoryClass("/cq:history",
+    gHistory = new QueryHistoryClass("history",
                                      gBuffers);
 
-    gBufferTabs = new BufferTabsClass("/cq:buffer-tabs",
-                                      "/cq:buffer-accesskey-text",
+    gBufferTabs = new BufferTabsClass("buffer-tabs",
+                                      "buffer-accesskey-text",
                                       gBuffers,
                                       gHistory);
     // set the OS-specific instruction text
     gBufferTabs.setInstructionText();
 
-    gSession = new SessionClass(gBufferTabs, "/cq:restore-session");
+    gSession = new SessionClass(gBufferTabs, "restore-session");
     gSession.restore();
     // enable autosave
     gSession.setAutoSave();
@@ -1263,10 +1266,10 @@ function cqOnLoad() {
     resizeFrameset();
 
     // enforce local policy, if any
-    var policy = new PolicyClass("/cq:title",
-                                 $F("/cq:policy/title"),
+    var policy = new PolicyClass("title",
+                                 $F("policy-title"),
                                  "head1",
-                                 $F("/cq:policy/accent-color"));
+                                 $F("policy-accent-color"));
     policy.enforce();
 
     gBufferTabs.resize();
@@ -1278,7 +1281,7 @@ function cqOnLoad() {
         is_horizontal: true,
         onResizeEnd: function() { gBuffers.resizeTo(); resizeFrameset(); }
     };
-    var resize = new Resizable("/cq:input", resizeOptions);
+    var resize = new Resizable("query", resizeOptions);
 
     // display the buffer list, exposing buffer 0
     gBuffers.activate();
@@ -1418,10 +1421,6 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
     // sync the session, if it has changed
     gSession.sync();
 
-    // copy query to the hidden element
-    $(kQueryInput).value = query;
-    //debug.print("submitForm: " + $F(kQueryInput));
-
     // set the mime type
     if (null != theMimeType) {
         debug.print("submitForm: mimeType = " + theMimeType);
@@ -1470,11 +1469,11 @@ function submitFormWrapper(theForm, mimeType) {
 }
 
 function cqListDocuments() {
-    var buf = gBuffers.getBuffer();
-    debug.print("listDocuments: buf = " + buf);
-    var source = buf.getContentSource();
+    var source = gBuffers.getContentSource();
     debug.print("listDocuments: source = " + source);
-    var src = "explore.xqy?" + (source ? ("eval=" + source) : "");
+    var src = "explore.xqy?"
+        + "debug=" + (debug.isEnabled() ? 1 : 0)
+        + (source ? ("&eval=" + source) : "");
     debug.print("listDocuments: src = " + src);
     parent.parentListDocuments(src);
 }

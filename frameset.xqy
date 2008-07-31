@@ -34,7 +34,7 @@ d:check-debug()
 <html xmlns="http://www.w3.org/1999/xhtml">
 {
   v:get-html-head(),
-  <frameset id="/cq:frameset" rows="*,*" onresize="resizeFrameset()">
+  <frameset id="frameset" rows="*,*" onresize="resizeFrameset()">
   {
     element frame {
       attribute src {
@@ -45,10 +45,10 @@ d:check-debug()
           return string-join(($f, xdmp:get-request-field($f)), '=')
             , '&amp;') )
       },
-      attribute id { "/cq:queryFrame" }
+      attribute id { "queryFrame" }
     }
   }
-  <frame src="result.html" id="/cq:resultFrame" name="/cq:resultFrame"/>
+  <frame src="result.html" id="resultFrame" name="resultFrame"/>
   <noframes>
     <p>
     Your browser does not seem to support frames.

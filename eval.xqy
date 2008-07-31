@@ -37,9 +37,7 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 import module namespace v = "com.marklogic.developer.cq.view"
  at "lib-view.xqy";
 
-declare variable $QUERY as xs:string :=
-  xdmp:get-request-field("query", "")
-;
+declare variable $QUERY as xs:string := xdmp:get-request-field("query", "");
 
 declare variable $DATABASE-ID as xs:unsignedLong := $c:FORM-EVAL-DATABASE-ID ;
 

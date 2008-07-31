@@ -124,10 +124,10 @@ declare function v:get-html-body($body as item()*, $is-profile as xs:boolean)
       case element(prof:report) return v:format-profiler-report($i)
       (: wrap binaries when mixed with profiler results :)
       case binary() return
-        if ($is-profile) then xdmp:describe($i) else $i
+        if ($is-profile) then text { xdmp:describe($i) } else $i
       case xs:anyAtomicType return text { $i }
       default return
-        if ($is-profile) then xdmp:quote($i) else $i
+        if ($is-profile) then text { xdmp:quote($i) } else $i
 };
 
 declare function v:get-text($x as item()+)

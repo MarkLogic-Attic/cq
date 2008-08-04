@@ -571,10 +571,52 @@ declare function c:build-form-eval-query(
     '?',
     string-join((
       concat('eval=', $c:FORM-EVAL),
-      for $x in count($keys)
-      return concat($keys[$x], '=', xdmp:url-encode($values[$x]))
+      for $x in 1 to count($keys)
+      return concat($keys[$x], '=', xdmp:url-encode(string($values[$x])))
     ), '&amp;')
   ), '')
+};
+
+declare function c:get-request-string()
+ as xs:string
+{
+  (: use the last request string to build a new one,
+   : excluding pagination data
+   :)
+  concat(
+    "?",
+    string-join(
+      for $f in xdmp:get-request-field-names()
+        [not(. = ("submit", "start", "search-button"))]
+      return string-join(
+        (xdmp:url-encode($f), xdmp:url-encode(xdmp:get-request-field($f))),
+        "="
+      ),
+      "&amp;"
+    )
+  )
+};
+
+declare function c:get-pagination-href($start as xs:integer)
+ as xs:string
+{
+  c:get-pagination-href($start, (), ())
+};
+
+declare function c:get-pagination-href(
+  $start as xs:integer, $keys as xs:string*, $values as xs:string*)
+ as xs:string
+{
+  concat(
+    c:get-request-string(),
+    "&amp;", xdmp:url-encode("start"), "=", string($start),
+    if (not($keys)) then ''
+    else string-join((
+      '',
+      for $x in 1 to count($keys)
+      return concat($keys[$x], '=', xdmp:url-encode(string($values[$x])))
+    ), '&amp;')
+  )
 };
 
 (: lib-controller.xqy :)

@@ -26,83 +26,51 @@ xquery version "1.0-ml";
  :
  :)
 
-import module namespace admin = "http://marklogic.com/xdmp/admin"
-  at "/MarkLogic/admin.xqy";
-
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy";
 
 import module namespace d = "com.marklogic.developer.cq.debug"
  at "lib-debug.xqy";
 
-import module namespace v = "com.marklogic.developer.cq.view"
-  at "lib-view.xqy";
+declare variable $FILTER :=
+  xdmp:get-request-field('filter');
 
-import module namespace x = "com.marklogic.developer.cq.xquery"
- at "lib-xquery.xqy";
+declare variable $FILTER-TEXT as xs:string? :=
+  xdmp:get-request-field('filter-text', '');
+
+declare variable $START as xs:integer :=
+  xs:integer(xdmp:get-request-field('start', '1'));
+
+declare variable $SIZE as xs:integer :=
+  xs:integer(xdmp:get-request-field('size', '20'));
 
 declare variable $OPTIONS as element() :=
   <options xmlns="xdmp:eval">
   {
-    element database { $c:FORM-EVAL-DATABASE-ID }
+    element database { $c:FORM-EVAL-DATABASE-ID },
+    element root { $c:SERVER-ROOT-PATH },
+    element modules { $c:SERVER-ROOT-DB }
   }
   </options>
 ;
 
-declare variable $HAS-URI-LEXICON as xs:boolean :=
-  admin:database-get-uri-lexicon($c:ADMIN-CONFIG, $c:FORM-EVAL-DATABASE-ID)
-;
-
-declare variable $QUERY as xs:string :=
-  (: uri lexicon does not do much good here,
-   : since we want to pull the root node info too.
-   :)
-  'xquery version "1.0-ml";
-   declare variable $LIMIT as xs:integer external;
-   xdmp:estimate(doc()),
-   doc()[1 to $LIMIT]
-  '
-;
-
 d:check-debug(),
-d:debug(('explore:', $OPTIONS)),
-
-c:set-content-type(),
-
-let $limit := 5000
-let $result := xdmp:eval($QUERY, (xs:QName('LIMIT'), $limit), $OPTIONS)
-let $est := $result[1]
-let $database-name := xdmp:database-name($c:FORM-EVAL-DATABASE-ID)
-return <html xmlns="http://www.w3.org/1999/xhtml">{
-  element head { v:get-html-head() },
-  element body {
-    element p {
-      attribute class { 'head2' },
-      'Database ', element b { $database-name }, ' contains ',
-      if ($est gt $limit)
-      then text {
-        'too many documents to display!',
-        'First', $limit, 'documents of', $est, 'total:'
-      }
-      else text { $est, 'documents total:' }
-    },
-    for $i in subsequence($result, 2)
-    let $uri := xdmp:node-uri($i)
-    let $n := ($i/*[1], $i/(binary()|element()|text())[1])[1]
-    where exists($n)
-    order by $uri
-    return (
-      element a {
-        attribute href { c:build-form-eval-query('view.xqy', 'uri', $uri) },
-        $uri
-      },
-      <span> - </span>,
-      <i>{ xdmp:node-kind($n) }</i>,
-      (: why not node-name? because this is a human-readable context :)
-      <code>&#160;{ name($n) }</code>,
-      <br/>
-    )
-  }
-}</html>
+d:debug(('explore:', $OPTIONS, $START, $SIZE, $FILTER, $FILTER-TEXT)),
+let $filter :=
+  for $i in $FILTER
+  return cts:query(xdmp:unquote($i)/*)
+let $filter as cts:query? :=
+  if (not($filter)) then ()
+  else if (count($filter) eq 1) then $filter
+  else cts:and-query($filter)
+return xdmp:invoke(
+  'explore-invokable.xqy',
+  (xs:QName('START'), $START, xs:QName('SIZE'), $SIZE,
+   xs:QName('FILTER-TEXT'), $FILTER-TEXT,
+   xs:QName('FILTER'),
+   if (not($filter)) then '' else xdmp:quote(document { $filter })
+  ),
+  $OPTIONS
+)
 
 (: explore.xqy :)

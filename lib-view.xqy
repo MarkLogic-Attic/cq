@@ -457,4 +457,61 @@ declare function v:format-profiler-row(
   }</tr>
 };
 
+declare function v:display-results-pagination(
+  $start as xs:integer, $current-page-items as xs:integer,
+  $total-items as xs:integer, $page-size as xs:integer)
+ as element(xh:div)?
+ {
+  if ($total-items lt $page-size)
+  then ()
+  else
+    (: which page are we on?
+     : if there are more than 20 pages, display a sliding window
+     :)
+    let $this-page := xs:integer(ceiling($start div $page-size))
+    let $number-of-pages :=
+      xs:integer(ceiling($total-items div $page-size))
+    let $first-visible-page := max((1, $this-page - 10))
+    let $last-visible-page :=  min(($this-page + 9, $number-of-pages))
+    return <div xmlns="http://www.w3.org/1999/xhtml">{
+      attribute id { "results-pagination" },
+      attribute class { "pagination-area" },
+      element span {
+        attribute class { "pagination-label" },
+        "Result Page:"
+      },
+      (: display the previous-results scroller? :)
+      if ($this-page le 1) then ()
+      else v:get-pagination-link(
+        'pagination-scroller', "Previous", $start - $page-size
+      ),
+      (: display a link or label for each visible page :)
+      for $p in ($first-visible-page to $last-visible-page)
+      return
+        if ($p eq $this-page)
+        then element span {
+          attribute class { "pagination-current-page-label" },
+          $p
+        }
+        else v:get-pagination-link(
+          'pagination-link', string($p), 1 + ($p - 1) * $page-size)
+      ,
+      (: display the next-results scroller? :)
+      if ($this-page ge $number-of-pages) then ()
+      else v:get-pagination-link(
+        'pagination-scroller', "Next", $start + $page-size)
+    }</div>
+};
+
+declare function v:get-pagination-link(
+  $class as xs:string, $text as xs:string, $start as xs:integer)
+ as element(xh:a)
+{
+  <a xmlns="http://www.w3.org/1999/xhtml">{
+    attribute class { $class },
+    attribute href { c:get-pagination-href($start) },
+    $text
+  }</a>
+};
+
 (: lib-view.xqy :)

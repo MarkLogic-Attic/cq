@@ -38,28 +38,33 @@ declare variable $OPTIONS as element() :=
   }</options>
 ;
 
+declare variable $PROPERTIES as xs:boolean :=
+  xs:boolean(xdmp:get-request-field('properties', '0'))
+;
+
 declare variable $URI as xs:string :=
   xdmp:get-request-field('uri')
 ;
 
 declare variable $QUERY as xs:string :=
   'xquery version "1.0-ml";
+   declare variable $PROPERTIES as xs:boolean external;
    declare variable $URI as xs:string external;
-   doc($URI)
+   if ($PROPERTIES) then doc($URI)/property::node()/root()
+   else doc($URI)
   '
 ;
 
-let $result := xdmp:eval($QUERY, (xs:QName('URI'), $URI), $OPTIONS)
+let $vars := (xs:QName('URI'), $URI, xs:QName('PROPERTIES'), $PROPERTIES)
+let $result := xdmp:eval($QUERY, $vars, $OPTIONS)
 (: Allow the browser to handle binary documents.
  : It would be nice to use the same mechanism as eval.xqy,
  : but eval.xqy must handle much more complex result sequences.
  : Here, the result is always a document, so the code is simpler.
  :)
 let $mimetype :=
-  if ($result/node() instance of binary())
-  then ()
-  else if ($result/node() instance of text())
-  then 'text/plain'
+  if ($result/node() instance of binary()) then ()
+  else if ($result/node() instance of text()) then 'text/plain'
   else 'text/xml'
 let $set :=
   if ($mimetype) then xdmp:set-response-content-type($mimetype) else ()

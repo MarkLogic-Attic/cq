@@ -257,4 +257,32 @@ input[type = "button"]
 {
 }
 
+.pagination-area
+{
+  align: center;
+  width: 95%;
+  text-align: center;
+}
+
+.pagination-label
+{
+}
+
+.pagination-scroller
+{
+  font-size: 120%;
+  margin: 0.4em;
+}
+
+.pagination-current-page-label
+{
+  margin: 0.4em;
+  font-weight: bold;
+}
+
+.pagination-link
+{
+  margin: 0.4em;
+}
+
 /* end cq.css */

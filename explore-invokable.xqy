@@ -70,6 +70,8 @@ c:set-content-type(),
 xdmp:query-trace($d:DEBUG),
 
 d:debug(('explore-invokable:', $FILTER, $FILTER-TEXT)),
+(: make sure we will not lock all the documents :)
+c:assert-read-only(),
 let $stop := $START + $SIZE - 1
 let $query := $FILTER-QUERY
 let $d := d:debug(('explore-invokable: query =', $query))
@@ -118,7 +120,6 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
       },
       <span>&#160;&#160;</span>,
       element span {
-        (: TODO needs to be evaluated in the target database... :)
         let $collections := xdmp:document-get-collections($uri)
         return
           if (not($collections)) then element i { '(no collections)' }

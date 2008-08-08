@@ -224,8 +224,13 @@ declare function v:get-error-html(
           if ($ex/error:format-string/text())
           then $ex/error:format-string
           else (
-            concat($ex/error:code, ':'),
-            concat('(', $ex/error:name, ')'),
+            concat(
+              $ex/error:code,
+              if ($ex/error:data/error:datum) then ':' else ''
+            ),
+            (: NB - error:name is sometimes empty, which causes an error :)
+            if ($ex/error:name/text()) then concat('(', $ex/error:name, ')')
+            else (),
             $ex/error:data/error:datum
           )
         }

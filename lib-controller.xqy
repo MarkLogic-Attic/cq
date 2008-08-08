@@ -619,4 +619,11 @@ declare function c:get-pagination-href(
   )
 };
 
+declare function c:assert-read-only()
+ as empty-sequence()
+{
+  if (xdmp:request-timestamp()) then ()
+  else error('CQ-NOTREADONLY', 'query is not read-only')
+};
+
 (: lib-controller.xqy :)

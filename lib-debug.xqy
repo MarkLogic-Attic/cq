@@ -24,7 +24,7 @@ module namespace d = "com.marklogic.developer.cq.debug";
 
 declare default function namespace "http://www.w3.org/2005/xpath-functions";
 
-declare variable $d:NL := fn:codepoints-to-string(10);
+declare variable $d:NL := codepoints-to-string(10);
 
 declare variable $d:DEBUG as xs:boolean := false();
 
@@ -63,6 +63,17 @@ declare function d:check-debug()
   if (xs:boolean(xdmp:get-request-field($d:DEBUG-FIELD, string($d:DEBUG))[1]))
   then d:debug-on()
   else ()
+};
+
+declare function d:whereami()
+{
+  xdmp:log(text{'whereami:', try {
+     error('WHEREAMI')
+   } catch ($ex) {
+     for $op in $ex/error:stack/error:frame/error:operation
+     return substring-before($op, '(')
+   }
+ })
 };
 
 (: lib-debug.xqy :)

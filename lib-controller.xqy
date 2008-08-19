@@ -360,7 +360,7 @@ declare function c:get-session(
     } catch ($ex) {
       (: if we can't open the file, returning empty will disable sessions :)
       if ($ex/error:code eq 'SVC-FILOPN') then ()
-      else error($ex/error:code, $ex/error:format-string)
+      else xdmp:rethrow()
     }
   let $d := d:debug(('c:get-session:', $session))
   return $session
@@ -467,32 +467,50 @@ declare function c:delete-session($id as xs:string)
   where $session
   return (
     c:lock-acquire($id),
-    io:delete($uri) (:, io:lock-release($uri) :)
+    io:delete($uri)
   )
 };
 
-declare function c:rename-session($uri as xs:string, $name as xs:string)
+declare function c:rename-session($id as xs:string, $name as xs:string)
  as empty-sequence()
 {
-  d:debug(("c:rename-session:", $uri, "to", $name)),
-  c:update-session($uri, element sess:name { $name })
+  d:debug(("c:rename-session:", $id, "to", $name)),
+  c:update-session($id, element sess:name { $name })
+};
+
+declare function c:clone-session($source-id as xs:string, $name as xs:string)
+ as xs:string
+{
+  d:debug(("c:clone-session:", $source-id, "as", $name)),
+  (: do not check for locks, since we will not update the source :)
+  let $source := c:get-session($source-id, false())
+  let $target-id := c:generate-id()
+  let $do := c:update-session($target-id, element sess:name { $name }, $source)
+  return $target-id
 };
 
 declare function c:update-session($id as xs:string, $nodes as element()*)
  as empty-sequence()
 {
   d:debug(("c:update-session: id =", $id, $nodes)),
-  let $session := c:get-session($id, true())
-  let $d := d:debug(("c:update-session: session =", $session))
+  let $session as element(sess:session)? := c:get-session($id, true())
   let $assert :=
     if ($session) then ()
-    else error('CTRL-SESSION', text { 'No session for', $id } )
-  let $x-attrs := for $n in ('id', 'uri') return xs:QName($n)
-  let $x-elems := (
-    for $n in $nodes return node-name($n),
-    node-name(<sec:user/>),
-    node-name(<sess:last-modified/>)
-  )
+    else c:error('CTRL-SESSION', ('No session for', $id))
+  return c:update-session($id, $nodes, $session)
+};
+
+declare function c:update-session(
+  $id as xs:string, $nodes as element()*, $session as element(sess:session))
+ as empty-sequence()
+{
+  d:debug(("c:update-session: id =", $id, $nodes, $session)),
+  let $x-attrs as xs:QName+ :=
+    for $n in ('id', 'uri')
+    return xs:QName($n)
+  let $x-elems as xs:QName+ :=
+    for $n in ($nodes, <sec:user/>, <sess:last-modified/>)
+    return node-name($n)
   let $session := element {node-name($session)} {
     $session/@*[ not(node-name(.) = $x-attrs) ],
     attribute id { $id },
@@ -564,7 +582,7 @@ declare function c:build-form-eval-query(
  as xs:string
 {
   if (count($keys) eq count($values)) then ()
-  else error('CQ-MISMATCH', text { 'keys do not match values' })
+  else c:error('CQ-MISMATCH', 'keys do not match values')
   ,
   string-join((
     $base,
@@ -623,7 +641,21 @@ declare function c:assert-read-only()
  as empty-sequence()
 {
   if (xdmp:request-timestamp()) then ()
-  else error('CQ-NOTREADONLY', 'query is not read-only')
+  else c:error('CQ-NOTREADONLY', 'query is not read-only')
+};
+
+(:~ convenience wrapper, for XQuery 1.0-ml conformance :)
+declare function c:error($code as xs:string)
+ as empty-sequence()
+{
+  c:error($code, ())
+};
+
+(:~ convenience wrapper, for XQuery 1.0-ml conformance :)
+declare function c:error($code as xs:string, $details as item()*)
+ as empty-sequence()
+{
+  error(xs:QName($code), text { $details })
 };
 
 (: lib-controller.xqy :)

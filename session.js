@@ -35,12 +35,13 @@ function reportError(req) {
 
 // SessionList class
 function SessionList() {
+    this.cloneUrl = 'clone-session.xqy';
     this.deleteUrl = 'delete-session.xqy';
     this.renameUrl = 'rename-session.xqy';
 
     this.refresh = function() {
         if (debug.isEnabled()) {
-            alert("will refresh now");
+            alert("DEBUG: will refresh now");
             window.location.replace( ".?debug=1");
         } else {
             window.location.replace( "." );
@@ -65,44 +66,74 @@ function SessionList() {
         this.refresh();
     }
 
+    this.cloneSession = function(id, context) {
+        // clone the session
+        var name = prompt("Name of cloned session:", "new session");
+        debug.print("cloneSession: " + id + " to " + name);
+        if (! name) {
+            return;
+        }
+        // call session-clone
+        var closure = this;
+        var newId = null;
+        var opts = {
+            method: 'post',
+            // workaround, to avoid appending charset info
+            encoding: null,
+            parameters: this.buildNamedQueryString(id, name),
+            asynchronous: false,
+            onFailure: reportError,
+            onSuccess: function(resp) {
+                // refresh page to show new session
+                newId = resp.responseText;
+            }
+        };
+        var req = new Ajax.Request(this.cloneUrl, opts);
+        // synchronous, so we should have the response here
+        debug.print("cloneSession: newId = " + newId);
+        closure.resumeSession(newId);
+    }
+
     this.deleteSession = function(id, context) {
         // delete the session
         debug.print("deleteSession: " + id);
-        if (confirm("Are you sure you want to delete this session?")) {
-            // call session-delete
-            var req = new Ajax.Request(this.deleteUrl,
-                {
-                    method: 'post',
-                    // workaround, to avoid appending charset info
-                    encoding: null,
-                    parameters: 'ID=' + id,
-                    asynchronous: false,
-                    onFailure: reportError
-                });
-            // delete the item from the DOM
-            // context will be the button
-            var row = context.parentNode.parentNode;
-            if (null != row) {
-                Element.remove(row);
-            }
+        if (! confirm("Are you sure you want to delete this session?")) {
+            return;
+        }
+        // call session-delete
+        var opts = {
+            method: 'post',
+            // workaround, to avoid appending charset info
+            encoding: null,
+            parameters: 'ID=' + id,
+            asynchronous: false,
+            onFailure: reportError
+        };
+        var req = new Ajax.Request(this.deleteUrl, opts);
+
+        // delete the item from the DOM
+        // context will be the button
+        var row = context.parentNode.parentNode;
+        if (null != row) {
+            Element.remove(row);
         }
     }
 
     this.renameSession = function(id, name) {
         debug.print("renameSession: " + id + " to " + name);
         // call the rename xqy
-        var req = new Ajax.Request(this.renameUrl,
-            {
-                method: 'post',
-                // workaround, to avoid appending charset info
-                encoding: null,
-                parameters: this.buildRenameQueryString(id, name),
-                asynchronous: false,
-                onFailure: reportError
-            });
+        var opts = {
+            method: 'post',
+            // workaround, to avoid appending charset info
+            encoding: null,
+            parameters: this.buildNamedQueryString(id, name),
+            asynchronous: false,
+            onFailure: reportError
+        };
+        var req = new Ajax.Request(this.renameUrl, opts);
     }
 
-    this.buildRenameQueryString = function(id, name) {
+    this.buildNamedQueryString = function(id, name) {
         return 'ID=' + id + '&NAME=' + escape(name)
           + (debug.isEnabled() ? '&DEBUG=1' : '')
     }
@@ -133,7 +164,6 @@ function SessionClass(tabs, id) {
         var restore = $(this.restoreId);
         var label = "SessionClass.restore: ";
         debug.print(label + restore + " " + restore.hasChildNodes());
-        //alert(label + restore + " " + restore.hasChildNodes());
 
         if (null == restore) {
             debug.print(label + "null restore");

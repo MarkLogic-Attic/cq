@@ -143,7 +143,8 @@ declare function io:lock-acquire(
   as empty-sequence()
 {
   if ($path eq '' or ends-with($path, '/'))
-  then error('IO-BADPATH', text { $path }) else (),
+  then error(xs:QName('IO-BADPATH'), text { $path })
+  else (),
   let $path := io:canonicalize($path)
   (: a pox on varargs - anyway, we can spec our own defaults :)
   let $scope := ($scope[. = ("exclusive", "shared")], "exclusive")[1]
@@ -345,16 +346,15 @@ declare function io:lock-release-fs($path as xs:string)
   let $old := io:document-locks($path)/lock:lock
   let $locks := $old/lock:active-locks/lock:active-lock
   let $check :=
-    if (exists($locks)) then () else error(
-      "IO-NOTLOCKED", text { $path, "is not locked" }
-    )
+    if (exists($locks)) then ()
+    else error(xs:QName("IO-NOTLOCKED"), text { $path, "is not locked" })
   let $check :=
-    if ($su:USER-IS-ADMIN or exists($locks[sec:user-id eq $su:USER-ID]))
-    then ()
+    if ($su:USER-IS-ADMIN or $locks[sec:user-id eq $su:USER-ID]) then ()
     else error(
-      "IO-NOUSER",
-      text { $path, "is not locked by", $su:USER, $su:USER-ID,
-      "existing locks are held by", data($locks/sec:user-id) }
+      xs:QName("IO-NOUSER"), text {
+        $path, "is not locked by", $su:USER, $su:USER-ID,
+        "existing locks are held by", data($locks/sec:user-id)
+      }
     )
   let $path := io:canonicalize($path)
   let $lock-path := io:lock-path-fs($path)
@@ -439,14 +439,16 @@ declare function io:lock-acquire-fs(
   (: first... can we lock this path?
    : admin always can... others can only break their own locks.
    :)
-  let $conflicting :=
+  let $conflict :=
     if ($su:USER-IS-ADMIN) then ()
     else io:document-locks($path)/lock:lock/lock:active-locks
       /lock:active-lock[ sec:user-id ne $su:USER-ID ]
-  let $check := if (empty($conflicting)) then () else error(
-    "IO-LOCKED",
-    text { $path, "is locked by", $conflicting/lock:owner }
-  )
+  let $check :=
+    if (not($conflict)) then ()
+    else error(
+      xs:QName("IO-LOCKED"),
+      text { $path, "is locked by", $conflict/lock:owner }
+    )
   let $lock := document {
     element lock:lock {
       element lock:lock-type { "write" },

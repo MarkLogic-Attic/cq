@@ -139,12 +139,13 @@ c:set-content-type(),
             let $uri := c:get-session-uri($i)
             (: we only care about the lock that expires last :)
             let $conflicting := c:get-conflicting-locks($uri, 1)
+            let $name as xs:string := ($i/sess:name, "(unnamed)")[1]
             return element tr {
               element td {
                 element input {
                   attribute type { "text" },
                   attribute autocomplete { "off" },
-                  attribute value { ($i/sess:name, "(unnamed)")[1] },
+                  attribute value { $name },
                   attribute onchange {
                     concat("list.renameSession('", $id, "', this.value)")
                   }
@@ -163,7 +164,7 @@ c:set-content-type(),
                     )
                   )
                 },
-                (: only show these buttons if there are no conflicting locks :)
+                (: only show resume button if there are no conflicting locks :)
                 element input {
                   attribute type { "button" },
                   attribute title {
@@ -172,8 +173,19 @@ c:set-content-type(),
                     concat("list.resumeSession('", $id, "')") },
                   attribute value {
                     "Resume", (' ', $id)[ $d:DEBUG ] }
-                }[ empty($conflicting) ],
+                }[ not($conflicting) ],
                 $x:NBSP,
+                (: clone button :)
+                element input {
+                  attribute type { "button" },
+                  attribute title { "clone this session" },
+                  attribute onclick {
+                    concat("list.cloneSession('", $id, "', this)")
+                  },
+                  attribute value { "Clone", (' ', $id)[ $d:DEBUG ] }
+                },
+                $x:NBSP,
+                (: only show delete button if there are no conflicting locks :)
                 element input {
                   attribute type { "button" },
                   attribute title { "permanently delete this session" },
@@ -181,7 +193,7 @@ c:set-content-type(),
                     concat("list.deleteSession('", $id, "', this)")
                   },
                   attribute value { "Delete", (' ', $id)[ $d:DEBUG ] }
-                }[ empty($conflicting) ]
+                }[ not($conflicting) ]
               }
             }
           }

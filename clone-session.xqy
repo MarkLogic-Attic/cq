@@ -36,9 +36,8 @@ d:check-debug()
 if (string-length($NAME) gt 0) then ()
 else c:error('CQ-EMPTYNAME', 'session name may not be empty')
 ,
-c:rename-session($ID, $NAME)
-,
+(: returns the new session id :)
 (: firefox 3 logs an error if the result is empty :)
-$NAME
+c:clone-session($ID, $NAME)
 
-(: rename-session.xqy :)
+(: clone-session.xqy :)

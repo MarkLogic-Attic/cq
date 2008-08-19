@@ -308,11 +308,7 @@ declare function v:get-eval-label(
  as xs:string
 {
   concat(
-    try { xdmp:database-name($db) } catch ($ex) {
-      (: TODO - should we handle this? it suggests a server bug. :)
-      if ($ex/error:code eq 'XDMP-NOSUCHDB') then 'n/a'
-      else error($ex/error:code, $ex/error:format-string)
-    },
+    xdmp:database-name($db),
     " (",
     if (exists($name)) then $name
     else if ($modules eq 0) then "file:"

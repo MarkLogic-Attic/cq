@@ -19,45 +19,45 @@
 <session xmlns="com.marklogic.developer.cq.session">
   <name>New Session</name>
   <query-buffers>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 1 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 2 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 3 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 4 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 5 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 6 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 7 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 8 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 9 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
-    <query>xquery version "0.9-ml"
+    <query>xquery version "1.0-ml";
 (: buffer 10 :)
-declare namespace html = "http://www.w3.org/1999/xhtml"
+declare namespace html = "http://www.w3.org/1999/xhtml";
 &lt;p>hello world&lt;/p></query>
   </query-buffers>
   <query-history />

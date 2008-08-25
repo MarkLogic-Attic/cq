@@ -1251,7 +1251,7 @@ function cqOnLoad() {
     }
     var sessionList = new SessionList();
     var callbackQuery = function(form, value) {
-        return sessionList.buildRenameQueryString(sessionId, value);
+        return sessionList.buildNamedQueryString(sessionId, value);
     };
     var editorOptions = {
         callback: callbackQuery,

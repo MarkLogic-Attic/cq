@@ -1,9 +1,8 @@
 CQ is a web-based query executing form useful for writing ad-hoc queries
 without using .xqy files. CQ has JavaScript hooks that make it practically an
-IDE. You can view the results as XHTML, XML, or plain text output. CQ is
-designed for use with MarkLogic Server HTTP Server applications,
-using Mozilla 1.0+ or Internet Explorer 6+. Other modern browsers may also
-work, but have not been tested.
+IDE. You can view the results as XHTML, XML, or plain-text output. CQ is
+designed for use with a MarkLogic Server HTTPServer instance
+and a modern web browser with JavaScript support and XML display.
 
 To install CQ, copy the files from the downloaded zip under a directory
 served by MarkLogic Server. You run CQ by making a web request to
@@ -12,9 +11,11 @@ Files\MarkLogic\Docs\cq directory, you can run CQ as
 http://localhost:8000/cq/. Please be very careful in exposing CQ on a
 production site, as it allows queries to be written by remote clients.
 
-The CQ version number corresponds to the version number of MarkLogic
-Server against which it is optimized. This release requires MarkLogic Server
-4.0-1 or later.
+This release of CQ is intended for MarkLogic Server 4.0-1 or later.
+
+CQ is developed using Mozilla Firefox 3.0, and periodically tested
+using MS Internet Explorer 6. Other browsers are not tested, and may not work,
+but patches are welcome.
 
 The CQ source code is included in the download, licensed under the open source
 Apache 2.0 license. You will also find the source code checked into the

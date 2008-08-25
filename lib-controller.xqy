@@ -267,7 +267,7 @@ declare variable $c:TITLE-TEXT as xs:string :=
 ;
 
 declare variable $c:VERSION as xs:string :=
-  io:read(c:build-document-path('VERSION.txt'))
+  normalize-space(io:read(c:build-document-path('VERSION.txt')))
 ;
 
 declare function c:lock-acquire($id as xs:string)

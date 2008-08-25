@@ -213,8 +213,11 @@ declare function v:get-error-html(
           ":", $root
         ),
         if ($ex/error:xquery-version) then (
-          'as', $ex/error:xquery-version
-        ) else ()
+          'as ', $ex/error:xquery-version
+        ) else (),
+        (: include cq version :)
+        (: TODO add server version? :)
+        concat(' (cq v', $c:VERSION, ')')
       },
       element p {
         attribute class { 'head1' },

@@ -90,8 +90,11 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
     element p {
       attribute class { 'head2' },
       'Database ', element b { $database-name }, ' contains ',
-      $count, 'document(s) total:',
-      'viewing', $START, '-', $START + $SIZE
+      $count, 'document(s) total',
+      if ($count) then (
+        ' (viewing', $START, '-', concat(string($START + $SIZE), ')')
+      )
+      else ()
     },
     for $i in $result
     let $uri := xdmp:node-uri($i)

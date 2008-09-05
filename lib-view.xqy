@@ -361,10 +361,12 @@ declare function v:get-eval-selector() as element(xh:select)
 };
 
 declare function v:round-to-sigfig($i as xs:double)
- as xs:double {
+ as xs:double
+{
   if ($i eq 0) then 0
   else round-half-to-even(
-    $i, xs:integer(2 - ceiling(math:log10($i))))
+    $i, xs:integer(2 - ceiling(math:log10(abs($i))))
+  )
 };
 
 declare function v:format-profiler-report($report as element(prof:report))

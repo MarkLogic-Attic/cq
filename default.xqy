@@ -44,7 +44,8 @@ let $priv-errors :=
     "http://marklogic.com/xdmp/privileges/xdmp-eval-in",
     "http://marklogic.com/xdmp/privileges/xdmp-filesystem-directory",
     "http://marklogic.com/xdmp/privileges/xdmp-invoke",
-    "http://marklogic.com/xdmp/privileges/xdmp-read-cluster-config-file",
+    "http://marklogic.com/xdmp/privileges/xdmp-invoke-in",
+    "http://marklogic.com/xdmp/privileges/xdmp-add-response-header",
     "http://marklogic.com/xdmp/privileges/xdmp-save"
   )
   return try {

@@ -10,7 +10,7 @@ cd $DIRNAME
 pwd
 
 DATE=`date +%Y%m%d`
-ZIP=$DIRNAME/releases/mark-logic-cq-`cat cq/VERSION.txt`.zip
+ZIP=$DIRNAME/releases/mark-logic-cq-`cat cq/VERSION.xml | awk -F\< '{ print $2 }' | awk -F\> '{ print $2 }'`.zip
 echo building $ZIP
 
 rm -f $ZIP

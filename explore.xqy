@@ -21,7 +21,6 @@ xquery version "1.0-ml";
  :
  : explore.xqy - fancy list of up to N documents, including root node type.
  :
- : TODO paginate?
  : TODO use cts:uris(), if available? interferes with element-display...
  :
  :)
@@ -48,7 +47,9 @@ declare variable $OPTIONS as element() :=
   <options xmlns="xdmp:eval">
   {
     element database { $c:FORM-EVAL-DATABASE-ID },
-    element root { $c:SERVER-ROOT-PATH },
+    (: we should always have a root path, but better safe than sorry :)
+    if ($c:SERVER-ROOT-PATH) then element root { $c:SERVER-ROOT-PATH }
+    else (),
     element modules { $c:SERVER-ROOT-DB }
   }
   </options>

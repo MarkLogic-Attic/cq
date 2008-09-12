@@ -66,7 +66,9 @@ declare variable $OPTIONS as element() :=
   {
     element database { $DATABASE-ID },
     element modules { $MODULES-ID },
-    element root { $MODULES-ROOT },
+    (: we should always have a root path, but better safe than sorry :)
+    if ($c:MODULES-ROOT) then element root { $c:MODULES-ROOT }
+    else (),
     element isolation { "different-transaction" },
     if (fn:starts-with (xdmp:version(), "4"))
       then element default-xquery-version { "app-server" }

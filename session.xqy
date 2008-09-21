@@ -118,8 +118,6 @@ c:set-content-type(),
           var list = new SessionList();
           </script>
 {
-  (: TODO allow users to duplicate locked sessions :)
-  (: TODO allow privileged users to break session locks :)
   let $sessions := c:get-sessions()
   let $d := d:debug(("sessions:", count($sessions)))
   return

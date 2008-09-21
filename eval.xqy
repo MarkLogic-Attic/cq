@@ -47,7 +47,10 @@ declare variable $MODULES-ID as xs:unsignedLong :=
   admin:appserver-get-modules-database($c:ADMIN-CONFIG, $SERVER-ID)
 ;
 
-(: default to root :)
+declare variable $XQUERY-VERSION as xs:string :=
+  admin:appserver-get-default-xquery-version($c:ADMIN-CONFIG, $SERVER-ID)
+;
+
 declare variable $MODULES-ROOT as xs:string :=
   admin:appserver-get-root($c:ADMIN-CONFIG, $SERVER-ID)
 ;
@@ -60,12 +63,13 @@ declare variable $PROFILING as xs:boolean :=
   $MIMETYPE eq 'application/x-com.marklogic.developer.cq.profiling'
 ;
 
-(: TODO add collation, when options supports it :)
 declare variable $OPTIONS as element() :=
   <options xmlns="xdmp:eval">
   {
+    (: TODO add collation, when options supports it - 4023 :)
     element database { $DATABASE-ID },
     element modules { $MODULES-ID },
+    element default-xquery-version { $XQUERY-VERSION },
     (: we should always have a root path, but better safe than sorry :)
     if ($MODULES-ROOT) then element root { $MODULES-ROOT }
     else (),

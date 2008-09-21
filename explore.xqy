@@ -21,8 +21,6 @@ xquery version "1.0-ml";
  :
  : explore.xqy - fancy list of up to N documents, including root node type.
  :
- : TODO use cts:uris(), if available? interferes with element-display...
- :
  :)
 
 import module namespace c = "com.marklogic.developer.cq.controller"

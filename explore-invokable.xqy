@@ -21,7 +21,6 @@ xquery version "1.0-ml";
  :
  : explore.xqy - fancy list of up to N documents, including root node type.
  :
- : TODO paginate?
  : TODO use cts:uris(), if available? interferes with element-display...
  :
  :)

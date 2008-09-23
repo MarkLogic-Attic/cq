@@ -273,7 +273,7 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         // match the buffers-history-wrapper height to the rest of the UI
         var visibleNode = $(kQueryFormId);
         if (null == visibleNode) {
-            debug.print("nothing to resize from!");
+            debug.print(label + "nothing to resize from!");
         } else {
             var wrapperNode = $(kBufferHistoryWrapperId);
             var visibleHeight = visibleNode.offsetHeight;
@@ -1206,7 +1206,8 @@ function PolicyClass(titleId, title, accentClass, accentColor) {
 } // PolicyClass
 
 function cqOnLoad() {
-    debug.print("cqOnLoad: begin");
+    var label = "cqOnLoad: ";
+    debug.print(label + "begin");
 
     if (gBrowserIs.gecko) {
         // gecko problem with nodeValue longer than 4kB (encoded):
@@ -1247,31 +1248,33 @@ function cqOnLoad() {
     var sessionId = gSession.getId();
     if (null == sessionId) {
         debug.print(label + "null session id");
-        return;
-    }
-    var sessionList = new SessionList();
-    var callbackQuery = function(form, value) {
-        return sessionList.buildNamedQueryString(sessionId, value);
-    };
-    var editorOptions = {
-        callback: callbackQuery,
-        onFailure: reportError
-    };
-    new Ajax.InPlaceEditor('rename-session',
-                           sessionList.renameUrl,
-                           editorOptions);
+    } else {
+        var sessionList = new SessionList();
+        var callbackQuery = function(form, value) {
+            return sessionList.buildNamedQueryString(sessionId, value);
+        };
+        var editorOptions = {
+            callback: callbackQuery,
+            onFailure: reportError
+        };
+        new Ajax.InPlaceEditor('rename-session',
+                               sessionList.renameUrl,
+                               editorOptions);
 
-    gBufferTabs.setSession(gSession);
+        gBufferTabs.setSession(gSession);
+    }
 
     resizeFrameset();
 
     // enforce local policy, if any
+    debug.print(label + "enforcing local policy");
     var policy = new PolicyClass("title",
                                  $F("policy-title"),
                                  "head1",
                                  $F("policy-accent-color"));
     policy.enforce();
 
+    debug.print(label + "resizing and activating");
     gBufferTabs.resize();
     gBufferTabs.refresh();
 

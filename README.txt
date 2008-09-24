@@ -11,7 +11,7 @@ Files\MarkLogic\Docs\cq directory, you can run CQ as
 http://localhost:8000/cq/. Please be very careful in exposing CQ on a
 production site, as it allows queries to be written by remote clients.
 
-This release of CQ is intended for MarkLogic Server 4.0-1 or later.
+This release of CQ requires MarkLogic Server 4.0-1 or later.
 
 CQ is developed using Mozilla Firefox 3.0, and periodically tested
 using MS Internet Explorer 6. Other browsers are not tested, and may not work,

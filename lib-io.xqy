@@ -56,9 +56,9 @@ declare variable $io:MODULES-ROOT as xs:string :=
 
 (:~ @private :)
 declare variable $io:EVAL-OPTIONS as element() :=
-  <options xmlns="xdmp:eval">
-    <database>{ $io:MODULES-DB }</database>
-  </options>
+  <options xmlns="xdmp:eval">{
+    element database { $io:MODULES-DB }
+  }</options>
 ;
 
 (:~ read the contents of a path :)

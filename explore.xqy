@@ -41,20 +41,16 @@ declare variable $START as xs:integer :=
 declare variable $SIZE as xs:integer :=
   xs:integer(xdmp:get-request-field('size', '20'));
 
-declare variable $OPTIONS as element() :=
+d:check-debug(),
+let $options :=
   <options xmlns="xdmp:eval">
   {
     element database { $c:FORM-EVAL-DATABASE-ID },
-    (: we should always have a root path, but better safe than sorry :)
-    if ($c:SERVER-ROOT-PATH) then element root { $c:SERVER-ROOT-PATH }
-    else (),
+    element root { $c:SERVER-APPLICATION-PATH },
     element modules { $c:SERVER-ROOT-DB }
   }
   </options>
-;
-
-d:check-debug(),
-d:debug(('explore:', $OPTIONS, $START, $SIZE, $FILTER, $FILTER-TEXT)),
+let $d := d:debug(('explore:', $options, $START, $SIZE, $FILTER, $FILTER-TEXT))
 let $filter :=
   for $i in $FILTER
   return cts:query(xdmp:unquote($i)/*)
@@ -69,7 +65,7 @@ return xdmp:invoke(
    xs:QName('FILTER'),
    if (not($filter)) then '' else xdmp:quote(document { $filter })
   ),
-  $OPTIONS
+  $options
 )
 
 (: explore.xqy :)

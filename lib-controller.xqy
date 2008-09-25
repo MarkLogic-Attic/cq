@@ -168,11 +168,25 @@ declare variable $c:POLICY-ACCENT-COLOR as xs:string? :=
 declare variable $c:PROFILING-ALLOWED as xs:boolean :=
   prof:allowed(xdmp:request());
 
+declare variable $c:REQUEST-PATH as xs:string :=
+  let $path := xdmp:get-request-path()
+  (: ensure that the path ends with "/" :)
+  return
+    if (ends-with($path, "/"))
+    then $path
+    else concat(
+      string-join(tokenize($path, "/")[ 1 to last() - 1], "/"), "/"
+    )
+;
+
 declare variable $c:SERVER-ID as xs:unsignedLong :=
   xdmp:server() ;
 
 declare variable $c:SERVER-NAME as xs:string :=
   xdmp:server-name($SERVER-ID) ;
+
+declare variable $c:SERVER-APPLICATION-PATH as xs:string :=
+  concat($c:SERVER-ROOT-PATH, $c:REQUEST-PATH) ;
 
 declare variable $c:SERVER-ROOT-PATH as xs:string :=
   $io:MODULES-ROOT ;
@@ -186,16 +200,7 @@ declare variable $c:SESSION-DB as xs:unsignedLong :=
 declare variable $c:SESSION-RELPATH as xs:string := "sessions/" ;
 
 declare variable $c:SESSION-DIRECTORY as xs:string :=
-  let $path := xdmp:get-request-path()
-  (: ensure that the path ends with "/" :)
-  let $path :=
-    if (ends-with($path, "/"))
-    then $path
-    else concat(
-      string-join(tokenize($path, "/")[ 1 to last() - 1], "/"), "/"
-    )
-  return concat($path, $c:SESSION-RELPATH)
-;
+  concat($c:REQUEST-PATH, $c:SESSION-RELPATH) ;
 
 declare variable $c:SESSION-EXCEPTION as element(error:error)? := () ;
 
@@ -562,13 +567,7 @@ declare function c:get-orphan-database-ids()
 
 declare function c:build-document-path($document-name as xs:string)
  as xs:string {
-  let $path := xdmp:get-request-path()
-  (: ensure that the path ends with "/" :)
-  let $path :=
-    if (ends-with($path, "/"))
-    then $path
-    else concat(string-join(tokenize(
-      $path, "/")[ 1 to last() - 1], "/"), "/")
+  let $path := $c:REQUEST-PATH
   (: canonicalize the document-name :)
   let $document-name :=
     if (not(starts-with($document-name, '/')))

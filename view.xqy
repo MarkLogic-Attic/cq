@@ -23,20 +23,8 @@ xquery version "1.0-ml";
  :
  :)
 
-import module namespace admin = "http://marklogic.com/xdmp/admin"
-  at "/MarkLogic/admin.xqy";
-
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy";
-
-import module namespace v = "com.marklogic.developer.cq.view"
-  at "lib-view.xqy";
-
-declare variable $OPTIONS as element() :=
-  <options xmlns="xdmp:eval">{
-    element database { $c:FORM-EVAL-DATABASE-ID }
-  }</options>
-;
 
 declare variable $PROPERTIES as xs:boolean :=
   xs:boolean(xdmp:get-request-field('properties', '0'))
@@ -46,17 +34,14 @@ declare variable $URI as xs:string :=
   xdmp:get-request-field('uri')
 ;
 
-declare variable $QUERY as xs:string :=
-  'xquery version "1.0-ml";
-   declare variable $PROPERTIES as xs:boolean external;
-   declare variable $URI as xs:string external;
-   if ($PROPERTIES) then doc($URI)/property::node()/root()
-   else doc($URI)
-  '
-;
-
+let $options :=
+  <options xmlns="xdmp:eval">{
+    element database { $c:FORM-EVAL-DATABASE-ID },
+    element root { $c:SERVER-APPLICATION-PATH },
+    element modules { $c:SERVER-ROOT-DB }
+  }</options>
 let $vars := (xs:QName('URI'), $URI, xs:QName('PROPERTIES'), $PROPERTIES)
-let $result := xdmp:eval($QUERY, $vars, $OPTIONS)
+let $result := xdmp:invoke('view-invokable.xqy', $vars, $options)
 (: Allow the browser to handle binary documents.
  : It would be nice to use the same mechanism as eval.xqy,
  : but eval.xqy must handle much more complex result sequences.

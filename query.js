@@ -1193,11 +1193,15 @@ function PolicyClass(titleId, title, accentClass, accentColor) {
             debug.print(label + "frames " + frames.length);
             for (var i = 0; i < frames.length; i++) {
                 debug.print(label + "frame " + i + " = " + frames[i]);
-                nodes = frames[i].getElementsByClassName(accentClass);
-                for (var j = 0; j < nodes.length; j++) {
-                    debug.print(label + "node for accent-color = "
-                                + nodes[j].nodeName);
-                    nodes[j].style.backgroundColor = this.accentColor;
+                nodes = frames[i].getElementsByClassName
+                    ? frames[i].getElementsByClassName(accentClass)
+                    : null;
+                if (nodes) {
+                    for (var j = 0; j < nodes.length; j++) {
+                        debug.print(label + "node for accent-color = "
+                                    + nodes[j].nodeName);
+                        nodes[j].style.backgroundColor = this.accentColor;
+                    }
                 }
             }
         }

@@ -20,6 +20,8 @@ xquery version "1.0-ml";
  : affiliated with the Apache Software Foundation.
  :)
 
+declare option xdmp:mapping "false";
+
 (: in case the user had the old cq.xqy bookmarked :)
 xdmp:redirect-response(".")
 

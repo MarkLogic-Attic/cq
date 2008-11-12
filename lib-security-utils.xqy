@@ -28,6 +28,8 @@ declare default function namespace "http://www.w3.org/2005/xpath-functions";
 import module "http://marklogic.com/xdmp/security"
   at "/MarkLogic/security.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $su:USER as xs:string := xdmp:get-current-user();
 
 declare variable $su:USER-ID as xs:unsignedLong := xdmp:get-request-user();

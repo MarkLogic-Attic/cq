@@ -40,6 +40,8 @@ import module namespace v = "com.marklogic.developer.cq.view"
 import module namespace x = "com.marklogic.developer.cq.xquery"
  at "lib-xquery.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $FILTER as xs:string external;
 
 declare variable $FILTER-TEXT as xs:string external;
@@ -83,6 +85,7 @@ let $count :=
   else if ($result) then cts:remainder($result[1])
   else 0
 let $database-name := xdmp:database-name($c:FORM-EVAL-DATABASE-ID)
+let $actual-stop := min(($stop, $START + count($result) - 1))
 return <html xmlns="http://www.w3.org/1999/xhtml">{
   element head { v:get-html-head() },
   element body {
@@ -91,7 +94,7 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
       'Database ', element b { $database-name }, ' contains ',
       $count, 'document(s) total',
       if ($count) then (
-        ' (viewing', $START, '-', concat(string($START + $SIZE), ')')
+        ' (viewing', $START, '-', concat(string($actual-stop), ')')
       )
       else ()
     },

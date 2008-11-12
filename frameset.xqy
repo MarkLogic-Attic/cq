@@ -29,6 +29,8 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 import module namespace v = "com.marklogic.developer.cq.view"
  at "lib-view.xqy";
 
+declare option xdmp:mapping "false";
+
 d:check-debug()
 ,
 <html xmlns="http://www.w3.org/1999/xhtml">

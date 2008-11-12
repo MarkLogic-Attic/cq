@@ -39,6 +39,8 @@ import module namespace io = "com.marklogic.developer.cq.io"
 import module namespace x = "com.marklogic.developer.cq.xquery"
  at "lib-xquery.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $v:MICRO-SIGN as xs:string := codepoints-to-string(181);
 
 declare variable $v:ELLIPSIS as xs:string := codepoints-to-string(8230);
@@ -111,7 +113,7 @@ declare function v:get-html($x as item()*)
 };
 
 declare function v:get-html-body($body as item()*, $is-profile as xs:boolean)
- as node()*
+as node()*
 {
   if (empty($body)) then <i>your query returned an empty sequence</i>
   else
@@ -238,9 +240,7 @@ declare function v:get-error-html(
           )
         }
       },
-      element p {
-        <b><i>Stack trace:</i></b>
-      },
+      <p><b><i>Stack trace:</i></b></p>,
       element p {
         for $f in $ex/error:stack/error:frame
         return v:get-error-frame-html($f, $query)
@@ -270,38 +270,38 @@ declare function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
     <title>{ $label, $c:TITLE-TEXT }</title>
     <link rel="stylesheet" type="text/css" href="cq.css">
     </link>
-    {
-      if (not($tablekit)) then () else
+  {
+    if (not($tablekit)) then () else
     <link rel="stylesheet" type="text/css" href="tablekit.css">
     </link>
-    }
-    <link rel="Shortcut Icon" href="favicon.ico" type="image/x-icon">
-    </link>
-    <script language="JavaScript" type="text/javascript" src="js/prototype.js">
-    </script>
-    <script language="JavaScript" type="text/javascript" src="js/resizable.js">
-    </script>
-    <script language="JavaScript" type="text/javascript" src="js/effects.js">
-    </script>
-    <script language="JavaScript" type="text/javascript" src="js/controls.js">
-    </script>
-    {
-      if (not($tablekit)) then () else
+  }
+  <link rel="Shortcut Icon" href="favicon.ico" type="image/x-icon">
+  </link>
+  <script language="JavaScript" type="text/javascript" src="js/prototype.js">
+  </script>
+  <script language="JavaScript" type="text/javascript" src="js/resizable.js">
+  </script>
+  <script language="JavaScript" type="text/javascript" src="js/effects.js">
+  </script>
+  <script language="JavaScript" type="text/javascript" src="js/controls.js">
+  </script>
+  {
+    if (not($tablekit)) then () else
     <script language="JavaScript" type="text/javascript" src="js/tablekit.js">
     </script>
-    }
-    <script language="JavaScript" type="text/javascript" src="debug.js">
-    </script>
-    <script language="JavaScript" type="text/javascript" src="cookie.js">
-    </script>
-    <script language="JavaScript" type="text/javascript" src="session.js">
-    </script>
-    <script language="JavaScript" type="text/javascript" src="query.js">
-    </script>
-    {
-      (: pass debug flag to JavaScript :)
-      <script>debug.setEnabled(true);</script>[ d:get-debug() ]
-    }
+  }
+  <script language="JavaScript" type="text/javascript" src="debug.js">
+  </script>
+  <script language="JavaScript" type="text/javascript" src="cookie.js">
+  </script>
+  <script language="JavaScript" type="text/javascript" src="session.js">
+  </script>
+  <script language="JavaScript" type="text/javascript" src="query.js">
+  </script>
+  {
+    (: pass debug flag to JavaScript :)
+    <script>debug.setEnabled(true);</script>[ d:get-debug() ]
+  }
   </head>
 };
 
@@ -467,9 +467,8 @@ declare function v:display-results-pagination(
   $start as xs:integer, $current-page-items as xs:integer,
   $total-items as xs:integer, $page-size as xs:integer)
  as element(xh:div)?
- {
-  if ($total-items lt $page-size)
-  then ()
+{
+  if ($total-items lt $page-size) then ()
   else
     (: which page are we on?
      : if there are more than 20 pages, display a sliding window

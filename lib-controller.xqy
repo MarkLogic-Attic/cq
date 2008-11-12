@@ -44,15 +44,17 @@ import module namespace v = "com.marklogic.developer.cq.view"
   at "lib-view.xqy";
 
 import module namespace x = "com.marklogic.developer.cq.xquery"
- at "lib-xquery.xqy";
+  at "lib-xquery.xqy";
 
-declare variable $c:ACCEPT-XML as xs:boolean :=
+declare option xdmp:mapping "false";
+
+declare variable $c:ACCEPT-XML as xs:boolean := (
   (: per Mary Holstege: Opera says that it accepts xhtml+xml,
    : but fails to handle it correctly.
-   :)
+  :)
   contains(xdmp:get-request-header('accept'), 'application/xhtml+xml')
-    and not(contains(xdmp:get-request-header('user-agent'), 'Opera'))
-;
+  and not(contains(xdmp:get-request-header('user-agent'), 'Opera'))
+);
 
 declare variable $c:ADMIN-CONFIG as element(configuration) :=
   admin:get-configuration()
@@ -88,7 +90,7 @@ declare variable $c:DEFAULT-WORKSHEET as element(sess:session) :=
   return
     (: usually the query will come from the worksheet.xml template :)
     if ($worksheet) then $worksheet
-    (: someone removed the worksheet template? try to be nice anyway :)
+    (: no worksheet template? try to be nice anyway :)
     else <session xmlns="com.marklogic.developer.cq.session">
     {
       element name { "New Session" },
@@ -288,8 +290,8 @@ declare function c:set-content-type()
  as empty-sequence()
 {
   xdmp:set-response-content-type( concat(
-    if ($c:ACCEPT-XML) then "application/xhtml+xml" else "text/html",
-    "; charset=utf-8") )
+      if ($c:ACCEPT-XML) then "application/xhtml+xml" else "text/html",
+      "; charset=utf-8") )
 };
 
 declare function c:get-conflicting-locks($uri as xs:string)
@@ -584,14 +586,14 @@ declare function c:build-form-eval-query(
   else c:error('CQ-MISMATCH', 'keys do not match values')
   ,
   string-join((
-    $base,
-    '?',
-    string-join((
-      concat('eval=', $c:FORM-EVAL),
-      for $x in 1 to count($keys)
-      return concat($keys[$x], '=', xdmp:url-encode(string($values[$x])))
-    ), '&amp;')
-  ), '')
+      $base,
+      '?',
+      string-join((
+          concat('eval=', $c:FORM-EVAL),
+          for $x in 1 to count($keys)
+          return concat($keys[$x], '=', xdmp:url-encode(string($values[$x])))
+          ), '&amp;')
+      ), '')
 };
 
 declare function c:get-request-string()
@@ -621,18 +623,18 @@ declare function c:get-pagination-href($start as xs:integer)
 };
 
 declare function c:get-pagination-href(
-  $start as xs:integer, $keys as xs:string*, $values as xs:string*)
- as xs:string
+$start as xs:integer, $keys as xs:string*, $values as xs:string*)
+as xs:string
 {
   concat(
     c:get-request-string(),
     "&amp;", xdmp:url-encode("start"), "=", string($start),
     if (not($keys)) then ''
     else string-join((
-      '',
-      for $x in 1 to count($keys)
-      return concat($keys[$x], '=', xdmp:url-encode(string($values[$x])))
-    ), '&amp;')
+        '',
+        for $x in 1 to count($keys)
+        return concat($keys[$x], '=', xdmp:url-encode(string($values[$x])))
+        ), '&amp;')
   )
 };
 

@@ -29,6 +29,8 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 
 declare namespace sess = "com.marklogic.developer.cq.session";
 
+declare option xdmp:mapping "false";
+
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
 declare variable $BUFFERS as xs:string := xdmp:get-request-field("BUFFERS");

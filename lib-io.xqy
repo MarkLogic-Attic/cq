@@ -39,6 +39,8 @@ import module namespace x = "com.marklogic.developer.cq.xquery"
 
 declare namespace dir = "http://marklogic.com/xdmp/directory";
 
+declare option xdmp:mapping "false";
+
 (:~ @private :)
 declare variable $io:MODULES-DB as xs:unsignedLong :=
   xdmp:modules-database()

@@ -23,6 +23,8 @@ xquery version "1.0-ml";
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
 c:delete-session($ID)

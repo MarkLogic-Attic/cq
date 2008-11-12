@@ -32,6 +32,8 @@ import module namespace su = "com.marklogic.developer.cq.security"
 import module namespace v = "com.marklogic.developer.cq.view"
  at "lib-view.xqy";
 
+declare option xdmp:mapping "false";
+
 d:check-debug(),
 c:set-content-type(),
 
@@ -42,9 +44,13 @@ let $priv-errors :=
     "http://marklogic.com/xdmp/privileges/xdmp-document-get",
     "http://marklogic.com/xdmp/privileges/xdmp-eval",
     "http://marklogic.com/xdmp/privileges/xdmp-eval-in",
+    "http://marklogic.com/xdmp/privileges/xdmp-eval-modules-change",
+    "http://marklogic.com/xdmp/privileges/xdmp-eval-modules-change-file",
     "http://marklogic.com/xdmp/privileges/xdmp-filesystem-directory",
     "http://marklogic.com/xdmp/privileges/xdmp-invoke",
     "http://marklogic.com/xdmp/privileges/xdmp-invoke-in",
+    "http://marklogic.com/xdmp/privileges/xdmp-invoke-modules-change",
+    "http://marklogic.com/xdmp/privileges/xdmp-invoke-modules-change-file",
     "http://marklogic.com/xdmp/privileges/xdmp-add-response-header",
     "http://marklogic.com/xdmp/privileges/xdmp-save"
   )

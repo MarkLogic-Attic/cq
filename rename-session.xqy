@@ -26,6 +26,8 @@ import module namespace c = "com.marklogic.developer.cq.controller"
 import module namespace d = "com.marklogic.developer.cq.debug"
  at "lib-debug.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
 declare variable $NAME as xs:string :=

@@ -33,6 +33,8 @@ import module namespace c = "com.marklogic.developer.cq.controller"
 import module namespace d = "com.marklogic.developer.cq.debug"
  at "lib-debug.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $QUERY-BUFFERS as element(sess:query)* :=
   $c:SESSION/sess:query-buffers/sess:query
 ;

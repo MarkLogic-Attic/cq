@@ -37,6 +37,8 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 import module namespace v = "com.marklogic.developer.cq.view"
  at "lib-view.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $QUERY as xs:string := xdmp:get-request-field("query", "");
 
 declare variable $DATABASE-ID as xs:unsignedLong := $c:FORM-EVAL-DATABASE-ID ;
@@ -74,7 +76,7 @@ declare variable $OPTIONS as element() :=
     if ($MODULES-ROOT) then element root { $MODULES-ROOT }
     else (),
     element isolation { "different-transaction" },
-    if (fn:starts-with (xdmp:version(), "4"))
+    if (fn:starts-with(xdmp:version(), "4"))
       then element default-xquery-version { "app-server" }
       else ()
   }

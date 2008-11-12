@@ -24,6 +24,8 @@ module namespace d = "com.marklogic.developer.cq.debug";
 
 declare default function namespace "http://www.w3.org/2005/xpath-functions";
 
+declare option xdmp:mapping "false";
+
 declare variable $d:NL := codepoints-to-string(10);
 
 declare variable $d:DEBUG as xs:boolean := false();

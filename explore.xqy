@@ -29,6 +29,8 @@ import module namespace c = "com.marklogic.developer.cq.controller"
 import module namespace d = "com.marklogic.developer.cq.debug"
  at "lib-debug.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $FILTER :=
   xdmp:get-request-field('filter');
 

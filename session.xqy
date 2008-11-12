@@ -37,6 +37,8 @@ import module namespace x = "com.marklogic.developer.cq.xquery"
 
 declare namespace sess = "com.marklogic.developer.cq.session";
 
+declare option xdmp:mapping "false";
+
 declare variable $SESSIONS as element(sess:session)* := c:get-sessions();
 
 d:check-debug(),

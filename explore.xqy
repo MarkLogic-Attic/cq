@@ -57,7 +57,7 @@ let $filter :=
   for $i in $FILTER
   return cts:query(xdmp:unquote($i)/*)
 let $filter as cts:query? :=
-  if (not($filter)) then ()
+  if (empty($filter)) then ()
   else if (count($filter) eq 1) then $filter
   else cts:and-query($filter)
 return xdmp:invoke(

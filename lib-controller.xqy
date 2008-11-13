@@ -596,7 +596,7 @@ declare function c:build-form-eval-query(
       ), '')
 };
 
-declare function c:get-request-string()
+declare function c:get-request-string($excludes as xs:string*)
  as xs:string
 {
   (: use the last request string to build a new one,
@@ -606,11 +606,11 @@ declare function c:get-request-string()
     "?",
     string-join(
       for $f in xdmp:get-request-field-names()
-        [not(. = ("submit", "start", "search-button"))]
+        [not(. = $excludes)]
+      let $values := xdmp:get-request-field($f)
+      for $v in $values
       return string-join(
-        (xdmp:url-encode($f), xdmp:url-encode(xdmp:get-request-field($f))),
-        "="
-      ),
+        (xdmp:url-encode($f), xdmp:url-encode($v)), "="),
       "&amp;"
     )
   )
@@ -623,11 +623,11 @@ declare function c:get-pagination-href($start as xs:integer)
 };
 
 declare function c:get-pagination-href(
-$start as xs:integer, $keys as xs:string*, $values as xs:string*)
+ $start as xs:integer, $keys as xs:string*, $values as xs:string*)
 as xs:string
 {
   concat(
-    c:get-request-string(),
+    c:get-request-string(("submit", "start", "search-button", $keys)),
     "&amp;", xdmp:url-encode("start"), "=", string($start),
     if (not($keys)) then ''
     else string-join((

@@ -31,7 +31,7 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 
 declare option xdmp:mapping "false";
 
-declare variable $FILTER :=
+declare variable $FILTER as xs:string* :=
   xdmp:get-request-field('filter');
 
 declare variable $FILTER-TEXT as xs:string? :=
@@ -65,7 +65,7 @@ return xdmp:invoke(
   (xs:QName('START'), $START, xs:QName('SIZE'), $SIZE,
    xs:QName('FILTER-TEXT'), $FILTER-TEXT,
    xs:QName('FILTER'),
-   if (not($filter)) then '' else xdmp:quote(document { $filter })
+   if (empty($filter)) then '' else xdmp:quote(document { $filter })
   ),
   $options
 )

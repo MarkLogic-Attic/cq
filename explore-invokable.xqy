@@ -58,8 +58,9 @@ declare variable $FILTER-QUERY as cts:query? :=
   let $filter-text as cts:query? :=
     if ($FILTER-TEXT eq '') then () else cts:word-query($FILTER-TEXT)
   return
-    if ($filter and $filter-text) then cts:and-query(($filter, $filter-text))
-    else if ($filter-text) then $filter-text
+    if (exists($filter) and exists($filter-text))
+    then cts:and-query(($filter, $filter-text))
+    else if (exists($filter-text)) then $filter-text
     else $filter
 ;
 
@@ -78,10 +79,11 @@ let $query := $FILTER-QUERY
 let $d := d:debug(('explore-invokable: query =', $query))
 (: no point in trying cts:uris(), as we will retrieve N fragments anyhow :)
 let $result := (
-  if ($query) then cts:search(doc(), $query) else doc()
+  if (exists($query)) then cts:search(doc(), $query, 'unfiltered')
+  else doc()
 )[$START to $stop]
 let $count :=
-  if (not($query)) then xdmp:estimate(doc())
+  if (empty($query)) then xdmp:estimate(doc())
   else if ($result) then cts:remainder($result[1])
   else 0
 let $database-name := xdmp:database-name($c:FORM-EVAL-DATABASE-ID)
@@ -98,10 +100,22 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
       )
       else ()
     },
+    (: TODO display any filters in effect? :)
     for $i in $result
     let $uri := xdmp:node-uri($i)
-    let $n := ($i/*[1], $i/(binary()|element()|text())[1])[1]
-    where exists($n)
+    (: make sure we can handle oddball docs -
+     : what if the root is a processing instruction?
+     : empty doc is also possible, in XQuery 1.0
+     :)
+    let $n as node()* := $i/node()
+    let $n as node()? :=
+      if ($n instance of binary()) then $n
+      else if ($n instance of text()) then $n
+      else if ($n/self::*) then $n/self::*[1]
+      (: comment, processing instruction, etc.
+       : but if only text is present, a previous rule already matched
+       :)
+      else $n[not(. instance of text())][1]
     order by $uri
     return (
       element a {
@@ -109,7 +123,7 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
         $uri
       },
       <span>&#160;&ndash;&#160;</span>,
-      <i>{ xdmp:node-kind($n) }</i>,
+      <i>{ if ($n) then xdmp:node-kind($n) else '(empty document)' }</i>,
       (: why not node-name? because this is a human-readable context :)
       <code>&#160;{ name($n) }&#160;</code>,
       element span {
@@ -131,14 +145,26 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
           else (
             element i { 'collections' }, ':',
             let $count := count($collections)
+            let $filters :=
+              if (empty($query)) then ()
+              else if ($query instance of cts:collection-query)
+              then $query
+              else cts:and-query-queries($query)
+                [. instance of cts:collection-query]
+            let $filters :=
+              for $i in $filters return xdmp:quote( document { $i })
             for $c at $x in $collections
+            let $term := xdmp:quote( document { cts:collection-query($c) })
+            (: check for duplicate terms :)
+            let $is-duplicate := ($filters = $term)
+            let $filters :=
+              ($filters, if ($is-duplicate) then () else $term)
+            let $keys := for $i in $filters return 'filter'
             return (
-              element a {
+              if ($is-duplicate) then element span { $c }
+              else element a {
                 attribute href {
-                  c:get-pagination-href(
-                    $START, 'filter',
-                    xdmp:quote(document { cts:collection-query($c) })
-                  )
+                  c:get-pagination-href($START, $keys, $filters)
                 },
                 $c
               },

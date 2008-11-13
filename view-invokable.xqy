@@ -32,7 +32,10 @@ declare variable $PROPERTIES as xs:boolean external;
 
 declare variable $URI as xs:string external;
 
-if ($PROPERTIES) then doc($URI)/property::node()/root()
-else doc($URI)
+let $n :=
+  if ($PROPERTIES) then doc($URI)/property::node()/root()
+  else doc($URI)
+return
+  if ($n/node()) then $n else document { '(empty document)' }
 
 (: view.xqy :)

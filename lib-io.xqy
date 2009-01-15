@@ -131,10 +131,10 @@ declare function io:lock-release($path as xs:string)
 };
 
 (:~ acquire a lock :)
-declare function io:lock-acquire($path as xs:string)
+declare function io:lock-acquire($path as xs:string, $owner as xs:string)
   as empty-sequence()
 {
-  io:lock-acquire($path, (), (), (), xs:unsignedLong(300))
+  io:lock-acquire($path, (), (), $owner, xs:unsignedLong(300))
 };
 
 (:~ acquire a lock :)
@@ -145,7 +145,7 @@ declare function io:lock-acquire(
   as empty-sequence()
 {
   if ($path eq '' or ends-with($path, '/'))
-  then error(xs:QName('IO-BADPATH'), text { $path })
+  then error((), 'IO-BADPATH', text { $path })
   else (),
   let $path := io:canonicalize($path)
   (: a pox on varargs - anyway, we can spec our own defaults :)
@@ -349,11 +349,11 @@ declare function io:lock-release-fs($path as xs:string)
   let $locks := $old/lock:active-locks/lock:active-lock
   let $check :=
     if (exists($locks)) then ()
-    else error(xs:QName("IO-NOTLOCKED"), text { $path, "is not locked" })
+    else error((), "IO-NOTLOCKED", text { $path, "is not locked" })
   let $check :=
     if ($su:USER-IS-ADMIN or $locks[sec:user-id eq $su:USER-ID]) then ()
     else error(
-      xs:QName("IO-NOUSER"), text {
+      (), "IO-NOUSER", text {
         $path, "is not locked by", $su:USER, $su:USER-ID,
         "existing locks are held by", data($locks/sec:user-id)
       }
@@ -448,7 +448,7 @@ declare function io:lock-acquire-fs(
   let $check :=
     if (not($conflict)) then ()
     else error(
-      xs:QName("IO-LOCKED"),
+      (), "IO-LOCKED",
       text { $path, "is locked by", $conflict/lock:owner }
     )
   let $lock := document {

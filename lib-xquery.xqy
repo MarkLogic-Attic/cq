@@ -43,12 +43,9 @@ define function x:string-pad(
 }
 
 define function x:cumulative-seconds-from-duration($d as xdt:dayTimeDuration)
- as xs:double
+ as xs:unsignedLong
 {
-  86400 * days-from-duration($d)
-  + 3600 * hours-from-duration($d)
-  + 60 * minutes-from-duration($d)
-  + seconds-from-duration($d)
+  xs:unsignedLong($d div xdt:dayTimeDuration('PT1S'))
 }
 
 (:~ get the epoch seconds :)

@@ -157,6 +157,7 @@ function SessionClass(tabs, id) {
     this.autosave = null;
 
     this.updateSessionUrl = "update-session.xqy";
+    this.updateSessionLockUrl = "update-session-lock.xqy";
 
     this.getId = function() { return this.sessionId }
 
@@ -248,10 +249,11 @@ function SessionClass(tabs, id) {
         debug.print(label + this.sessionId + " "
                     + lastModified + " ? " + this.lastSync);
         if (null != this.lastSync
-            && lastModified < this.lastSync
-            && lastLineStatus < this.lastSync)
+            && lastModified <= this.lastSync
+            && lastLineStatus <= this.lastSync)
         {
-            // nothing has changed
+            // nothing has changed - tickle the lock anyway
+            this.updateLock();
             return false;
         }
 
@@ -281,6 +283,31 @@ function SessionClass(tabs, id) {
 
         return true;
     }
+
+    this.updateLock = function() {
+        var label = "SessionClass.updateLock: ";
+        if (this.syncDisabled || null == this.sessionId) {
+            debug.print(label + "disabled");
+            return false;
+        }
+
+        var params = {
+            DEBUG: debug.isEnabled() ? true : false,
+            ID: this.sessionId
+        };
+
+        debug.print(label + "" + params);
+
+        var req = new Ajax.Request(this.updateSessionLockUrl,
+            {
+                method: 'post',
+                parameters: params,
+                // workaround, to avoid appending charset info
+                encoding: null,
+                onFailure: reportError
+            }
+                                   );
+    };
 
     this.setAutoSave = function(sec) {
         if (this.syncDisabled) {

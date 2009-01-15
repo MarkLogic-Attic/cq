@@ -277,6 +277,7 @@ declare variable $c:VERSION as xs:string :=
   io:read(c:build-document-path('VERSION.xml'))/version
 ;
 
+(: do not call io:lock-acquire directly :)
 declare function c:lock-acquire($id as xs:string)
  as empty-sequence()
 {
@@ -365,7 +366,9 @@ declare function c:get-session(
       where $exists and empty($conflicts)
       return io:read($path)/sess:session
     } catch ($ex) {
-      (: if we can't open the file, returning empty will disable sessions :)
+      (: if we can't open the file at startup,
+       : returning empty will disable sessions
+       :)
       if ($ex/error:code eq 'SVC-FILOPN') then ()
       else xdmp:rethrow()
     }
@@ -462,7 +465,9 @@ declare function c:new-session()
 declare function c:save-session($session as element(sess:session))
  as empty-sequence()
 {
-  io:write(c:get-uri-from-id($session/@id), document { $session })
+  let $id as xs:string := $session/@id
+  let $lock := c:lock-acquire($id)
+  return io:write(c:get-uri-from-id($id), document { $session })
 };
 
 declare function c:delete-session($id as xs:string)
@@ -503,10 +508,11 @@ declare function c:update-session($id as xs:string, $nodes as element()*)
   let $session as element(sess:session)? := c:get-session($id, true())
   let $assert :=
     if ($session) then ()
-    else c:error('CTRL-SESSION', ('No session for', $id))
+    else c:error('CTRL-SESSION', ('No available session for', $id))
   return c:update-session($id, $nodes, $session)
 };
 
+(: TODO is the lock check working here? :)
 declare function c:update-session(
   $id as xs:string, $nodes as element()*, $session as element(sess:session))
  as empty-sequence()
@@ -518,7 +524,7 @@ declare function c:update-session(
   let $x-elems as xs:QName+ :=
     for $n in ($nodes, <sec:user/>, <sess:last-modified/>)
     return node-name($n)
-  let $session := element {node-name($session)} {
+  let $session := element { node-name($session) } {
     $session/@*[ not(node-name(.) = $x-attrs) ],
     attribute id { $id },
     (: by default, take ownership :)
@@ -540,10 +546,10 @@ declare function c:get-app-server-info()
    : TODO provide a mechanism to update the list, to pull admin changes.
    :)
   for $group-id in admin:get-group-ids($c:ADMIN-CONFIG)
-  for $server-id in data((
+  for $server-id in (
     admin:group-get-httpserver-ids($c:ADMIN-CONFIG, $group-id),
     admin:group-get-xdbcserver-ids($c:ADMIN-CONFIG, $group-id)
-  ))
+  )
   let $database-id :=
     admin:appserver-get-database($ADMIN-CONFIG, $server-id)
   where $database-id
@@ -656,7 +662,7 @@ declare function c:error($code as xs:string)
 declare function c:error($code as xs:string, $details as item()*)
  as empty-sequence()
 {
-  error(xs:QName($code), text { $details })
+  error((), $code, text { $details })
 };
 
 (: lib-controller.xqy :)

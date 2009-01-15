@@ -70,7 +70,7 @@ declare function d:check-debug()
 declare function d:whereami()
 {
   xdmp:log(text{'whereami:', try {
-     error(xs:QName('DEBUG-WHEREAMI'), 'fake error for d:whereami')
+     error((), 'DEBUG-WHEREAMI', 'fake error for d:whereami')
    } catch ($ex) {
      for $op in $ex/error:stack/error:frame/error:operation
      return substring-before($op, '(')

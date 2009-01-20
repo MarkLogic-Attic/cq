@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : cq: lib-controller.xqy
  :
- : Copyright (c)2002-2008 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2009 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -220,6 +220,14 @@ declare variable $c:SESSION-ID as xs:string? :=
 declare variable $c:SESSION-OWNER as xs:string :=
   concat($su:USER, "@", xdmp:get-request-client-address()) ;
 
+declare variable $c:SESSION-PATH as xs:string :=
+  concat(
+    $c:SERVER-ROOT-PATH,
+    if (ends-with($c:SERVER-ROOT-PATH, '/')
+      or starts-with($c:SESSION-DIRECTORY, '/')) then ''
+    else '/',
+    $c:SESSION-DIRECTORY) ;
+
 declare variable $c:SESSION-TIMEOUT as xs:unsignedLong :=
   xs:unsignedLong(300) ;
 
@@ -328,7 +336,7 @@ declare function c:get-sessions($check-conflicting as xs:boolean)
  as element(sess:session)*
 {
   d:debug(('c:get-sessions:', $c:SESSION-DIRECTORY, $check-conflicting)),
-  try {
+  let $result := try {
     for $i in io:list($c:SESSION-DIRECTORY)/sess:session
     where not($check-conflicting)
       or empty(c:get-conflicting-locks(c:get-session-uri($i)))
@@ -340,11 +348,26 @@ declare function c:get-sessions($check-conflicting as xs:boolean)
       $i/name
     return $i
   } catch ($ex) {
-    (: looks like we have a problem - disable sessions :)
-    d:debug(('c:get-sessions:', $ex)),
-    xdmp:set($c:SESSION-EXCEPTION, $ex),
-    xdmp:set($c:SESSION-ID, ())
+    (: if this is a filesystem with no sessions directory, create it :)
+    if ($ex/error:code eq 'SVC-DIROPEN' and $c:SERVER-ROOT-DB eq 0)
+    then try {
+      xdmp:filesystem-directory-create($c:SESSION-PATH),
+      c:get-sessions($check-conflicting)
+    } catch ($fdc-ex) {
+      $fdc-ex,
+      $ex
+    }
+    else $ex
   }
+  return
+    if ($result[1] instance of element(error:error)) then (
+      (: looks like we have a problem - disable sessions :)
+      d:debug(('c:get-sessions:', $result)),
+      xdmp:set($c:SESSION-EXCEPTION, $result),
+      xdmp:set($c:SESSION-ID, ())
+      (: returns the empty sequence :)
+    )
+    else $result
 };
 
 declare function c:get-session(
@@ -431,7 +454,7 @@ declare function c:new-session()
   let $id :=
     if ($c:SESSION-EXCEPTION) then () else c:generate-id()
   let $d := d:debug((
-    "new-session:", $id, string($c:SESSION-EXCEPTION/error:format-string) ))
+    "new-session:", $id, data($c:SESSION-EXCEPTION/error:format-string) ))
   let $attributes := attribute id { $id }
   let $attribute-qnames := for $i in $attributes return node-name($i)
   let $elements := (

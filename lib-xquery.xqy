@@ -42,18 +42,13 @@ define function x:string-pad(
   string-pad($padString, $padCount)
 }
 
-define function x:cumulative-seconds-from-duration($d as xdt:dayTimeDuration)
- as xs:unsignedLong
-{
-  xs:unsignedLong($d div xdt:dayTimeDuration('PT1S'))
-}
-
 (:~ get the epoch seconds :)
 define function x:get-epoch-seconds($dt as xs:dateTime)
   as xs:unsignedLong
 {
-  xs:unsignedLong(x:cumulative-seconds-from-duration(
-    $dt - xs:dateTime('1970-01-01T00:00:00Z')))
+  xs:unsignedLong(
+    ($dt - xs:dateTime('1970-01-01T00:00:00Z'))
+    div xdt:dayTimeDuration('PT1S') )
 }
 
 (:~ get the epoch seconds :)
@@ -73,9 +68,7 @@ define function x:epoch-seconds-to-dateTime($v)
 
 define function x:duration-to-microseconds($d as xs:dayTimeDuration)
  as xs:unsignedLong {
-   xs:unsignedLong(
-     1000 * 1000 * x:cumulative-seconds-from-duration($d)
-   )
+   xs:unsignedLong( $d div xdt:dayTimeDuration('PT0.000001S') )
 }
 
 define function x:lead-nbsp($v as xs:string, $len as xs:integer)

@@ -38,9 +38,12 @@ d:check-debug()
 if (string-length($NAME) gt 0) then ()
 else c:error('CQ-EMPTYNAME', 'session name may not be empty')
 ,
-c:rename-session($ID, $NAME)
-,
-(: firefox 3 logs an error if the result is empty :)
+(: will return new last-modified stamp :)
+xdmp:add-response-header(
+  'last-modified', string(c:rename-session($ID, $NAME)) ),
+(: firefox 3 logs an error if the result is empty,
+ : and Ajax.InPlaceEditor uses this value
+ :)
 $NAME
 
 (: rename-session.xqy :)

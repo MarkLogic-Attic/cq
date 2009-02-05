@@ -130,7 +130,10 @@ c:set-content-type(),
             id="restore-session" name="restore-session">{
 
         if ($c:SESSION-EXCEPTION) then ()
-        else attribute session-id { $c:SESSION-ID },
+        else (
+          attribute session-id { $c:SESSION-ID },
+          attribute last-modified { $c:SESSION-LAST-MODIFIED }
+        ),
 
         let $active := data($c:SESSION/sess:active-tab)
         where $active

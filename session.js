@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2008 Mark Logic Corporation. All rights reserved.
+// Copyright (c) 2003-2009 Mark Logic Corporation. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,6 +38,11 @@ function SessionList() {
     this.cloneUrl = 'clone-session.xqy';
     this.deleteUrl = 'delete-session.xqy';
     this.renameUrl = 'rename-session.xqy';
+    this.currentSession = null;
+
+    this.setCurrentSession = function(s) {
+        this.currentSession = s;
+    }
 
     this.refresh = function() {
         if (debug.isEnabled()) {
@@ -122,6 +127,7 @@ function SessionList() {
     this.renameSession = function(id, name) {
         debug.print("renameSession: " + id + " to " + name);
         // call the rename xqy
+        // in this code path we don't worry about the last-modified stamp
         var opts = {
             method: 'post',
             // workaround, to avoid appending charset info
@@ -130,6 +136,7 @@ function SessionList() {
             asynchronous: false,
             onFailure: reportError
         };
+
         var req = new Ajax.Request(this.renameUrl, opts);
     }
 
@@ -145,6 +152,7 @@ function SessionClass(tabs, id) {
     this.tabs = tabs;
     this.restoreId = id;
     this.sessionId = null;
+    this.lastModified = null;
     this.buffers = this.tabs.getBuffers();
     debug.print("SessionClass: buffers = " + this.buffers);
     this.history = this.tabs.getHistory();
@@ -185,6 +193,9 @@ function SessionClass(tabs, id) {
             this.syncDisabled = true;
             // not fatal - keep restoring
         }
+
+        // store the last-updated value
+        this.lastModified = restore.getAttribute('last-modified');
 
         // handle exposed tab
         var activeTab = restore.getAttribute('active-tab');
@@ -243,13 +254,14 @@ function SessionClass(tabs, id) {
             return false;
         }
 
-        var lastModified = this.history.getLastModified();
+        var historyLastModified = this.history.getLastModified();
         var lastLineStatus = this.buffers.getLastLineStatus();
 
-        debug.print(label + this.sessionId + " "
-                    + lastModified + " ? " + this.lastSync);
+        debug.print(label + this.sessionId
+                    + " " + this.lastModified
+                    + " " + historyLastModified + " ? " + this.lastSync);
         if (null != this.lastSync
-            && lastModified <= this.lastSync
+            && historyLastModified <= this.lastSync
             && lastLineStatus <= this.lastSync)
         {
             // nothing has changed - tickle the lock anyway
@@ -263,6 +275,7 @@ function SessionClass(tabs, id) {
         var params = {
             DEBUG: debug.isEnabled() ? true : false,
             ID: this.sessionId,
+            MODIFIED: this.lastModified,
             BUFFERS: buffers,
             HISTORY: history,
             TABS: tabs
@@ -270,12 +283,18 @@ function SessionClass(tabs, id) {
 
         debug.print(label + "" + params);
 
+        var session = this;
+        var successHandler = function(resp) {
+            session.lastModified = resp.responseText;
+            debug.print("session lastModified = " + session.lastModified);
+        };
         var req = new Ajax.Request(this.updateSessionUrl,
             {
                 method: 'post',
                 parameters: params,
                 // workaround, to avoid appending charset info
                 encoding: null,
+                onSuccess: successHandler,
                 onFailure: reportError
             }
                                    );

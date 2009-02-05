@@ -33,6 +33,9 @@ declare option xdmp:mapping "false";
 
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
+declare variable $LAST-MODIFIED as xs:dateTime :=
+  xs:dateTime(xdmp:get-request-field("MODIFIED"));
+
 declare variable $BUFFERS as xs:string := xdmp:get-request-field("BUFFERS");
 
 declare variable $HISTORY as xs:string := xdmp:get-request-field("HISTORY");
@@ -65,9 +68,7 @@ declare variable $new-tabs as element(sess:active-tab) :=
 
 d:check-debug()
 ,
-c:update-session($ID, ($new-buffers, $new-history, $new-tabs))
-,
-(: firefox 3 logs an error if the result is empty :)
-$ID
+(: the return value will be the new last-modified time :)
+c:update-session($ID, $LAST-MODIFIED, ($new-buffers, $new-history, $new-tabs))
 
 (: update-session.xqy :)

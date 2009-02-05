@@ -1255,10 +1255,25 @@ function cqOnLoad() {
     } else {
         var sessionList = new SessionList();
         var callbackQuery = function(form, value) {
+            debug.print("in callbackQuery " + sessionId + " " + value);
             return sessionList.buildNamedQueryString(sessionId, value);
+        };
+        // set up to update the lastModified stamp
+        var successHandler = function(resp, element) {
+            // resp is the http response
+            // element is the HTML element that was edited
+            debug.print("successHandler: old = " + gSession.lastModified);
+            debug.print("successHandler: resp last-modified = "
+                        + resp.getResponseHeader("last-modified"));
+            gSession.lastModified = resp.getResponseHeader("last-modified");
+            debug.print("successHandler: new = " + gSession.lastModified);
+            // this will fill in the name and do the highlight effect
+            return $super.onComplete(transport);
         };
         var editorOptions = {
             callback: callbackQuery,
+            // for some reason InPlaceEditor doesn't use onSuccess
+            onComplete: successHandler,
             onFailure: reportError
         };
         new Ajax.InPlaceEditor('rename-session',

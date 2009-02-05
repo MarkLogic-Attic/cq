@@ -1,6 +1,6 @@
 xquery version "1.0-ml";
 (:
- : cq: lib-controller.xqy
+ : cq/lib-controller.xqy
  :
  : Copyright (c) 2002-2009 Mark Logic Corporation. All Rights Reserved.
  :
@@ -196,6 +196,43 @@ declare variable $c:SERVER-ROOT-PATH as xs:string :=
 declare variable $c:SERVER-ROOT-DB as xs:unsignedLong :=
   $io:MODULES-DB ;
 
+(: Get the current session,
+ : falling back to the last session or a new one.
+ :)
+declare variable $c:SESSION as element(sess:session) :=
+   let $d := d:debug(("$c:SESSION: id =", $c:SESSION-ID))
+   (: Get the last session, as long as it is not locked.
+    : If we were explicitly asked for a new session, honor that.
+    :)
+   let $session :=
+     if ($c:SESSION-ID eq 'NEW') then c:new-session()
+     else if (exists($c:SESSION-ID)) then c:get-session($c:SESSION-ID, true())
+     else ()
+   let $d := d:debug((
+     "$c:SESSION: session =", $session, data($session/sess:last-modified)))
+   let $session :=
+     if ($session) then $session else c:get-last-session()
+   (: if none of the above worked, generate a new session :)
+   let $session :=
+     if ($session) then $session else c:new-session()
+   let $id := c:get-session-id($session)
+   let $d := d:debug(("$c:SESSION: session-id =", $id))
+   (: locking may fail - if it does, disable sessions :)
+   let $lock :=
+     if ($c:SESSION-EXCEPTION) then ()
+     else try {
+       c:lock-acquire($c:id)
+     } catch ($ex) {
+       xdmp:set($c:SESSION-EXCEPTION, $ex)
+     }
+   (: ensure that the module session-id matches the final session :)
+   let $set := xdmp:set($c:SESSION-ID, $id)
+   let $d := d:debug((
+     "$c:SESSION: session-id =", $id,
+     ' exception =', exists($c:SESSION-EXCEPTION) ))
+   return $session
+;
+
 declare variable $c:SESSION-DB as xs:unsignedLong :=
   $io:MODULES-DB ;
 
@@ -217,6 +254,12 @@ declare variable $c:SESSION-ID as xs:string? :=
   return $id
 ;
 
+declare variable $c:SESSION-LAST-MODIFIED as xs:dateTime? :=
+  $c:SESSION/sess:last-modified ;
+
+declare variable $c:SESSION-NAME as xs:string? :=
+  $c:SESSION/sess:name ;
+
 declare variable $c:SESSION-OWNER as xs:string :=
   concat($su:USER, "@", xdmp:get-request-client-address()) ;
 
@@ -231,46 +274,6 @@ declare variable $c:SESSION-PATH as xs:string :=
 declare variable $c:SESSION-TIMEOUT as xs:unsignedLong :=
   xs:unsignedLong(300) ;
 
-declare variable $c:SESSION as element(sess:session) :=
-  (: get the current session,
-   : falling back to the last session or a new one.
-   :)
-   let $d := d:debug(("$c:SESSION: id =", $c:SESSION-ID))
-   (: get the last session, as long as it is not locked :)
-   let $session :=
-     if (exists($c:SESSION-ID))
-     then c:get-session($c:SESSION-ID, true())
-     else ()
-   let $d := d:debug((
-     "$c:SESSION: session =", $session, data($session/sess:last-modified)))
-   (: If we were explicitly asked for a new session, honor that :)
-   let $session :=
-     if ($session) then $session
-     else if ($c:SESSION-ID eq 'NEW') then ()
-     else c:get-last-session()
-   (: if none of the above worked, generate a new session :)
-   let $session :=
-     if ($session) then $session else c:new-session()
-   let $id := c:get-session-id($session)
-   let $d := d:debug(("$c:SESSION: session-id =", $id))
-   (: locking may fail - if it does, disable sessions :)
-   let $lock :=
-     if ($c:SESSION-EXCEPTION) then () else try {
-       c:lock-acquire($c:id)
-     } catch ($ex) {
-       xdmp:set($c:SESSION-EXCEPTION, $ex)
-     }
-   (: ensure that the module session-id matches the final session :)
-   let $set := xdmp:set($c:SESSION-ID, $id)
-   let $d := d:debug((
-     "$c:SESSION: session-id =", $id,
-     ' exception =', exists($c:SESSION-EXCEPTION)))
-   return $session
-;
-
-declare variable $c:SESSION-NAME as xs:string? :=
-  $c:SESSION/sess:name ;
-
 declare variable $c:TITLE-TEXT as xs:string :=
   (: show the user what platform and host we're querying :)
   text {
@@ -282,7 +285,10 @@ declare variable $c:TITLE-TEXT as xs:string :=
 ;
 
 declare variable $c:VERSION as xs:string :=
-  io:read(c:build-document-path('VERSION.xml'))/version
+  let $version := io:read(c:build-document-path('VERSION.xml'))/version
+  return
+    if ($version) then $version
+    else xdmp:version()
 ;
 
 (: do not call io:lock-acquire directly :)
@@ -506,13 +512,6 @@ declare function c:delete-session($id as xs:string)
   )
 };
 
-declare function c:rename-session($id as xs:string, $name as xs:string)
- as empty-sequence()
-{
-  d:debug(("c:rename-session:", $id, "to", $name)),
-  c:update-session($id, element sess:name { $name })
-};
-
 declare function c:clone-session($source-id as xs:string, $name as xs:string)
  as xs:string
 {
@@ -520,27 +519,53 @@ declare function c:clone-session($source-id as xs:string, $name as xs:string)
   (: do not check for locks, since we will not update the source :)
   let $source := c:get-session($source-id, false())
   let $target-id := c:generate-id()
+  (: NB - this function does not return the last-modified stamp,
+   : so the caller must restore the new id before trying to update it.
+   :)
   let $do := c:update-session($target-id, element sess:name { $name }, $source)
   return $target-id
 };
 
-declare function c:update-session($id as xs:string, $nodes as element()*)
- as empty-sequence()
+(: must return new last-modified stamp :)
+declare function c:rename-session($id as xs:string, $name as xs:string)
+ as xs:dateTime
+{
+  d:debug(("c:rename-session:", $id, "to", $name)),
+  c:update-session($id, (), element sess:name { $name })
+};
+
+(: must return new last-modified stamp :)
+declare function c:update-session(
+  $id as xs:string, $last-modified as xs:dateTime?,
+  $nodes as element()*)
+ as xs:dateTime
 {
   d:debug(("c:update-session: id =", $id, $nodes)),
   let $session as element(sess:session)? := c:get-session($id, true())
   let $assert :=
     if ($session) then ()
     else c:error('CTRL-SESSION', ('No available session for', $id))
-  return c:update-session($id, $nodes, $session)
+  let $assert :=
+    if (empty($last-modified)
+      or xs:dateTime($session/sess:last-modified) eq $last-modified) then ()
+    else c:error(
+      'CTRL-SESSION-MODIFIED', (
+        'Session', $id, 'last-modified', $session/sess:last-modified,
+        'does not match', $last-modified ) )
+  return c:update-session($id, $last-modified, $nodes, $session)
 };
 
-(: TODO is the lock check working here? :)
+(: NB - This function does not use the $last-modified parameter,
+ : but needs to have a different arity from the preceding function.
+ :)
+(: must return new last-modified stamp :)
 declare function c:update-session(
-  $id as xs:string, $nodes as element()*, $session as element(sess:session))
- as empty-sequence()
+  $id as xs:string, $last-modified as xs:dateTime?,
+  $nodes as element()*, $session as element(sess:session))
+ as xs:dateTime
 {
   d:debug(("c:update-session: id =", $id, $nodes, $session)),
+  let $last-modified := current-dateTime()
   let $x-attrs as xs:QName+ :=
     for $n in ('id', 'uri')
     return xs:QName($n)
@@ -554,10 +579,11 @@ declare function c:update-session(
     if (exists($nodes/sec:user)) then ()
     else element sec:user { $su:USER },
     $session/node()[ not(node-name(.) = $x-elems) ],
-    element sess:last-modified { current-dateTime() },
+    element sess:last-modified { $last-modified },
     $nodes
   }
-  return c:save-session($session)
+  let $do := c:save-session($session)
+  return $last-modified
 };
 
 declare function c:get-app-server-info()

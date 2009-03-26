@@ -141,16 +141,7 @@ c:set-content-type(),
             let $conflicting := c:get-conflicting-locks($uri, 1)
             let $name as xs:string := ($i/sess:name, "(unnamed)")[1]
             return element tr {
-              element td {
-                element input {
-                  attribute type { "text" },
-                  attribute autocomplete { "off" },
-                  attribute value { $name },
-                  attribute onchange {
-                    concat("list.renameSession('", $id, "', this.value)")
-                  }
-                }
-              },
+              element td { $name },
               element td { string($i/sec:user) },
               element td { data($i/sess:created) },
               element td { data($i/sess:last-modified) },

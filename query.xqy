@@ -132,7 +132,7 @@ c:set-content-type(),
         if ($c:SESSION-EXCEPTION) then ()
         else (
           attribute session-id { $c:SESSION-ID },
-          attribute last-modified { $c:SESSION-LAST-MODIFIED }
+          attribute etag { $c:SESSION-ETAG }
         ),
 
         let $active := data($c:SESSION/sess:active-tab)

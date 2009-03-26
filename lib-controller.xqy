@@ -209,7 +209,7 @@ declare variable $c:SESSION as element(sess:session) :=
      else if (exists($c:SESSION-ID)) then c:get-session($c:SESSION-ID, true())
      else ()
    let $d := d:debug((
-     "$c:SESSION: session =", $session, data($session/sess:last-modified)))
+     "$c:SESSION: session =", $session, data($session/@version)))
    let $session :=
      if ($session) then $session else c:get-last-session()
    (: if none of the above worked, generate a new session :)
@@ -254,8 +254,8 @@ declare variable $c:SESSION-ID as xs:string? :=
   return $id
 ;
 
-declare variable $c:SESSION-LAST-MODIFIED as xs:dateTime? :=
-  $c:SESSION/sess:last-modified ;
+declare variable $c:SESSION-ETAG as xs:string? :=
+  ($c:SESSION/@version, "0")[1] ;
 
 declare variable $c:SESSION-NAME as xs:string? :=
   $c:SESSION/sess:name ;
@@ -461,7 +461,10 @@ declare function c:new-session()
     if ($c:SESSION-EXCEPTION) then () else c:generate-id()
   let $d := d:debug((
     "new-session:", $id, data($c:SESSION-EXCEPTION/error:format-string) ))
-  let $attributes := attribute id { $id }
+  let $attributes := (
+    attribute id { $id },
+    attribute version { 1 }
+  )
   let $attribute-qnames := for $i in $attributes return node-name($i)
   let $elements := (
     element sec:user { $su:USER },
@@ -519,55 +522,61 @@ declare function c:clone-session($source-id as xs:string, $name as xs:string)
   (: do not check for locks, since we will not update the source :)
   let $source := c:get-session($source-id, false())
   let $target-id := c:generate-id()
-  (: NB - this function does not return the last-modified stamp,
+  (: NB - this function does not lock nor return the etag,
    : so the caller must restore the new id before trying to update it.
    :)
-  let $do := c:update-session($target-id, element sess:name { $name }, $source)
+  let $do := c:update-session(
+    $target-id, (), element sess:name { $name }, $source)
   return $target-id
 };
 
-(: must return new last-modified stamp :)
-declare function c:rename-session($id as xs:string, $name as xs:string)
- as xs:dateTime
+(: rename an existing session by id and etag - must return new etag :)
+declare function c:rename-session(
+  $id as xs:string, $name as xs:string, $etag as xs:string)
+ as xs:string
 {
-  d:debug(("c:rename-session:", $id, "to", $name)),
-  c:update-session($id, (), element sess:name { $name })
+  d:debug(("c:rename-session:", $id, "to", $name, '@', $etag)),
+  c:update-session($id, $etag, element sess:name { $name })
 };
 
-(: must return new last-modified stamp :)
+(: update an existing session by id and etag - must return new etag :)
 declare function c:update-session(
-  $id as xs:string, $last-modified as xs:dateTime?,
-  $nodes as element()*)
- as xs:dateTime
+  $id as xs:string, $etag as xs:string, $nodes as element()*)
+ as xs:string
 {
-  d:debug(("c:update-session: id =", $id, $nodes)),
+  d:debug(("c:update-session: id =", $id, $etag, $nodes)),
   let $session as element(sess:session)? := c:get-session($id, true())
   let $assert :=
     if ($session) then ()
     else c:error('CTRL-SESSION', ('No available session for', $id))
-  let $assert :=
-    if (empty($last-modified)
-      or xs:dateTime($session/sess:last-modified) eq $last-modified) then ()
-    else c:error(
-      'CTRL-SESSION-MODIFIED', (
-        'Session', $id, 'last-modified', $session/sess:last-modified,
-        'does not match', $last-modified ) )
-  return c:update-session($id, $last-modified, $nodes, $session)
+  (: allow for older sessions that do not yet have a version attribute :)
+  let $version as xs:string := ($session/@version, '0')[1]
+  return (
+    if ($version ne $etag) then (
+      xdmp:set-response-code(412, 'Precondition Failed'),
+      text {
+        'Precondition Failed:', $etag, 'does not match', $version
+      }
+    )
+    else c:update-session($id, $etag, $nodes, $session)
+  )
 };
 
-(: NB - This function does not use the $last-modified parameter,
+(: NB - This function does not use the etag parameter,
  : but needs to have a different arity from the preceding function.
  :)
-(: must return new last-modified stamp :)
+(: must return new etag :)
 declare function c:update-session(
-  $id as xs:string, $last-modified as xs:dateTime?,
+  $id as xs:string, $etag as xs:string?,
   $nodes as element()*, $session as element(sess:session))
- as xs:dateTime
+ as xs:string
 {
   d:debug(("c:update-session: id =", $id, $nodes, $session)),
   let $last-modified := current-dateTime()
+  (: allow for older sessions that do not yet have a version attribute :)
+  let $new-version as xs:integer := xs:integer(1 + ($session/@version, 0)[1])
   let $x-attrs as xs:QName+ :=
-    for $n in ('id', 'uri')
+    for $n in ('id', 'uri', 'version')
     return xs:QName($n)
   let $x-elems as xs:QName+ :=
     for $n in ($nodes, <sec:user/>, <sess:last-modified/>)
@@ -575,6 +584,7 @@ declare function c:update-session(
   let $session := element { node-name($session) } {
     $session/@*[ not(node-name(.) = $x-attrs) ],
     attribute id { $id },
+    attribute version { $new-version },
     (: by default, take ownership :)
     if (exists($nodes/sec:user)) then ()
     else element sec:user { $su:USER },
@@ -583,7 +593,7 @@ declare function c:update-session(
     $nodes
   }
   let $do := c:save-session($session)
-  return $last-modified
+  return string($new-version)
 };
 
 declare function c:get-app-server-info()

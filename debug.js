@@ -70,6 +70,37 @@ function DebugClass(flag) {
                                                     + message));
         debugNode.appendChild(newNode);
     };
+
+    this.dump = function(item, level) {
+        var out = "";
+        if (!level) {
+            level = 0;
+        }
+
+        // start-of-line padding
+        var level_padding = "";
+        for (var j = 0; j < 1 + level; j++) {
+            level_padding += "    ";
+        }
+
+        if (typeof(item) == 'object') {
+            // obj is an array, hash, or object
+            for (var i in item) {
+                var v = item[i];
+                if (typeof(v) == 'object') {
+                    out += level_padding + "'" + i + "' ...\n";
+                    out += dump(v, 1 + level);
+                } else {
+                    out += level_padding + "'" + i + "' => \"" + v + "\"\n";
+                }
+            }
+            return out;
+        }
+
+        // primitives
+        return "===>" + item + "<===(" + typeof(item) + ")";
+    }
+
 }
 
 // debug.js

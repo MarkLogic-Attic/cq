@@ -28,6 +28,8 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 
 declare option xdmp:mapping "false";
 
+declare variable $ETAG as xs:string := xdmp:get-request-header("if-match");
+
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
 declare variable $NAME as xs:string :=
@@ -38,12 +40,18 @@ d:check-debug()
 if (string-length($NAME) gt 0) then ()
 else c:error('CQ-EMPTYNAME', 'session name may not be empty')
 ,
-(: will return new last-modified stamp :)
-xdmp:add-response-header(
-  'last-modified', string(c:rename-session($ID, $NAME)) ),
-(: firefox 3 logs an error if the result is empty,
- : and Ajax.InPlaceEditor uses this value
- :)
-$NAME
+(: will return new etag :)
+let $etag := c:rename-session($ID, $NAME, $ETAG)
+return (
+  if (xdmp:get-response-code()[1] eq 412)
+  then $etag
+  else (
+    xdmp:add-response-header('etag', $etag),
+    (: firefox 3 logs an error if the result is empty,
+     : and Ajax.InPlaceEditor uses this value
+     :)
+    $NAME
+  )
+)
 
 (: rename-session.xqy :)

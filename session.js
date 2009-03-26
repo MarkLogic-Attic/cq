@@ -37,7 +37,6 @@ function reportError(req) {
 function SessionList() {
     this.cloneUrl = 'clone-session.xqy';
     this.deleteUrl = 'delete-session.xqy';
-    this.renameUrl = 'rename-session.xqy';
     this.currentSession = null;
 
     this.setCurrentSession = function(s) {
@@ -69,6 +68,11 @@ function SessionList() {
         setCookie(gSessionIdCookie, sessionId);
         // refresh should show the query view
         this.refresh();
+    }
+
+    this.buildNamedQueryString = function(id, name) {
+        return 'ID=' + id + '&NAME=' + escape(name)
+          + (debug.isEnabled() ? '&DEBUG=1' : '')
     }
 
     this.cloneSession = function(id, context) {
@@ -124,27 +128,6 @@ function SessionList() {
         }
     }
 
-    this.renameSession = function(id, name) {
-        debug.print("renameSession: " + id + " to " + name);
-        // call the rename xqy
-        // in this code path we don't worry about the last-modified stamp
-        var opts = {
-            method: 'post',
-            // workaround, to avoid appending charset info
-            encoding: null,
-            parameters: this.buildNamedQueryString(id, name),
-            asynchronous: false,
-            onFailure: reportError
-        };
-
-        var req = new Ajax.Request(this.renameUrl, opts);
-    }
-
-    this.buildNamedQueryString = function(id, name) {
-        return 'ID=' + id + '&NAME=' + escape(name)
-          + (debug.isEnabled() ? '&DEBUG=1' : '')
-    }
-
 } // SessionListClass
 
 // this class is responsible for autosaving the session state
@@ -152,7 +135,7 @@ function SessionClass(tabs, id) {
     this.tabs = tabs;
     this.restoreId = id;
     this.sessionId = null;
-    this.lastModified = null;
+    this.etag = null;
     this.buffers = this.tabs.getBuffers();
     debug.print("SessionClass: buffers = " + this.buffers);
     this.history = this.tabs.getHistory();
@@ -164,6 +147,7 @@ function SessionClass(tabs, id) {
 
     this.autosave = null;
 
+    this.renameUrl = 'rename-session.xqy';
     this.updateSessionUrl = "update-session.xqy";
     this.updateSessionLockUrl = "update-session-lock.xqy";
 
@@ -195,7 +179,7 @@ function SessionClass(tabs, id) {
         }
 
         // store the last-updated value
-        this.lastModified = restore.getAttribute('last-modified');
+        this.etag = restore.getAttribute('etag');
 
         // handle exposed tab
         var activeTab = restore.getAttribute('active-tab');
@@ -258,7 +242,7 @@ function SessionClass(tabs, id) {
         var lastLineStatus = this.buffers.getLastLineStatus();
 
         debug.print(label + this.sessionId
-                    + " " + this.lastModified
+                    + " " + this.etag
                     + " " + historyLastModified + " ? " + this.lastSync);
         if (null != this.lastSync
             && historyLastModified <= this.lastSync
@@ -275,7 +259,6 @@ function SessionClass(tabs, id) {
         var params = {
             DEBUG: debug.isEnabled() ? true : false,
             ID: this.sessionId,
-            MODIFIED: this.lastModified,
             BUFFERS: buffers,
             HISTORY: history,
             TABS: tabs
@@ -283,15 +266,18 @@ function SessionClass(tabs, id) {
 
         debug.print(label + "" + params);
 
+        // wrap current session in a closure
         var session = this;
-        var successHandler = function(resp) {
-            session.lastModified = resp.responseText;
-            debug.print("session lastModified = " + session.lastModified);
-        };
+        // TODO use a Mutex class here?
+        var successHandler = function(resp) { session.updateEtag(resp) };
         var req = new Ajax.Request(this.updateSessionUrl,
             {
                 method: 'post',
+                // we don't want async because it will causes races...
+                // especially with manual vs automatic sync!
+                asynchronous: false,
                 parameters: params,
+                requestHeaders: { 'If-Match': this.etag },
                 // workaround, to avoid appending charset info
                 encoding: null,
                 onSuccess: successHandler,
@@ -301,6 +287,14 @@ function SessionClass(tabs, id) {
         this.lastSync = new Date();
 
         return true;
+    }
+
+    this.updateEtag = function(resp) {
+        debug.print("successHandler: old = " + this.etag);
+        debug.print("successHandler: resp etag = "
+                    + resp.getResponseHeader("etag"));
+        this.etag = resp.getResponseHeader("etag");
+        debug.print("successHandler: new = " + this.etag);
     }
 
     this.updateLock = function() {

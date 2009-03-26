@@ -685,6 +685,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             //debug.print("QueryBufferListClass.getQuery: using textarea "
             //            + this.input.value);
             var buf = this.getBuffer(n);
+            // TODO should we always call setQuery?
             buf.setQuery(this.input.value);
             return buf.getQuery();
         }
@@ -760,7 +761,9 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             Element.remove(labelNode);
         }
 
+        // TODO fix bug where query values are not copied correctly
         for (var i = n; i < this.buffers.length; i++) {
+            debug.print("QueryBufferListClass.remove: setLabel i=" + i);
             this.setLabel(i, i == this.pos);
         }
 
@@ -799,6 +802,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         query = nudge(query);
 
         // put a nbsp here for formatting, so it won't be inside the link
+        debug.print("QueryBufferListClass.setLabel: label  = " + query);
         label.appendChild(document.createTextNode("\u00a0" + query));
 
         // TODO mouseover for fully formatted text contents as tooltip?
@@ -1248,27 +1252,32 @@ function cqOnLoad() {
     gSession.restore();
     // enable autosave
     gSession.setAutoSave();
+
     // enable in-place session rename
     var sessionId = gSession.getId();
     if (null == sessionId) {
         debug.print(label + "null session id");
     } else {
         var sessionList = new SessionList();
+        // callback to build the request query string
         var callbackQuery = function(form, value) {
-            debug.print("in callbackQuery " + sessionId + " " + value);
-            return sessionList.buildNamedQueryString(sessionId, value);
+            // "this" object is editorOptions, below
+            debug.print("rename callbackQuery: " + sessionId + " " + value);
+            var query = sessionList.buildNamedQueryString(sessionId, value);
+            debug.print("rename callbackQuery: " + query);
+            // set etag header
+            this.ajaxOptions = {
+                requestHeaders: { 'If-Match': gSession.etag } };
+            return query;
         };
-        // set up to update the lastModified stamp
+        // successHandler will update the session etag
         var successHandler = function(resp, element) {
+            debug.print("rename successHandler: " + resp + " " + element);
             // resp is the http response
             // element is the HTML element that was edited
-            debug.print("successHandler: old = " + gSession.lastModified);
-            debug.print("successHandler: resp last-modified = "
-                        + resp.getResponseHeader("last-modified"));
-            gSession.lastModified = resp.getResponseHeader("last-modified");
-            debug.print("successHandler: new = " + gSession.lastModified);
+            gSession.updateEtag(resp);
             // this will fill in the name and do the highlight effect
-            return $super.onComplete(transport);
+            return $super.onComplete(resp);
         };
         var editorOptions = {
             callback: callbackQuery,
@@ -1277,7 +1286,7 @@ function cqOnLoad() {
             onFailure: reportError
         };
         new Ajax.InPlaceEditor('rename-session',
-                               sessionList.renameUrl,
+                               gSession.renameUrl,
                                editorOptions);
 
         gBufferTabs.setSession(gSession);
@@ -1493,6 +1502,7 @@ function submitFormWrapper(theForm, mimeType) {
 function cqListDocuments() {
     var source = gBuffers.getContentSource();
     debug.print("listDocuments: source = " + source);
+    // TODO ie6 may be caching this page despite the query string
     var src = "explore.xqy?"
         + "debug=" + (debug.isEnabled() ? 1 : 0)
         + (source ? ("&eval=" + source) : "");

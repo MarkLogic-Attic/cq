@@ -55,8 +55,13 @@ let $priv-errors :=
     "http://marklogic.com/xdmp/privileges/xdmp-save"
   )
   return try {
-    xdmp:security-assert($priv, "execute")
-  } catch ($ex) { $priv }
+    xdmp:security-assert($priv, "execute") }
+  catch ($ex) {
+    (: expect SEC-PRIV, but ignore privileges that do not yet exist :)
+    if ($ex/error:code eq 'SEC-PRIV') then $priv
+    else if ($ex/error:code eq 'SEC-PRIVDNE') then ()
+    else c:error('CQ-UNEXPECTED', $ex)
+  }
 return
   if ($priv-errors) then
 <html xmlns="http://www.w3.org/1999/xhtml">

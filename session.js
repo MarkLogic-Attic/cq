@@ -25,11 +25,12 @@ var gSessionIdCookie = "/cq:session-id";
 // GLOBAL VARIABLES
 
 // static functions
-function reportError(req) {
+function reportError(resp) {
     var old = debug.isEnabled();
     debug.setEnabled(true);
-    debug.print("reportError: status = " + req.status);
-    debug.print("reportError: req = " + req.responseText);
+    debug.print("reportError: status = " + resp.statusText
+                + ", response = " + resp.responseText
+                + ", request.url = " + resp.request.url);
     debug.setEnabled(old);
 }
 
@@ -253,6 +254,10 @@ function SessionClass(tabs, id) {
             return false;
         }
 
+        // this is not really thread-safe - attempt at critical section...
+        // this seems to work ok, but we skip some syncs under duress
+        this.syncDisabled = true;
+
         var buffers = this.buffers.toXml();
         var history = this.history.toXml();
         var tabs = this.tabs.toXml();
@@ -268,22 +273,27 @@ function SessionClass(tabs, id) {
 
         // wrap current session in a closure
         var session = this;
-        // TODO use a Mutex class here?
-        var successHandler = function(resp) { session.updateEtag(resp) };
+        var successHandler = function(resp) {
+            session.updateEtag(resp);
+            session.syncDisabled = false;
+        };
+        var failureHandler = function(resp) {
+            reportError(resp);
+            // re-enable sessions - maybe offline, or server is restarting
+            session.syncDisabled = false;
+        };
         var req = new Ajax.Request(this.updateSessionUrl,
             {
                 method: 'post',
-                // we don't want async because it will causes races...
-                // especially with manual vs automatic sync!
-                asynchronous: false,
                 parameters: params,
                 requestHeaders: { 'If-Match': this.etag },
                 // workaround, to avoid appending charset info
                 encoding: null,
                 onSuccess: successHandler,
-                onFailure: reportError
+                onFailure: failureHandler
             }
                                    );
+        // synchronous, so we should have the response here
         this.lastSync = new Date();
 
         return true;
@@ -293,7 +303,14 @@ function SessionClass(tabs, id) {
         debug.print("successHandler: old = " + this.etag);
         debug.print("successHandler: resp etag = "
                     + resp.getResponseHeader("etag"));
-        this.etag = resp.getResponseHeader("etag");
+        var newTag = resp.getResponseHeader("etag");
+        if (!newTag) {
+            // this might have been an error - server is down?
+            // don't overwrite the old etag!
+            reportError(resp);
+            return;
+        }
+        this.etag = newTag;
         debug.print("successHandler: new = " + this.etag);
     }
 

@@ -47,9 +47,8 @@ d:check-debug(),
 let $options :=
   <options xmlns="xdmp:eval">
   {
-    element database { $c:FORM-EVAL-DATABASE-ID },
-    element root { $c:SERVER-APPLICATION-PATH },
-    element modules { $c:SERVER-ROOT-DB }
+    if ($c:FORM-EVAL-DATABASE-ID eq xdmp:database()) then ()
+    else element database { $c:FORM-EVAL-DATABASE-ID }
   }
   </options>
 let $d := d:debug(('explore:', $options, $START, $SIZE, $FILTER, $FILTER-TEXT))

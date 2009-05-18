@@ -77,6 +77,12 @@ c:set-content-type(),
                 if ($c:SESSION-EXCEPTION) then ()
                 else <span id="rename-session">{ $c:SESSION-NAME }</span>
               }</span>
+              <!-- inactive per 6997 -->
+<!--
+              &#160;|&#160;<span class="instruction">
+              <a href="javascript:prettyPrint()">pretty-print</a>
+            </span>
+-->
             </div>
             <div nowrap="1" id="queryBuffers">
             <textarea id="query" name="query"

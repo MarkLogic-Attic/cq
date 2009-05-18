@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2008 Mark Logic Corporation. All rights reserved.
+// Copyright (c) 2003-2009 Mark Logic Corporation. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -1517,6 +1517,26 @@ function parentListDocuments(src) {
         return;
     }
     resultFrame.setAttribute("src", src);
+}
+
+function prettyPrint() {
+    // replace the current XQuery source with a formatted version
+    var query = gBuffers.getQuery();
+    var url = "pretty-print.xqy";
+    var opts = {
+        method: 'post',
+        // workaround, to avoid appending charset info
+        encoding: null,
+        parameters: 'QUERY=' + escape(query)
+          + (debug.isEnabled() ? '&DEBUG=1' : ''),
+        asynchronous: true,
+        onFailure: reportError,
+        onSuccess: function(resp) {
+            // replace buffer source with formatted query
+            gBuffers.setQuery(resp.responseText)
+        }
+    };
+    var req = new Ajax.Request(url, opts);
 }
 
 // query.js

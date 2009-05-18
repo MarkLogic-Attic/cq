@@ -119,7 +119,7 @@ declare variable $c:FORM-EVAL as xs:string :=
   )
 ;
 
-declare variable $c:FORM-EVAL-VALUES as xs:anyAtomicType+ :=
+declare variable $c:FORM-EVAL-VALUES as xs:anyAtomicType+ := (
   (: colon-delimited value, dependent on the first field...
    : if not "as", then database-id:modules-id:root-path,
    : otherwise use tokens 2 (group-id) and 3 (server-id)
@@ -133,11 +133,19 @@ declare variable $c:FORM-EVAL-VALUES as xs:anyAtomicType+ :=
     then xs:unsignedLong(
       substring-before(substring-after($form, 'as:'), ':'))
     else xdmp:server()
-  let $database-id as xs:unsignedLong :=
-    if ($is-appserver)
-    then admin:appserver-get-database($c:ADMIN-CONFIG, $server-id)
-    else xs:unsignedLong(substring-before($c:FORM-EVAL, ':'))
+  let $database-id as xs:unsignedLong := (
+    if (not($is-appserver)) then xs:unsignedLong(
+      substring-before($c:FORM-EVAL, ':') )
+    else try {
+      admin:appserver-get-database($c:ADMIN-CONFIG, $server-id) }
+    catch ($ex) {
+      if ($ex/error:code eq 'SEC-PRIV')
+      then xdmp:database()
+      else xdmp:rethrow()
+    }
+  )
   return ($database-id, $server-id)
+)
 ;
 
 declare variable $c:FORM-EVAL-DATABASE-ID as xs:unsignedLong :=
@@ -284,6 +292,7 @@ declare variable $c:TITLE-TEXT as xs:string :=
   }
 ;
 
+(: use server version if cq version is missing or unreadable :)
 declare variable $c:VERSION as xs:string :=
   let $version := io:read(c:build-document-path('VERSION.xml'))/version
   return
@@ -399,6 +408,7 @@ declare function c:get-session(
        : returning empty will disable sessions
        :)
       if ($ex/error:code eq 'SVC-FILOPN') then ()
+      else if ($ex/error:code eq 'SEC-PRIV') then ()
       else xdmp:rethrow()
     }
   let $d := d:debug(('c:get-session:', $session))
@@ -604,20 +614,31 @@ declare function c:get-app-server-info()
    : NOTE: requires MarkLogic Server 4.0-1 or later.
    : TODO provide a mechanism to update the list, to pull admin changes.
    :)
-  for $group-id in admin:get-group-ids($c:ADMIN-CONFIG)
-  for $server-id in (
-    admin:group-get-httpserver-ids($c:ADMIN-CONFIG, $group-id),
-    admin:group-get-xdbcserver-ids($c:ADMIN-CONFIG, $group-id)
-  )
-  let $database-id :=
-    admin:appserver-get-database($ADMIN-CONFIG, $server-id)
-  where $database-id
-  return element c:app-server-info {
-    element c:server-id { $server-id },
-    element c:server-name {
-      admin:appserver-get-name($c:ADMIN-CONFIG, $server-id)
-    },
-    element c:database-id { $database-id }
+  try {
+    for $group-id in admin:get-group-ids($c:ADMIN-CONFIG)
+    for $server-id in (
+      admin:group-get-httpserver-ids($c:ADMIN-CONFIG, $group-id),
+      admin:group-get-xdbcserver-ids($c:ADMIN-CONFIG, $group-id)
+    )
+    let $database-id := admin:appserver-get-database(
+      $ADMIN-CONFIG, $server-id )
+    where $database-id
+    return element c:app-server-info {
+      element c:server-id { $server-id },
+      element c:server-name {
+        admin:appserver-get-name($c:ADMIN-CONFIG, $server-id)
+      },
+      element c:database-id { $database-id }
+    }
+  }
+  catch ($ex) {
+    if ($ex/error:code eq 'SEC-PRIV')
+    then element c:app-server-info {
+      element c:server-id { xdmp:server() },
+      element c:server-name { xdmp:server-name(xdmp:server()) },
+      element c:database-id { xdmp:database() }
+    }
+    else xdmp:rethrow()
   }
 };
 
@@ -629,7 +650,12 @@ declare function c:get-orphan-database-ids()
    : note that we can default to one of these, too!
    :)
   let $exposed := data($c:APP-SERVER-INFO/c:database-id)
-  return admin:get-database-ids($c:ADMIN-CONFIG)[not(. = $exposed)]
+  return try {
+    admin:get-database-ids($c:ADMIN-CONFIG)[not(. = $exposed)] }
+  catch ($ex) {
+    if ($ex/error:code eq 'SEC-PRIV') then ()
+    else xdmp:rethrow()
+  }
 };
 
 declare function c:build-document-path($document-name as xs:string)

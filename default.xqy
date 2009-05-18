@@ -40,19 +40,10 @@ c:set-content-type(),
 (: before we go any further, make sure we have the right exec privs :)
 let $priv-errors :=
   for $priv in (
-    "http://marklogic.com/xdmp/privileges/admin-module-read",
-    "http://marklogic.com/xdmp/privileges/xdmp-document-get",
-    "http://marklogic.com/xdmp/privileges/xdmp-eval",
-    "http://marklogic.com/xdmp/privileges/xdmp-eval-in",
-    "http://marklogic.com/xdmp/privileges/xdmp-eval-modules-change",
-    "http://marklogic.com/xdmp/privileges/xdmp-eval-modules-change-file",
-    "http://marklogic.com/xdmp/privileges/xdmp-filesystem-directory",
-    "http://marklogic.com/xdmp/privileges/xdmp-invoke",
-    "http://marklogic.com/xdmp/privileges/xdmp-invoke-in",
-    "http://marklogic.com/xdmp/privileges/xdmp-invoke-modules-change",
-    "http://marklogic.com/xdmp/privileges/xdmp-invoke-modules-change-file",
+    (: basic privileges :)
     "http://marklogic.com/xdmp/privileges/xdmp-add-response-header",
-    "http://marklogic.com/xdmp/privileges/xdmp-save"
+    "http://marklogic.com/xdmp/privileges/xdmp-eval",
+    "http://marklogic.com/xdmp/privileges/xdmp-invoke"
   )
   return try {
     xdmp:security-assert($priv, "execute") }
@@ -77,11 +68,14 @@ return
     to resolve the problems listed below.
     </p>,
     if (empty($priv-errors)) then () else (
-      <p>The current user is missing certain exec privileges required by cq.
-      We recommend that you create a new <code>cq</code> role,
-      grant these privileges to the <code>cq</code> role,
-      and assign the <code>cq</code> role to the {$su:USER} user.
-      </p>,
+      <p>
+      The current user is missing certain exec privileges required by cq.
+      The admin user may be able to fix this problem by clicking on this
+      <a href="install-roles.xqy">install-roles.xqy</a> link,
+      and then granting the <code>cq-basic</code> role
+      to the {$su:USER} login.
+      </p>
+      ,
       element ul { for $e in $priv-errors return element li { $e } }
     )
   }

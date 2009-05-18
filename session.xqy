@@ -72,11 +72,25 @@ c:set-content-type(),
           {
             if ($c:SESSION-DB eq 0)
             then
+            <div>
             <p>
             You are running cq from the filesystem.
             Make sure that the directory <code>{$c:SESSION-DIRECTORY}</code>
             exists, and that MarkLogic Server can write to it.
             </p>
+            <p>
+              Make sure that the current user
+              has the following exec privileges:
+              <ul>
+      <li><code>http://marklogic.com/xdmp/privileges/xdmp-document-get
+      </code></li>
+      <li><code>http://marklogic.com/xdmp/privileges/xdmp-filesystem-directory
+      </code></li>
+      <li><code>http://marklogic.com/xdmp/privileges/xdmp-save
+      </code></li>
+              </ul>
+            </p>
+            </div>
             else
             <p>
             You are running cq from a modules database,
@@ -86,6 +100,14 @@ c:set-content-type(),
             exists, and that your login can write to it.
             </p>
           }
+          <p>
+    The admin user may be able to fix this problem by clicking on this
+    <a href="install-roles.xqy">install-roles.xqy</a> link,
+    then granting the <code>cq-sessions</code> roles to your user login.
+    Please consult the
+    <a href="README.txt" tabindex="-1">README</a>
+    for more information about cq.
+          </p>
           <p>The complete error message follows:</p>
           <hr/>
           <pre>{
@@ -115,6 +137,10 @@ c:set-content-type(),
           you will not be able to view it.
           If a session is locked by another user,
           you will not be able to resume it.
+          </p>
+          <p>
+    The admin user can install pre-defined roles for cq by clicking on this
+    <a href="install-roles.xqy">install-roles.xqy</a> link.
           </p>
           <script>
           var list = new SessionList();

@@ -11,7 +11,22 @@ Files\MarkLogic\Docs\cq directory, you can run CQ as
 http://localhost:8000/cq/. Please be very careful in exposing CQ on a
 production site, as it allows queries to be written by remote clients.
 
-This release of CQ requires MarkLogic Server 4.0-1 or later.
+This release of CQ requires MarkLogic Server 4.1-1 or later.
+
+CQ uses the MarkLogic Server security model. To set up CQ for a non-admin
+user, start by visiting CQ's install-roles.xqy as the admin user.
+For example, if CQ is installed on port 8000, visit
+http://localhost:8000/cq/install-roles.xqy with a web browser,
+and log in as the admin user. This will create four roles:
+
+  * cq-basic, able to evaluate queries in the current database.
+  * cq-sessions, able to save sessions in the current module location.
+  * cq-databases, able to evaluate queries using any database.
+  * cq-all, which inherits all the above roles.
+
+The cq-sessions and cq-databases roles also inherit the cq-basic role.
+You may grant any combination of these roles to a user, or simply grant
+the cq-all role to enable all of CQ's features.
 
 CQ is developed using Mozilla Firefox 3.0, and periodically tested
 using MS Internet Explorer 6. Other browsers are not tested, and may not work,

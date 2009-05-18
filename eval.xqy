@@ -45,20 +45,32 @@ declare variable $DATABASE-ID as xs:unsignedLong := $c:FORM-EVAL-DATABASE-ID ;
 
 declare variable $SERVER-ID as xs:unsignedLong := $c:FORM-EVAL-SERVER-ID ;
 
-declare variable $COLLATION as xs:string :=
-  admin:appserver-get-collation($c:ADMIN-CONFIG, $SERVER-ID)
+declare variable $COLLATION as xs:string := try {
+  admin:appserver-get-collation($c:ADMIN-CONFIG, $SERVER-ID) }
+catch ($ex) {
+  if ($ex/error:code eq 'SEC-PRIV') then default-collation()
+  else xdmp:rethrow() }
 ;
 
-declare variable $MODULES-ID as xs:unsignedLong :=
-  admin:appserver-get-modules-database($c:ADMIN-CONFIG, $SERVER-ID)
+declare variable $MODULES-ID as xs:unsignedLong := try {
+  admin:appserver-get-modules-database($c:ADMIN-CONFIG, $SERVER-ID) }
+catch ($ex) {
+  if ($ex/error:code eq 'SEC-PRIV') then xdmp:modules-database()
+  else xdmp:rethrow() }
 ;
 
-declare variable $XQUERY-VERSION as xs:string :=
-  admin:appserver-get-default-xquery-version($c:ADMIN-CONFIG, $SERVER-ID)
+declare variable $XQUERY-VERSION as xs:string := try {
+  admin:appserver-get-default-xquery-version($c:ADMIN-CONFIG, $SERVER-ID) }
+catch ($ex) {
+  if ($ex/error:code eq 'SEC-PRIV') then 'app-server'
+  else xdmp:rethrow() }
 ;
 
-declare variable $MODULES-ROOT as xs:string :=
-  admin:appserver-get-root($c:ADMIN-CONFIG, $SERVER-ID)
+declare variable $MODULES-ROOT as xs:string := try {
+  admin:appserver-get-root($c:ADMIN-CONFIG, $SERVER-ID) }
+catch ($ex) {
+  if ($ex/error:code eq 'SEC-PRIV') then xdmp:modules-root()
+  else xdmp:rethrow() }
 ;
 
 declare variable $MIMETYPE as xs:string :=
@@ -70,18 +82,20 @@ declare variable $PROFILING as xs:boolean :=
 ;
 
 declare variable $OPTIONS as element() := (
+  (: avoid setting options unless needed, for more flexible security :)
   <options xmlns="xdmp:eval">{
-    element database { $DATABASE-ID },
-    element modules { $MODULES-ID },
-    element default-collation { $COLLATION },
-    element default-xquery-version { $XQUERY-VERSION },
+    if ($DATABASE-ID eq xdmp:database()) then ()
+    else element database { $DATABASE-ID },
+    if ($MODULES-ID eq xdmp:modules-database()) then ()
+    else element modules { $MODULES-ID },
+    if ($COLLATION eq default-collation()) then ()
+    else element default-collation { $COLLATION },
+    if ($XQUERY-VERSION eq xdmp:xquery-version()) then ()
+    else element default-xquery-version { $XQUERY-VERSION },
     (: we should always have a root path, but better safe than sorry :)
-    if ($MODULES-ROOT) then element root { $MODULES-ROOT }
-    else (),
-    element isolation { "different-transaction" },
-    if (fn:starts-with(xdmp:version(), "4"))
-      then element default-xquery-version { "app-server" }
-      else ()
+    if (empty($MODULES-ROOT) or $MODULES-ROOT eq xdmp:modules-root()) then ()
+    else element root { $MODULES-ROOT },
+    element isolation { "different-transaction" }
   }</options>
 );
 

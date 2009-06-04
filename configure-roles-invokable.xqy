@@ -54,7 +54,7 @@ let $kind as xs:string := (
   default return error(
     (), 'CQ-UNEXPECTED', text { xdmp:unquote($priv) })
 )
-where not(sec:privilege-get-roles($action, $kind))
+where not(sec:privilege-get-roles($action, $kind) = $ROLE/@name)
 return sec:privilege-add-roles($action, $kind, $ROLE/@name)
 ,
 (: configure permissions :)

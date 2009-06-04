@@ -26,6 +26,7 @@ import module namespace c = "com.marklogic.developer.cq.controller"
 declare variable $CONFIG :=
 <roles>
   <role name="cq-basic">
+    <exec-privilege>profile-my-requests</exec-privilege>
     <exec-privilege>xdmp:add-response-header</exec-privilege>
     <exec-privilege>xdmp:eval</exec-privilege>
     <exec-privilege>xdmp:invoke</exec-privilege>

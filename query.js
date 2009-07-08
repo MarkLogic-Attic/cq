@@ -1503,6 +1503,7 @@ function cqListDocuments() {
     var source = gBuffers.getContentSource();
     debug.print("listDocuments: source = " + source);
     // TODO ie6 may be caching this page despite the query string
+    // cannot reproduce in ie7
     var src = "explore.xqy?"
         + "debug=" + (debug.isEnabled() ? 1 : 0)
         + (source ? ("&eval=" + source) : "");

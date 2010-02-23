@@ -25,6 +25,8 @@ var gSessionIdCookie = "/cq:session-id";
 // GLOBAL VARIABLES
 
 // static functions
+
+// TODO disable sessions if any errors occur
 function reportError(resp) {
     var old = debug.isEnabled();
     debug.setEnabled(true);
@@ -335,8 +337,7 @@ function SessionClass(tabs, id) {
                 // workaround, to avoid appending charset info
                 encoding: null,
                 onFailure: reportError
-            }
-                                   );
+            } );
     };
 
     this.setAutoSave = function(sec) {

@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : Client Query Application
  :
- : Copyright (c) 2002-2009 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2010 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -235,13 +235,19 @@ declare function io:list-db($uri as xs:string)
 declare function io:list-fs($path as xs:string)
   as document-node()*
 {
-  for $p in data(xdmp:filesystem-directory($path)/dir:entry
-    [ dir:type eq "file" ]/dir:pathname)
-  return xdmp:document-get(
-    $p,
-    <options xmlns="xdmp:document-get">{
-      element format { 'xml' } }</options>
-  )
+  (: ignore any files that are not xml :)
+  for $p as xs:string in xdmp:filesystem-directory($path)/dir:entry
+    [ dir:type eq "file" ]/dir:pathname
+  return try {
+    xdmp:document-get(
+      $p,
+      <options xmlns="xdmp:document-get">{
+        element format { 'xml' } }</options>
+      ) }
+  catch ($ex) {
+    if ($ex/error:code eq 'XDMP-DOCROOTTEXT') then ()
+    else xdmp:rethrow()
+  }
 };
 
 (:~ @private :)

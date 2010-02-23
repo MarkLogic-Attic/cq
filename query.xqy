@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : Client Query Application
  :
- : Copyright (c) 2002-2009 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2010 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -63,27 +63,29 @@ c:set-content-type(),
                 }</td>
               </tr>
             </table>
+
             <div>
-              <a href="javascript:cqListDocuments()">explore</a>
-              &#160;|&#160;<span class="instruction">
-              <a href="session.xqy{"?debug=1"[ $d:DEBUG ]}"
-              target="_parent">{
-                (: make sure lazy module variable is initialized :)
-                let $lazy := $c:SESSION
-                return
-                  if ($c:SESSION-EXCEPTION) then "sessions disabled"
-                  else "session:"
+              <a href="javascript:cqListDocuments()"
+               >explore</a>&#160;|&#160;<span
+               class="instruction"><a
+               href="javascript:prettyPrint()"
+               title="format the current selection (removes any comments)"
+              >pretty-print</a></span>|&#160;<span
+               class="instruction"><a>{
+                  attribute href { string-join((
+                    'session.xqy', "?debug=1"[ $d:DEBUG ]), '') },
+                  attribute target { "_parent" },
+                  (: make sure lazy module variable is initialized :)
+                  let $lazy := $c:SESSION
+                  return
+                    if ($c:SESSION-EXCEPTION) then "sessions disabled"
+                    else "session:"
               }</a>&#160;{
                 if ($c:SESSION-EXCEPTION) then ()
                 else <span id="rename-session">{ $c:SESSION-NAME }</span>
               }</span>
-              <!-- inactive per 6997 -->
-<!--
-              &#160;|&#160;<span class="instruction">
-              <a href="javascript:prettyPrint()">pretty-print</a>
-            </span>
--->
             </div>
+
             <div nowrap="1" id="queryBuffers">
             <textarea id="query" name="query"
              itsalltext-extension=".xqy"

@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : cq: lib-view.xqy
  :
- : Copyright (c) 2002-2009 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2010 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -202,7 +202,8 @@ declare function v:get-error-html(
 <html xmlns="http://www.w3.org/1999/xhtml">
   { element head { v:get-html-head() } }
   <body bgcolor="white">{
-    let $version as xs:string? := $ex/error:xquery-version
+    (: fn:string is robust in the face of empty or unknown lexical values :)
+    let $version := string($ex/error:xquery-version)
     return element div {
       (: display eval information :)
       element p {
@@ -223,6 +224,7 @@ declare function v:get-error-html(
       },
       element p {
         attribute class { 'head1' },
+        (: NB - version may be empty :)
         if ($version) then concat('[', $version, '] ') else (),
         (: NB - format-string is sometimes empty. if so, we omit the br :)
         text {

@@ -1522,7 +1522,12 @@ function parentListDocuments(src) {
 
 function prettyPrint() {
     // replace the current XQuery source with a formatted version
+    // this will eat any comments, per 6997
     var query = gBuffers.getQuery();
+    if (!confirm("Are you sure you want to reformat this query?"
+                 + " Any comments will be lost!")) {
+        return;
+    }
     var url = "pretty-print.xqy";
     var opts = {
         method: 'post',
@@ -1530,14 +1535,14 @@ function prettyPrint() {
         encoding: null,
         parameters: 'QUERY=' + escape(query)
           + (debug.isEnabled() ? '&DEBUG=1' : ''),
-        asynchronous: true,
+        asynchronous: false,
         onFailure: reportError,
         onSuccess: function(resp) {
             // replace buffer source with formatted query
             gBuffers.setQuery(resp.responseText)
         }
     };
-    var req = new Ajax.Request(url, opts);
+    new Ajax.Request(url, opts);
 }
 
 // query.js

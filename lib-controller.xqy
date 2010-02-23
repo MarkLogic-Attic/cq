@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : cq/lib-controller.xqy
  :
- : Copyright (c) 2002-2009 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2010 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -363,7 +363,9 @@ declare function c:get-sessions($check-conflicting as xs:boolean)
       $i/name
     return $i
   } catch ($ex) {
-    (: if this is a filesystem with no sessions directory, create it :)
+    (: if this is a filesystem with no sessions directory, create it.
+     : this may throw SVC-DIRCREAT if we don't have write permission.
+     :)
     if ($ex/error:code eq 'SVC-DIROPEN' and $c:SERVER-ROOT-DB eq 0)
     then try {
       xdmp:filesystem-directory-create($c:SESSION-PATH),
@@ -436,7 +438,8 @@ declare function c:get-uri-from-id($id as xs:string)
 declare function c:get-session-id($session as element(sess:session))
  as xs:string
 {
-  ($session/@id,
+  (
+    $session/@id/string(),
     let $uri := $session/@uri
     where $uri
     return c:get-id-from-uri($uri)

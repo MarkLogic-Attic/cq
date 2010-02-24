@@ -23,6 +23,8 @@ xquery version "1.0-ml";
 import module namespace sec="http://marklogic.com/xdmp/security"
  at "/MarkLogic/security.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $ROLE as element(role) external;
 
 (: check environment :)
@@ -65,7 +67,7 @@ sec:role-set-default-permissions(
   $ROLE/@name,
   for $perm in $ROLE/permission
   for $capability in xs:NMTOKENS($perm/@capability)
-  return xdmp:permission($ROLE/@name, $capability)
+  return xdmp:permission(xs:string($ROLE/@name), xs:string($capability))
 )
 ,
 text { 'role', $ROLE/@name, 'configured', current-dateTime() }

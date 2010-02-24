@@ -23,6 +23,8 @@ xquery version "1.0-ml";
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $CONFIG :=
 <roles>
   <role name="cq-basic">
@@ -39,8 +41,13 @@ declare variable $CONFIG :=
     <exec-privilege>xdmp:filesystem-directory</exec-privilege>,
     <exec-privilege>xdmp:save</exec-privilege> )
   else (
-    element uri-privilege { $c:SERVER-APPLICATION-PATH },
-    <permission capability="read update insert">cq-sessions</permission>
+    element uri-privilege {
+      attribute name {
+        concat('cq-uri-privilege-',
+          translate($c:SERVER-APPLICATION-PATH, '/', '-') ) },
+      $c:SERVER-APPLICATION-PATH },
+    <permission name="cq-sessions-permission"
+     capability="read update insert">cq-sessions</permission>
   )
 }
   </role>

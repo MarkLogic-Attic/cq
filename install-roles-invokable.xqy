@@ -23,6 +23,8 @@ xquery version "1.0-ml";
 import module namespace sec="http://marklogic.com/xdmp/security"
  at "/MarkLogic/security.xqy";
 
+declare option xdmp:mapping "false";
+
 declare variable $ROLE as element(role) external;
 
 (: check environment :)
@@ -51,7 +53,7 @@ try {
 for $priv in $ROLE/uri-privilege
 return try {
   let $id := sec:create-privilege(
-    $priv,
+    $priv/@name,
     $priv,
     'uri',
     ()

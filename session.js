@@ -21,7 +21,7 @@
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 var gSessionIdCookie = "/cq:session-id";
-var gLocalStoreSessionsKey = "/cq:sessions";
+var gLocalStoreSessionsKey = "com.marklogic.cq.sessions";
 
 // GLOBAL VARIABLES
 
@@ -543,7 +543,7 @@ function SessionListLocal() {
                            try {
                                that.sessionsList = ("" + val).evalJSON(true);
                            } catch (ex) {
-                               debug.print(ex.message);
+                               debug.print(label + ex.message);
                                alert(label + ex.message);
                            }
                            if (null == that.sessionsList) {
@@ -559,7 +559,9 @@ function SessionListLocal() {
 
     // private
     this.key = function(id) {
-        return gLocalStoreSessionsKey + "/" + id;
+        // would like to use '/', but IE objects
+        // so we continue in a java-like vein
+        return gLocalStoreSessionsKey + "." + id;
     };
 
     this.first = function() {
@@ -587,7 +589,7 @@ function SessionListLocal() {
                                try {
                                    result = ("" + val).evalJSON(true);
                                } catch (ex) {
-                                   debug.print(ex.message);
+                                   debug.print(label + ex.message);
                                    alert(label + ex.message);
                                }
                            }
@@ -656,27 +658,35 @@ function SessionListLocal() {
 }
 
 function sessionsOnLoad() {
-    var session = new SessionListLocal();
-    if (session.length() < 0) {
+    var label = "sessionsOnLoad: ";
+    var sessionList = new SessionListLocal();
+    if (sessionList.length() < 0) {
         return;
     }
 
     var out = $("sessions-local");
-    var tableNode = new Element("table");
+    var table = new Element("table");
+    // IE insists on having a tbody or thead
+    var tbody = new Element('tbody');
+    table.appendChild(tbody);
 
-    if (session.length() < 1) {
-        tableNode.appendChild(new Element('tr')
-                              .appendChild(new Element('td', {
-                                          class: "instruction"
-                                              })
-                                  .update("No sessions found")));
+    if (sessionList.length() < 1) {
+        var row = new Element('tr');
+        row.appendChild(new Element('td', {
+                    // IE is too dumb to parse class as a symbol
+                    "class": "instruction"})
+            .update("No sessions found"));
+        tbody.appendChild(row);
     } else {
-        for (var i=0; i<session.length(); i++) {
-            var key = session.keyAt(i);
-            var value = $H(session.get(key));
+        for (var i=0; i<sessionList.length(); i++) {
+            var key = sessionList.keyAt(i);
+            debug.print(label + i + " " + key);
+            var session = $H(sessionList.get(key));
+            var sessionName = session.get('name');
+            debug.print(label + i + " " + key + " " + sessionName);
             var row = document.createElement('tr');
 
-            row.appendChild(new Element('td').update(value.get('name')));
+            row.appendChild(new Element('td').update(sessionName));
 
             var cell = new Element('td');
             var button;
@@ -689,12 +699,12 @@ function sessionsOnLoad() {
             // extra function to create proper scope
             button.observe('click', function(k) {
                     return function() {
-                        session.queue(k);
+                        sessionList.queue(k);
                         // setting the session id to "LOCAL" signals
                         // query.xqy and lib-controller.xqy
                         // to use the local information.
                         setCookie(gSessionIdCookie, "LOCAL");
-                        session.refresh();
+                        sessionList.refresh();
                     }
                 }(key));
             cell.appendChild(button);
@@ -707,7 +717,7 @@ function sessionsOnLoad() {
             // extra function to create proper scope
             button.observe('click', function(k) {
                     return function() {
-                        session.clone(k);
+                        sessionList.clone(k);
                         window.location.reload();
                     }
                 }(key));
@@ -726,18 +736,18 @@ function sessionsOnLoad() {
                                      + " This cannot be undone!")) {
                             return;
                         }
-                        session.remove(k);
+                        sessionList.remove(k);
                         window.location.reload();
                     }
                 }(key));
             cell.appendChild(button);
             row.appendChild(cell);
 
-            tableNode.appendChild(row);
+            tbody.appendChild(row);
         }
     }
 
-    out.appendChild(tableNode);
+    out.appendChild(table);
 
     // button for new local session
     button = new Element('input', {
@@ -748,8 +758,8 @@ function sessionsOnLoad() {
         // query.xqy and lib-controller.xqy to use the local information.
         setCookie(gSessionIdCookie, "LOCAL");
         // signal that we want a new local session on refresh
-        session.queue("NEW");
-        session.refresh();
+        sessionList.queue("NEW");
+        sessionList.refresh();
         });
     out.appendChild(button);
     out.appendChild(new Element('p'));

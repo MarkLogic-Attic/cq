@@ -98,10 +98,18 @@ function simulateSelectionStart(n) {
         // set it up, using IE5+ API
         // http://msdn.microsoft.com/workshop/author/dhtml/reference
         //   /objects/obj_textrange.asp
-        // first, make sure we have the focus
         debug.print(label + "focus on " + n);
-        //n.focus();
-        var range = document.selection.createRange();
+        var range = null;
+        try {
+            range = document.selection.createRange();
+        } catch (ex) {
+            debug.print(label + ex.message);
+        }
+        if (null == range) {
+          debug.print(label + "null range");
+          n.selectionStart = 0;
+          return false;
+        }
         debug.print(label + "range = " + range);
         var storedRange = range.duplicate();
         if (null == storedRange) {

@@ -39,7 +39,7 @@ declare namespace sess = "com.marklogic.developer.cq.session";
 
 declare option xdmp:mapping "false";
 
-declare variable $SESSIONS as element(sess:session)* := c:get-sessions();
+declare variable $SESSIONS as element(sess:session)* := c:sessions();
 
 d:check-debug(),
 c:set-content-type(),
@@ -162,7 +162,7 @@ c:set-content-type(),
           var list = new SessionList();
           </script>
 {
-  let $sessions := c:get-sessions()
+  let $sessions := c:sessions()
   let $d := d:debug(("sessions:", count($sessions)))
   return
     if (exists($sessions))
@@ -176,10 +176,10 @@ c:set-content-type(),
               return element th { $i }
             },
             for $i in $sessions
-            let $id := c:get-session-id($i)
-            let $uri := c:get-session-uri($i)
+            let $id := c:session-id($i)
+            let $uri := c:session-uri($i)
             (: we only care about the lock that expires last :)
-            let $conflicting := c:get-conflicting-locks($uri, 1)
+            let $conflicting := c:conflicting-locks($uri, 1)
             let $name as xs:string := ($i/sess:name, "(unnamed)")[1]
             return element tr {
               element td { $name },
@@ -208,6 +208,7 @@ c:set-content-type(),
                 }[ not($conflicting) ],
                 $x:NBSP,
                 (: clone button :)
+              (: TODO - provide "clone to local" button :)
                 element input {
                   attribute type { "button" },
                   attribute title { "clone this session" },

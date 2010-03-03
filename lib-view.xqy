@@ -366,7 +366,7 @@ declare function v:get-eval-selector() as element(xh:select)
       else attribute selected { 1 },
       attribute value { $value }, $label }
     ,
-    for $db in c:get-orphan-database-ids()
+    for $db in c:orphan-database-ids()
     let $label :=
       v:get-eval-label($db, $c:SERVER-ROOT-DB, $c:SERVER-ROOT-PATH, ())
     let $value := string-join(
@@ -530,7 +530,7 @@ declare function v:get-pagination-link(
 {
   <a xmlns="http://www.w3.org/1999/xhtml">{
     attribute class { $class },
-    attribute href { c:get-pagination-href($start) },
+    attribute href { c:pagination-href($start) },
     $text
   }</a>
 };

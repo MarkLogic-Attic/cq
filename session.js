@@ -27,11 +27,11 @@ var gLocalStoreSessionsKey = "com.marklogic.cq.sessions";
 
 // static functions
 
-// TODO disable sessions if any errors occur
-function reportError(resp) {
+function reportError(resp, from) {
     var old = debug.isEnabled();
     debug.setEnabled(true);
-    debug.print("reportError: status = " + resp.statusText
+    debug.print("session.js (reportError from " + from + "): "
+                + "status = (" + resp.status + ") " + resp.statusText
                 + ", response = " + resp.responseText
                 + ", request.url = " + resp.request.url);
     debug.setEnabled(old);
@@ -182,6 +182,7 @@ function SessionClass(tabs, id) {
     this.rename = function(name) {
         // used for local session rename
         this.sessionName = name;
+        this.tabs.setSessionName();
         this.sync();
     };
 
@@ -339,8 +340,9 @@ function SessionClass(tabs, id) {
         var lastLineStatus = this.buffers.getLastLineStatus();
 
         debug.print(label + this.sessionId
-                    + " " + this.etag
-                    + " " + historyLastModified + " ? " + this.lastSync);
+                    + ", etag=" + this.etag
+                    + ", lastmodified=" + historyLastModified
+                    + " ? lastsync=" + this.lastSync);
         if (null != this.lastSync
             && historyLastModified <= this.lastSync
             && lastLineStatus <= this.lastSync)
@@ -356,6 +358,7 @@ function SessionClass(tabs, id) {
 
         if (this.localSessionList) {
             debug.print(label + "local store");
+            setCookie(gSessionIdCookie, "LOCAL");
             var syncHash = new Hash();
             syncHash.set('name', this.sessionName);
             syncHash.set('active-tab', this.tabs.getCurrent());
@@ -371,7 +374,7 @@ function SessionClass(tabs, id) {
             return true;
         }
 
-        // ajax technique
+        // ajax technique, for server sessions
         var buffers = this.buffers.toXml();
         var history = this.history.toXml();
         var tabs = this.tabs.toXml();
@@ -388,13 +391,58 @@ function SessionClass(tabs, id) {
 
         // wrap current session in a closure
         var session = this;
-        var successHandler = function(resp) {
-            session.updateEtag(resp);
-            session.syncDisabled = false;
-        };
         var failureHandler = function(resp) {
-            reportError(resp);
-            // re-enable sessions - maybe offline, or server is restarting
+            var old = debug.isEnabled();
+            debug.setEnabled(true);
+            debug.print("Session.sync failure:"
+                        + " status = (" + resp.status + ") " + resp.statusText
+                        + ", response = " + resp.responseText
+                        + ", request.url = " + resp.request.url);
+            debug.setEnabled(old);
+
+            // ask the user if we should fall back to local session storage.
+            if (!confirm("This session could not be written to server."
+                         + " Use browser local storage instead?")) {
+                alert("Changes to this session may not be saved."
+                      + " You may wish to copy the current query,"
+                      + " and refresh cq.");
+                return;
+            }
+
+            // fall back to local browser storage
+            session.localSessionList = new SessionListLocal();
+
+            // re-enable session sync
+            session.syncDisabled = false;
+
+            // schedule the next attempt immediately
+            setTimeout(function() { session.rename("new local session");
+                }.bindAsEventListener(this),
+                1000 / 32);
+        };
+        var successHandler = function(resp) {
+            var label = "successHandler: ";
+
+            // no resp means the update was canceled by the user
+            if (!resp) {
+                debug.print(label + "empty response");
+                return;
+            }
+
+            if (resp.status == 0) {
+                // actually this was an error (blank page)
+                return failureHandler(resp);
+            }
+
+            // don't overwrite the old etag unless we have a new one
+            var newTag = resp.getResponseHeader("etag");
+            debug.print(label + "old = " + session.etag + ", new = " + newTag);
+            if (newTag) {
+                session.etag = newTag;
+                debug.print(label + "new = " + session.etag);
+            }
+
+            // re-enable sync
             session.syncDisabled = false;
         };
         var req = new Ajax.Request(this.updateSessionUrl, {
@@ -410,33 +458,6 @@ function SessionClass(tabs, id) {
 
         this.lastSync = new Date();
         return true;
-    }
-
-    this.updateEtag = function(resp) {
-        var label = "updateEtag: ";
-
-        if (this.localSessionList) {
-            debug.print(label + "using local store");
-            return;
-        }
-
-        debug.print(label + "old = " + this.etag);
-        // no resp means the update was cancelled by the user
-        if (resp) {
-            debug.print(label + "resp etag = "
-                        + resp.getResponseHeader("etag"));
-            var newTag = resp.getResponseHeader("etag");
-            if (!newTag) {
-                // this might have been an error - server is down?
-                // don't overwrite the old etag!
-                reportError(resp);
-                return;
-            }
-            this.etag = newTag;
-            debug.print(label + "new = " + this.etag);
-        } else {
-            debug.print(label + "empty response");
-        }
     }
 
     this.updateLock = function() {

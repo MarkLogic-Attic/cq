@@ -164,7 +164,7 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
               if ($is-duplicate) then element span { $c }
               else element a {
                 attribute href {
-                  c:get-pagination-href($START, $keys, $filters)
+                  c:pagination-href($START, $keys, $filters)
                 },
                 $c
               },

@@ -252,6 +252,17 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         this.session = s;
     }
 
+    this.setSessionName = function() {
+        if (!this.session) {
+            return;
+        }
+        var sessionRename = $("session-rename")
+        sessionRename.update(this.session.sessionName);
+        // element show won't work, because of the existing class
+        sessionRename.className = "";
+        Element.show(sessionRename);
+    }
+
     this.setInstructionText = function() {
         if (! (this.instructionNode && this.instructionNode.innerHTML)) {
             return;
@@ -1297,6 +1308,8 @@ function enableSessionRename(sessionId) {
     var sessionList = new SessionList();
     var callbackQuery = null;
 
+    gBufferTabs.setSession(gSession);
+
     // we still use InPlaceEditor even with local storage,
     // but the ajax looks different.
     if (gSession.localSessionList) {
@@ -1305,11 +1318,7 @@ function enableSessionRename(sessionId) {
         var sessionsLink = $("sessions-link");
         sessionsLink.update("session:");
         // enable rename widget and supply session name
-        var sessionRename = $("session-rename");
-        sessionRename.update(gSession.sessionName);
-        // element show won't work, because of the existing class
-        sessionRename.className = "";
-        Element.show(sessionRename);
+        gBufferTabs.setSessionName();
 
         // callback for local browser storage
         callbackQuery = function(form, value) {
@@ -1363,8 +1372,6 @@ function enableSessionRename(sessionId) {
     new Ajax.InPlaceEditor('session-rename',
                            gSession.renameUrl,
                            editorOptions);
-
-    gBufferTabs.setSession(gSession);
 }
 
 function cqOnLoad() {

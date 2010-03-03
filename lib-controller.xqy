@@ -61,7 +61,7 @@ declare variable $c:ADMIN-CONFIG as element(configuration) :=
 ;
 
 declare variable $c:APP-SERVER-INFO as element()+ :=
-  c:get-app-server-info()
+  c:app-server-info()
 ;
 
 declare variable $c:COOKIES as element(c:cookie)* :=
@@ -204,42 +204,46 @@ declare variable $c:SERVER-ROOT-PATH as xs:string :=
 declare variable $c:SERVER-ROOT-DB as xs:unsignedLong :=
   $io:MODULES-DB ;
 
-(: Get the current session,
- : falling back to the last session or a new one.
+(: Get the current session.
+ : If the current session is not set or is not available,
+ : supply a new session with no session-id.
+ : The browser will use local storage.
  :)
-declare variable $c:SESSION as element(sess:session) :=
-   let $d := d:debug(("$c:SESSION: id =", $c:SESSION-ID))
-   (: Get the last session, as long as it is not locked.
-    : If we were explicitly asked for a new session, honor that.
-    :)
-   let $session :=
-     if ($c:SESSION-ID = ('LOCAL', 'NEW')) then c:session-new()
-     else if (exists($c:SESSION-ID)) then c:get-session($c:SESSION-ID, true())
-     else ()
-   let $d := d:debug((
-     "$c:SESSION: session =", $session, data($session/@version)))
-   let $session :=
-     if ($session) then $session else c:get-last-session()
-   (: if none of the above worked, generate a new session :)
-   let $session :=
-     if ($session) then $session else c:session-new()
-   let $id := c:get-session-id($session)
-   let $d := d:debug(("$c:SESSION: session-id =", $id))
-   (: locking may fail - if it does, disable sessions :)
-   let $lock :=
-     if ($c:SESSION-EXCEPTION or 'LOCAL' eq $c:SESSION-ID) then ()
-     else try {
-       c:lock-acquire($c:id)
-     } catch ($ex) {
-       xdmp:set($c:SESSION-EXCEPTION, $ex)
-     }
-   (: ensure that the module session-id matches the final session :)
-   let $set := xdmp:set($c:SESSION-ID, $id)
-   let $d := d:debug((
-     "$c:SESSION: session-id =", $id,
-     ' exception =', exists($c:SESSION-EXCEPTION) ))
-   return $session
-;
+declare variable $c:SESSION as element(sess:session) := (
+  let $d := d:debug(("$c:SESSION: id =", $c:SESSION-ID))
+  (: Get the last session, as long as it is not locked.
+   : If we were explicitly asked for a new session, honor that.
+   :)
+  let $session := (
+    if (empty($c:SESSION-ID) or $c:SESSION-ID = ('LOCAL', 'NEW')) then ()
+    else c:session($c:SESSION-ID, true())
+  )
+  let $d := d:debug(
+    ("$c:SESSION: session =", $session, data($session/@version)) )
+  (: if no session was found, defer to a local session :)
+  let $session := (
+    if ($session) then $session
+    else if ($c:SESSION-ID eq 'NEW') then c:session-new(true())
+    else (
+      xdmp:set($c:SESSION-ID, 'LOCAL'),
+      c:session-new(false())
+    )
+  )
+  let $id := c:session-id($session)
+  let $d := d:debug(("$c:SESSION: session-id =", $id))
+  (: locking may fail - if it does, disable sessions :)
+  let $lock := (
+    if ($c:SESSION-EXCEPTION or 'LOCAL' eq $c:SESSION-ID) then ()
+    else try { c:lock-acquire($c:id) } catch ($ex) {
+      xdmp:set($c:SESSION-EXCEPTION, $ex) }
+  )
+  (: ensure that the module session-id matches the final session :)
+  let $set := xdmp:set($c:SESSION-ID, $id)
+  let $d := d:debug((
+      "$c:SESSION: session-id =", $id,
+      ' exception =', exists($c:SESSION-EXCEPTION) ))
+  return $session
+);
 
 declare variable $c:SESSION-DB as xs:unsignedLong :=
   $io:MODULES-DB ;
@@ -251,7 +255,10 @@ declare variable $c:SESSION-DIRECTORY as xs:string :=
 
 declare variable $c:SESSION-EXCEPTION as element(error:error)? := () ;
 
-(: we expect JavaScript to set a cookie for the session uri :)
+(: We expect JavaScript to set a cookie for the session uri.
+ : Now that cq supports browser storage, we will assume local storage
+ : unless the cookie is explicitly set to a non-local value.
+ :)
 declare variable $c:SESSION-ID as xs:string? :=
   d:debug(('$c:SESSION-ID:', 'cookies =', $c:COOKIES)),
   d:debug(('$c:SESSION-ID:', 'session-dir =', $c:SESSION-RELPATH)),
@@ -305,7 +312,7 @@ declare function c:lock-acquire($id as xs:string)
  as empty-sequence()
 {
   io:lock-acquire(
-    c:get-uri-from-id($id), "exclusive", "0",
+    c:uri-from-id($id), "exclusive", "0",
     $c:SESSION-OWNER, $c:SESSION-TIMEOUT
   )
 };
@@ -318,44 +325,44 @@ declare function c:set-content-type()
       "; charset=utf-8") )
 };
 
-declare function c:get-conflicting-locks($uri as xs:string)
+declare function c:conflicting-locks($uri as xs:string)
  as element(lock:active-lock)*
 {
-  c:get-conflicting-locks($uri, ())
+  c:conflicting-locks($uri, ())
 };
 
-declare function c:get-conflicting-locks(
+declare function c:conflicting-locks(
   $uri as xs:string, $limit as xs:integer?)
  as element(lock:active-lock)*
 {
-  d:debug(('c:get-conflicting-locks', $uri, $limit, $c:SESSION-OWNER)),
+  d:debug(('c:conflicting-locks', $uri, $limit, $c:SESSION-OWNER)),
   let $locks := io:get-conflicting-locks($uri, $limit, $c:SESSION-OWNER)
-  let $d := d:debug(('c:get-conflicting-locks',
+  let $d := d:debug(('c:conflicting-locks',
     $uri, $limit, $c:SESSION-OWNER, $locks))
   return $locks
 };
 
-declare function c:get-available-sessions()
+declare function c:available-sessions()
  as element(sess:session)*
 {
-  c:get-sessions(true())
+  c:sessions(true())
 };
 
-declare function c:get-sessions()
+declare function c:sessions()
  as element(sess:session)*
 {
-  c:get-sessions(false())
+  c:sessions(false())
 };
 
-declare function c:get-sessions($check-conflicting as xs:boolean)
+declare function c:sessions($check-conflicting as xs:boolean)
  as element(sess:session)*
 {
-  d:debug(('c:get-sessions:', $c:SESSION-DIRECTORY, $check-conflicting)),
+  d:debug(('c:sessions:', $c:SESSION-DIRECTORY, $check-conflicting)),
   let $result := try {
     (: ignore any id-less sessions - should not happen, but more robust :)
     for $i in io:list($c:SESSION-DIRECTORY)/sess:session[@id/string()]
     where not($check-conflicting)
-      or empty(c:get-conflicting-locks(c:get-session-uri($i)))
+      or empty(c:conflicting-locks(c:session-uri($i)))
     order by
       if ($i/sess:last-modified castable as xs:dateTime)
       then xs:dateTime($i/sess:last-modified) else () descending,
@@ -371,7 +378,7 @@ declare function c:get-sessions($check-conflicting as xs:boolean)
     else if ($ex/error:code eq 'SVC-DIROPEN' and $c:SERVER-ROOT-DB eq 0)
     then try {
       xdmp:filesystem-directory-create($c:SESSION-PATH),
-      c:get-sessions($check-conflicting)
+      c:sessions($check-conflicting)
     } catch ($fdc-ex) {
       $fdc-ex,
       $ex
@@ -381,7 +388,7 @@ declare function c:get-sessions($check-conflicting as xs:boolean)
   return
     if ($result[1] instance of element(error:error)) then (
       (: looks like we have a problem - disable sessions :)
-      d:debug(('c:get-sessions:', $result)),
+      d:debug(('c:sessions:', $result)),
       xdmp:set($c:SESSION-EXCEPTION, $result),
       xdmp:set($c:SESSION-ID, ())
       (: returns the empty sequence :)
@@ -389,19 +396,19 @@ declare function c:get-sessions($check-conflicting as xs:boolean)
     else $result
 };
 
-declare function c:get-session(
+declare function c:session(
   $id as xs:string, $check-conflicting as xs:boolean)
  as element(sess:session)?
 {
   let $session :=
     try {
-      let $path := c:get-uri-from-id($id)
-      let $d := d:debug(('c:get-session:',
+      let $path := c:uri-from-id($id)
+      let $d := d:debug(('c:session:',
         'id =', $id, ', root =', $io:MODULES-ROOT, ', path =', $path))
       let $exists := io:exists($path)
       let $conflicts :=
         if (not($check-conflicting)) then ()
-        else c:get-conflicting-locks($path)
+        else c:conflicting-locks($path)
       let $lock :=
         if (not($check-conflicting) or exists($conflicts)) then ()
         else c:lock-acquire($id)
@@ -415,45 +422,42 @@ declare function c:get-session(
       else if ($ex/error:code eq 'SEC-PRIV') then ()
       else xdmp:rethrow()
     }
-  let $d := d:debug(('c:get-session:', $session))
+  let $d := d:debug(('c:session:', $session))
   return $session
 };
 
-declare function c:get-last-session()
- as element(sess:session)?
-{
-  (c:get-available-sessions())[1]
-};
-
-declare function c:get-id-from-uri($uri as xs:string)
+declare function c:id-from-uri($uri as xs:string)
  as xs:string
 {
   substring-before(tokenize($uri, '/+')[last()], '.xml')
 };
 
-declare function c:get-uri-from-id($id as xs:string)
+declare function c:uri-from-id($id as xs:string)
  as xs:string
 {
   concat($c:SESSION-DIRECTORY, $id, '.xml')
 };
 
-declare function c:get-session-id($session as element(sess:session))
- as xs:string
+declare function c:session-id($session as element(sess:session))
+ as xs:string?
 {
+  (: New sessions will have an id if intended for server session storage,
+   : but browser-local sessions will not have an id.
+   :)
   (
     $session/@id/string(),
     let $uri := $session/@uri
     where $uri
-    return c:get-id-from-uri($uri)
+    return c:id-from-uri($uri)
   )[1]
 };
 
-declare function c:get-session-uri($session as element(sess:session))
+declare function c:session-uri($session as element(sess:session))
  as xs:string?
 {
-  let $id := c:get-session-id($session)
-  let $uri := c:get-uri-from-id($id)
-  let $d := d:debug(('c:get-session-uri', $id, $uri))
+  let $id := c:session-id($session)
+  let $uri := c:uri-from-id($id)
+  let $d := d:debug(('c:session-uri', $id, $uri))
   where $id
   return $uri
 };
@@ -462,24 +466,23 @@ declare function c:generate-id()
  as xs:string
 {
   let $id := xdmp:integer-to-hex(xdmp:random())
-  let $uri := c:get-uri-from-id($id)
+  let $uri := c:uri-from-id($id)
   return if (io:exists($uri)) then c:generate-id() else $id
 };
 
 (:
  : Create a new session.
  :)
-declare function c:session-new()
+declare function c:session-new(
+  $with-id as xs:boolean)
  as element(sess:session)
 {
-  let $id := (
-    if ($c:SESSION-EXCEPTION or "LOCAL" eq $c:SESSION-ID) then ()
-    else c:generate-id()
-  )
-  let $d := d:debug((
-    "session-new:", $id, data($c:SESSION-EXCEPTION/error:format-string) ))
+  let $id := if (not($with-id)) then () else c:generate-id()
+  let $d := d:debug(
+    ("session-new:", $with-id, $id,
+      data($c:SESSION-EXCEPTION/error:format-string)) )
   let $attributes := (
-    attribute id { $id },
+    if (not($id)) then () else attribute id { $id },
     attribute version { 1 }
   )
   let $attribute-qnames := for $i in $attributes return node-name($i)
@@ -516,14 +519,14 @@ declare function c:save-session($session as element(sess:session))
 {
   let $id as xs:string := $session/@id[. ne '']
   let $lock := c:lock-acquire($id)
-  return io:write(c:get-uri-from-id($id), document { $session })
+  return io:write(c:uri-from-id($id), document { $session })
 };
 
 declare function c:session-delete($id as xs:string)
  as empty-sequence()
 {
   (: make sure it really is a session :)
-  let $uri := c:get-uri-from-id($id)
+  let $uri := c:uri-from-id($id)
   let $session := io:read($uri)/sess:session
   where $session
   return (
@@ -537,7 +540,7 @@ declare function c:session-clone($source-id as xs:string, $name as xs:string)
 {
   d:debug(("c:session-clone:", $source-id, "as", $name)),
   (: do not check for locks, since we will not update the source :)
-  let $source := c:get-session($source-id, false())
+  let $source := c:session($source-id, false())
   let $target-id := c:generate-id()
   (: NB - this function does not lock nor return the etag,
    : so the caller must restore the new id before trying to update it.
@@ -562,7 +565,7 @@ declare function c:session-update(
  as xs:string
 {
   d:debug(("c:session-update: id =", $id, $etag, $nodes)),
-  let $session as element(sess:session)? := c:get-session($id, true())
+  let $session as element(sess:session)? := c:session($id, true())
   let $assert :=
     if ($session) then ()
     else c:error('CTRL-SESSION', ('No available session for', $id))
@@ -613,7 +616,7 @@ declare function c:session-update(
   return string($new-version)
 };
 
-declare function c:get-app-server-info()
+declare function c:app-server-info()
  as element(c:app-server-info)+
 {
   (: first, list all the app-servers (except webdav and task servers).
@@ -649,7 +652,7 @@ declare function c:get-app-server-info()
   }
 };
 
-declare function c:get-orphan-database-ids()
+declare function c:orphan-database-ids()
  as xs:unsignedLong*
 {
   (: list the databases that aren't exposed via an app-server -
@@ -694,7 +697,7 @@ declare function c:build-form-eval-query(
       ), '')
 };
 
-declare function c:get-request-string($excludes as xs:string*)
+declare function c:request-string($excludes as xs:string*)
  as xs:string
 {
   (: use the last request string to build a new one,
@@ -714,18 +717,18 @@ declare function c:get-request-string($excludes as xs:string*)
   )
 };
 
-declare function c:get-pagination-href($start as xs:integer)
+declare function c:pagination-href($start as xs:integer)
  as xs:string
 {
-  c:get-pagination-href($start, (), ())
+  c:pagination-href($start, (), ())
 };
 
-declare function c:get-pagination-href(
+declare function c:pagination-href(
  $start as xs:integer, $keys as xs:string*, $values as xs:string*)
 as xs:string
 {
   concat(
-    c:get-request-string(("submit", "start", "search-button", $keys)),
+    c:request-string(("submit", "start", "search-button", $keys)),
     "&amp;", xdmp:url-encode("start"), "=", string($start),
     if (not($keys)) then ''
     else string-join((

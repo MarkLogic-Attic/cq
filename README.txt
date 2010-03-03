@@ -28,8 +28,8 @@ The cq-sessions and cq-databases roles also inherit the cq-basic role.
 You may grant any combination of these roles to a user, or simply grant
 the cq-all role to enable all of CQ's features.
 
-CQ is developed using Mozilla Firefox 3.0, and periodically tested
-using MS Internet Explorer 6. Other browsers are not tested, and may not work,
+CQ is developed using Mozilla Firefox 3.6, and periodically tested
+using MS Internet Explorer 7. Other browsers are not tested, and may not work,
 but patches are welcome.
 
 The CQ source code is included in the download, licensed under the open source
@@ -47,5 +47,7 @@ See js/tablekit.js for copyright and license information.
 This application uses a modified version of Kazuki Ohta's resizable.js.
 See js/resizable.js for copyright and license information.
 
-Enjoy!
+This application uses a modified version of Paul Duncan's PersistJS.
+See js/COPYING-PersistJS for copyright and license information.
 
+Enjoy!

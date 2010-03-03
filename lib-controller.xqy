@@ -213,7 +213,7 @@ declare variable $c:SESSION as element(sess:session) :=
     : If we were explicitly asked for a new session, honor that.
     :)
    let $session :=
-     if ($c:SESSION-ID eq 'NEW') then c:new-session()
+     if ($c:SESSION-ID = ('LOCAL', 'NEW')) then c:session-new()
      else if (exists($c:SESSION-ID)) then c:get-session($c:SESSION-ID, true())
      else ()
    let $d := d:debug((
@@ -222,12 +222,12 @@ declare variable $c:SESSION as element(sess:session) :=
      if ($session) then $session else c:get-last-session()
    (: if none of the above worked, generate a new session :)
    let $session :=
-     if ($session) then $session else c:new-session()
+     if ($session) then $session else c:session-new()
    let $id := c:get-session-id($session)
    let $d := d:debug(("$c:SESSION: session-id =", $id))
    (: locking may fail - if it does, disable sessions :)
    let $lock :=
-     if ($c:SESSION-EXCEPTION) then ()
+     if ($c:SESSION-EXCEPTION or 'LOCAL' eq $c:SESSION-ID) then ()
      else try {
        c:lock-acquire($c:id)
      } catch ($ex) {
@@ -352,7 +352,8 @@ declare function c:get-sessions($check-conflicting as xs:boolean)
 {
   d:debug(('c:get-sessions:', $c:SESSION-DIRECTORY, $check-conflicting)),
   let $result := try {
-    for $i in io:list($c:SESSION-DIRECTORY)/sess:session
+    (: ignore any id-less sessions - should not happen, but more robust :)
+    for $i in io:list($c:SESSION-DIRECTORY)/sess:session[@id/string()]
     where not($check-conflicting)
       or empty(c:get-conflicting-locks(c:get-session-uri($i)))
     order by
@@ -366,7 +367,8 @@ declare function c:get-sessions($check-conflicting as xs:boolean)
     (: if this is a filesystem with no sessions directory, create it.
      : this may throw SVC-DIRCREAT if we don't have write permission.
      :)
-    if ($ex/error:code eq 'SVC-DIROPEN' and $c:SERVER-ROOT-DB eq 0)
+    if ($ex/error:code eq 'CQ-ASSERT') then xdmp:rethrow()
+    else if ($ex/error:code eq 'SVC-DIROPEN' and $c:SERVER-ROOT-DB eq 0)
     then try {
       xdmp:filesystem-directory-create($c:SESSION-PATH),
       c:get-sessions($check-conflicting)
@@ -467,13 +469,15 @@ declare function c:generate-id()
 (:
  : Create a new session.
  :)
-declare function c:new-session()
+declare function c:session-new()
  as element(sess:session)
 {
-  let $id :=
-    if ($c:SESSION-EXCEPTION) then () else c:generate-id()
+  let $id := (
+    if ($c:SESSION-EXCEPTION or "LOCAL" eq $c:SESSION-ID) then ()
+    else c:generate-id()
+  )
   let $d := d:debug((
-    "new-session:", $id, data($c:SESSION-EXCEPTION/error:format-string) ))
+    "session-new:", $id, data($c:SESSION-EXCEPTION/error:format-string) ))
   let $attributes := (
     attribute id { $id },
     attribute version { 1 }
@@ -497,7 +501,7 @@ declare function c:new-session()
     }
     </session>
   let $action :=
-    if ($c:SESSION-EXCEPTION) then ()
+    if ($c:SESSION-EXCEPTION or 'LOCAL' eq $c:SESSION-ID) then ()
     else try {
       c:save-session($new)
     } catch ($ex) {
@@ -510,12 +514,12 @@ declare function c:new-session()
 declare function c:save-session($session as element(sess:session))
  as empty-sequence()
 {
-  let $id as xs:string := $session/@id
+  let $id as xs:string := $session/@id[. ne '']
   let $lock := c:lock-acquire($id)
   return io:write(c:get-uri-from-id($id), document { $session })
 };
 
-declare function c:delete-session($id as xs:string)
+declare function c:session-delete($id as xs:string)
  as empty-sequence()
 {
   (: make sure it really is a session :)
@@ -528,36 +532,36 @@ declare function c:delete-session($id as xs:string)
   )
 };
 
-declare function c:clone-session($source-id as xs:string, $name as xs:string)
+declare function c:session-clone($source-id as xs:string, $name as xs:string)
  as xs:string
 {
-  d:debug(("c:clone-session:", $source-id, "as", $name)),
+  d:debug(("c:session-clone:", $source-id, "as", $name)),
   (: do not check for locks, since we will not update the source :)
   let $source := c:get-session($source-id, false())
   let $target-id := c:generate-id()
   (: NB - this function does not lock nor return the etag,
    : so the caller must restore the new id before trying to update it.
    :)
-  let $do := c:update-session(
+  let $do := c:session-update(
     $target-id, (), element sess:name { $name }, $source)
   return $target-id
 };
 
 (: rename an existing session by id and etag - must return new etag :)
-declare function c:rename-session(
+declare function c:session-rename(
   $id as xs:string, $name as xs:string, $etag as xs:string)
  as xs:string
 {
-  d:debug(("c:rename-session:", $id, "to", $name, '@', $etag)),
-  c:update-session($id, $etag, element sess:name { $name })
+  d:debug(("c:session-rename:", $id, "to", $name, '@', $etag)),
+  c:session-update($id, $etag, element sess:name { $name })
 };
 
 (: update an existing session by id and etag - must return new etag :)
-declare function c:update-session(
+declare function c:session-update(
   $id as xs:string, $etag as xs:string, $nodes as element()*)
  as xs:string
 {
-  d:debug(("c:update-session: id =", $id, $etag, $nodes)),
+  d:debug(("c:session-update: id =", $id, $etag, $nodes)),
   let $session as element(sess:session)? := c:get-session($id, true())
   let $assert :=
     if ($session) then ()
@@ -571,7 +575,7 @@ declare function c:update-session(
         'Precondition Failed:', $etag, 'does not match', $version
       }
     )
-    else c:update-session($id, $etag, $nodes, $session)
+    else c:session-update($id, $etag, $nodes, $session)
   )
 };
 
@@ -579,12 +583,12 @@ declare function c:update-session(
  : but needs to have a different arity from the preceding function.
  :)
 (: must return new etag :)
-declare function c:update-session(
+declare function c:session-update(
   $id as xs:string, $etag as xs:string?,
   $nodes as element()*, $session as element(sess:session))
  as xs:string
 {
-  d:debug(("c:update-session: id =", $id, $nodes, $session)),
+  d:debug(("c:session-update: id =", $id, $nodes, $session)),
   let $last-modified := current-dateTime()
   (: allow for older sessions that do not yet have a version attribute :)
   let $new-version as xs:integer := xs:integer(1 + ($session/@version, 0)[1])

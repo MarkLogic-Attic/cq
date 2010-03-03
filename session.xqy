@@ -46,8 +46,8 @@ c:set-content-type(),
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 {
-  v:get-html-head(),
-  <body>
+  v:get-html-head('sessions', false(), true()),
+  <body onload="sessionsOnLoad()">
     <form action="" method="post" id="session-form">
       <input type="hidden" name="{$d:DEBUG-FIELD}" value="{$d:DEBUG}"/>
 
@@ -58,16 +58,35 @@ c:set-content-type(),
       You can find out more about MarkLogic Server and cq
       at <a href="http://developer.marklogic.com/" tabindex="-1"
       >developer.marklogic.com</a>.
+      You may also find it helpful to read the cq
+      <a href="README.txt" tabindex="-1">README</a> file.
       </p>
+      <p>
+  The admin user can install pre-defined roles for cq by clicking on this
+  <a href="install-roles.xqy">install-roles.xqy</a> link.
+      </p>
+      <p><a href=".">return to cq</a></p>
       {
+    (: placeholder for local sessions :)
+    element div {
+      attribute id { "sessions-local" },
+      attribute class { "hidden" },
+      element h1 { "Local Sessions" },
+      element p {
+        'These sessions use storage provided by your browser.' }
+    },
+    element h1 { 'Server Sessions' },
         (: force session initialization :)
         let $s := $c:SESSION return (),
         if (exists($c:SESSION-EXCEPTION))
         then <div>
-          <h1>WARNING: sessions have been disabled, because of an error.</h1>
+          <h2>WARNING: server session storage has been disabled,
+              because of an error.</h2>
           <p>
-          Perhaps you have disabled sessions for this instance of cq.
-          If so, you can ignore this and <a href=".">return to cq</a>.
+          Perhaps you have disabled server storage of sessions
+          for this instance of cq.
+          If so, you can ignore this error and use local sessions,
+          or <a href=".">return to cq</a>.
           </p>
           {
             if ($c:SESSION-DB eq 0)
@@ -117,6 +136,7 @@ c:set-content-type(),
         </div>
         else
         <div>
+          <p>These sessions are stored on the server.</p>
           <p>On this page you can start a new session,
           or resume a saved session.
           Your sessions will be stored in the modules location
@@ -138,10 +158,6 @@ c:set-content-type(),
           If a session is locked by another user,
           you will not be able to resume it.
           </p>
-          <p>
-    The admin user can install pre-defined roles for cq by clicking on this
-    <a href="install-roles.xqy">install-roles.xqy</a> link.
-          </p>
           <script>
           var list = new SessionList();
           </script>
@@ -151,7 +167,6 @@ c:set-content-type(),
   return
     if (exists($sessions))
     then element div {
-          <p>Active sessions:</p>,
           <br/>,
           element table {
             element tr {
@@ -219,7 +234,7 @@ c:set-content-type(),
     There are no resumable sessions. Please create a new session.
     </p>
 }
-          <input type="button" value="New Session"
+          <input type="button" value="New Server Session"
           id="newSession2" name="newSession2" onclick="list.newSession()"/>
         </div>
       }

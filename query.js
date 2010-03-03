@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2009 Mark Logic Corporation. All rights reserved.
+// Copyright (c) 2003-2010 Mark Logic Corporation. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -571,6 +571,28 @@ function QueryHistoryClass(id, buffers, limit) {
         return xml;
     }
 
+    this.toArray = function() {
+        var array = new Array();
+        // values() yields an unstable order,
+        // so we use listNode.childNodes instead.
+        var nodes = $A(this.listNode.childNodes);
+        var query = null;
+        for (var i = 0; i < nodes.length; i++) {
+            query = this.getListItemValue(nodes[i]);
+            if (null != query && "" != query) {
+                array[i] = query;
+            }
+        }
+        return array;
+    };
+
+    this.clear = function() {
+        var keys = this.hash.keys();
+        for (var i = 0; i < keys.length; i++) {
+            this.remove(keys[i]);
+        }
+    };
+
 } // QueryHistoryClass
 
 // this class maintains the contents and context of a query buffer
@@ -642,6 +664,15 @@ function QueryBufferClass(query, selectionStart, contentSource) {
         return xml;
     }
 
+    this.toHash = function() {
+        var h = new Hash();
+        if (null != this.contentSource) {
+            h.set('source', this.contentSource);
+        }
+        h.set('query', this.query);
+        return h;
+    }
+
 } // QueryBufferClass
 
 function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
@@ -676,7 +707,11 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
     }
 
     this.focus = function() {
-        this.input.focus();
+        // slight delay to ensure that the DOM is ready to focus
+        var focusElement = this.input;
+        setTimeout(function() { focusElement.focus();
+            }.bindAsEventListener(this),
+            1000 / 32);
     }
 
     this.getQuery = function(n) {
@@ -717,6 +752,13 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.setLabel(this.pos, true);
     }
 
+    this.clear = function() {
+        // remove all, starting from the bottom of the list
+        for (var i = this.buffers.length - 1; i >=0; i--) {
+            this.remove(i);
+        }
+    };
+
     this.add = function(query, source) {
         //debug.print("QueryBufferListClass.add: query = " + query);
         debug.print("QueryBufferListClass.add: source = " + source);
@@ -732,7 +774,6 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             if (source != null) {
                 this.eval.value = source;
             }
-            //this.focus();
             active = true;
         }
         this.setLabel(n, active);
@@ -768,6 +809,10 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         }
 
     }
+
+    this.updateActive = function() {
+        this.setLabel(this.pos, true);
+    };
 
     this.setLabel = function(n, active) {
         debug.print("QueryBufferListClass.setLabel: " + n + ", " + active);
@@ -900,6 +945,18 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         debug.print("QueryBufferListClass.resize: " + x + "," + y);
         this.input.cols += x;
         this.input.rows += y;
+    }
+
+    this.getActivePosition = function() {
+        return this.pos;
+    }
+
+    this.getRows = function() {
+        return this.input.rows;
+    }
+
+    this.getCols = function() {
+        return this.input.cols;
     }
 
     this.setRows = function(x) {
@@ -1153,6 +1210,14 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         return xml;
     }
 
+    this.toArray = function() {
+        var array = new Array();
+        for (var i = 0; i < this.buffers.length; i++) {
+            array[i] = this.buffers[i].toHash();
+        }
+        return array;
+    };
+
 } // QueryBufferListClass
 
 // PolicyClass
@@ -1213,6 +1278,87 @@ function PolicyClass(titleId, title, accentClass, accentColor) {
 
 } // PolicyClass
 
+function enableSessionRename(sessionId) {
+    var label = "enableSessionRename: ";
+
+    if (null == sessionId) {
+        debug.print(label + "null session id");
+        return;
+    }
+
+    var sessionList = new SessionList();
+    var callbackQuery = null;
+
+    // we still use InPlaceEditor even with local storage,
+    // but the ajax looks different.
+    if (gSession.localSessionList) {
+        debug.print(label + "using local store for " + sessionId);
+        // update sessions link text
+        var sessionsLink = $("sessions-link");
+        sessionsLink.update("session:");
+        // enable rename widget and supply session name
+        var sessionRename = $("session-rename");
+        sessionRename.update(gSession.sessionName);
+        // element show won't work, because of the existing class
+        sessionRename.className = "";
+        Element.show(sessionRename);
+
+        // callback for local browser storage
+        callbackQuery = function(form, value) {
+            // this ajax won't really do anything,
+            // but we do the rename here.
+            gSession.rename(value);
+
+            // fake ajax request
+            // "this" object is editorOptions, below
+            // use dummy value
+            debug.print(label + "rename dummy callbackQuery: "
+                        + sessionId + " " + value);
+            var query = sessionList.buildNamedQueryString(sessionId, value);
+            debug.print(label + "rename callbackQuery: " + query);
+            // set etag header - another dummy value
+            this.ajaxOptions = {
+                requestHeaders: { 'If-Match': "DUMMY" } };
+            return query;
+        };
+    } else {
+        // callback to build the request query string
+        callbackQuery = function(form, value) {
+            // "this" object is editorOptions, below
+            debug.print("rename callbackQuery: " + sessionId + " " + value);
+            var query = sessionList.buildNamedQueryString(sessionId, value);
+            debug.print("rename callbackQuery: " + query);
+            // set etag header
+            this.ajaxOptions = {
+                requestHeaders: { 'If-Match': gSession.etag } };
+            return query;
+        };
+    }
+    // successHandler will update the session etag
+    var successHandler = function(resp, element) {
+        debug.print("rename successHandler: " + resp + " " + element);
+        // resp is the http response
+        // element is the HTML element that was edited
+        gSession.updateEtag(resp);
+        // this will fill in the name and do the highlight effect
+        // if cancelled, $super will be undefined - tricky to test!
+        if (typeof($super) != 'undefined') {
+            return $super.onComplete(resp);
+        }
+    };
+    var editorOptions = {
+        callback: callbackQuery,
+        // for some reason InPlaceEditor doesn't use onSuccess
+        onComplete: successHandler,
+        onFailure: reportError
+    };
+    new Ajax.InPlaceEditor('session-rename',
+                           gSession.renameUrl,
+                           editorOptions);
+
+    gBufferTabs.setSession(gSession);
+}
+
 function cqOnLoad() {
     var label = "cqOnLoad: ";
     debug.print(label + "begin");
@@ -1248,49 +1394,20 @@ function cqOnLoad() {
     // set the OS-specific instruction text
     gBufferTabs.setInstructionText();
 
-    gSession = new SessionClass(gBufferTabs, "restore-session");
+    gSession = new SessionClass(gBufferTabs, "session-restore");
     gSession.restore();
-    // enable autosave
-    gSession.setAutoSave();
+
+    if (gSession.isSyncEnabled()) {
+        // enable autosave
+        gSession.setAutoSave();
+    } else {
+        // use browser local storage instead
+        debug.print(label + "switching to local sessions");
+        gSession.useLocal(new SessionListLocal());
+    }
 
     // enable in-place session rename
-    var sessionId = gSession.getId();
-    if (null == sessionId) {
-        debug.print(label + "null session id");
-    } else {
-        var sessionList = new SessionList();
-        // callback to build the request query string
-        var callbackQuery = function(form, value) {
-            // "this" object is editorOptions, below
-            debug.print("rename callbackQuery: " + sessionId + " " + value);
-            var query = sessionList.buildNamedQueryString(sessionId, value);
-            debug.print("rename callbackQuery: " + query);
-            // set etag header
-            this.ajaxOptions = {
-                requestHeaders: { 'If-Match': gSession.etag } };
-            return query;
-        };
-        // successHandler will update the session etag
-        var successHandler = function(resp, element) {
-            debug.print("rename successHandler: " + resp + " " + element);
-            // resp is the http response
-            // element is the HTML element that was edited
-            gSession.updateEtag(resp);
-            // this will fill in the name and do the highlight effect
-            return $super.onComplete(resp);
-        };
-        var editorOptions = {
-            callback: callbackQuery,
-            // for some reason InPlaceEditor doesn't use onSuccess
-            onComplete: successHandler,
-            onFailure: reportError
-        };
-        new Ajax.InPlaceEditor('rename-session',
-                               gSession.renameUrl,
-                               editorOptions);
-
-        gBufferTabs.setSession(gSession);
-    }
+    enableSessionRename(gSession.getId());
 
     resizeFrameset();
 
@@ -1495,6 +1612,9 @@ function submitFormWrapper(theForm, mimeType) {
     if (!theForm) {
         return;
     }
+
+    // the query may have changed, so sync the active buffer label
+    gBuffers.updateActive();
 
     submitForm(theForm, gBuffers.getQuery(), mimeType, true);
 }

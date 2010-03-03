@@ -23,23 +23,13 @@ xquery version "1.0-ml";
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy";
 
-import module namespace d = "com.marklogic.developer.cq.debug"
- at "lib-debug.xqy";
-
 declare option xdmp:mapping "false";
 
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
-declare variable $NAME as xs:string :=
-  normalize-space(xdmp:get-request-field("NAME"));
-
-d:check-debug()
+c:session-delete($ID)
 ,
-if (string-length($NAME) gt 0) then ()
-else c:error('CQ-EMPTYNAME', 'session name may not be empty')
-,
-(: returns the new session id :)
 (: firefox 3 logs an error if the result is empty :)
-c:clone-session($ID, $NAME)
+$ID
 
-(: clone-session.xqy :)
+(: session-delete.xqy :)

@@ -46,7 +46,7 @@ declare variable $QUERY-HISTORY as element(sess:query)* :=
 d:check-debug(),
 c:set-content-type(),
 <html xmlns="http://www.w3.org/1999/xhtml">
-  { v:get-html-head() }
+  { v:get-html-head('cq - query pane', false(), true()) }
   <body onload="cqOnLoad()">
     <!-- query path on our form may keep IE6 from launching a helper -->
     <form action="eval.xqy?iefix.txt" method="post" id="form"
@@ -71,19 +71,28 @@ c:set-content-type(),
                href="javascript:prettyPrint()"
                title="format the current selection (removes any comments)"
               >pretty-print</a></span>|&#160;<span
-               class="instruction"><a>{
-                  attribute href { string-join((
-                    'session.xqy', "?debug=1"[ $d:DEBUG ]), '') },
-                  attribute target { "_parent" },
-                  (: make sure lazy module variable is initialized :)
-                  let $lazy := $c:SESSION
-                  return
-                    if ($c:SESSION-EXCEPTION) then "sessions disabled"
-                    else "session:"
-              }</a>&#160;{
-                if ($c:SESSION-EXCEPTION) then ()
-                else <span id="rename-session">{ $c:SESSION-NAME }</span>
-              }</span>
+               class="instruction">{
+  element a {
+    attribute id { "sessions-link" },
+    attribute href {
+      string-join((
+          'session.xqy', "?debug=1"[ $d:DEBUG ]), '') },
+    attribute target { "_parent" },
+    (: make sure lazy module variable is initialized :)
+    let $lazy := $c:SESSION
+    return (
+      if ($c:SESSION-EXCEPTION) then "sessions disabled"
+      else "session:"
+    )
+  }
+  }&#160;{
+  element span {
+    attribute id { "session-rename" },
+    attribute class {
+      if ($c:SESSION-EXCEPTION) then 'hidden' else '' },
+    $c:SESSION-NAME
+  }
+  }</span>
             </div>
 
             <div nowrap="1" id="queryBuffers">
@@ -135,9 +144,10 @@ c:set-content-type(),
             <input type="hidden" class="hidden" value="{$d:DEBUG}"
              id="{$d:DEBUG-FIELD}"  name="{$d:DEBUG-FIELD}"/>
             <div class="hidden" xml:space="preserve"
-            id="restore-session" name="restore-session">{
+            id="session-restore" name="session-restore">{
 
-        if ($c:SESSION-EXCEPTION) then ()
+        (: ignore the server session if the user wants a local session :)
+        if ($c:SESSION-EXCEPTION or 'LOCAL' eq $c:SESSION-ID) then ()
         else (
           attribute session-id { $c:SESSION-ID },
           attribute etag { $c:SESSION-ETAG }
@@ -152,13 +162,13 @@ c:set-content-type(),
          : For IE6, this means we must use pre elements.
          :)
         element div {
-          attribute id { "restore-session-buffers" },
+          attribute id { "session-restore-buffers" },
           $c:SESSION/sess:query-buffers/@*,
           for $i in $QUERY-BUFFERS return element pre {
             $i/@*, $i/node() }
         },
         element div {
-          attribute id { "restore-session-history" },
+          attribute id { "session-restore-history" },
           $c:SESSION/sess:query-history/@*,
           for $i in $QUERY-HISTORY return element pre {
             $i/@*, $i/node() }

@@ -1,6 +1,6 @@
 xquery version "1.0-ml";
 (:
- : Client Query Application
+ : cq: session-update.xqy
  :
  : Copyright (c) 2002-2010 Mark Logic Corporation. All Rights Reserved.
  :
@@ -18,6 +18,7 @@ xquery version "1.0-ml";
  :
  : The use of the Apache License does not indicate that this project is
  : affiliated with the Apache Software Foundation.
+ :
  :)
 
 import module namespace c = "com.marklogic.developer.cq.controller"
@@ -26,32 +27,57 @@ import module namespace c = "com.marklogic.developer.cq.controller"
 import module namespace d = "com.marklogic.developer.cq.debug"
  at "lib-debug.xqy";
 
+declare namespace sess = "com.marklogic.developer.cq.session";
+
 declare option xdmp:mapping "false";
 
 declare variable $ETAG as xs:string := xdmp:get-request-header("if-match");
 
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
-declare variable $NAME as xs:string :=
-  normalize-space(xdmp:get-request-field("NAME"));
+declare variable $BUFFERS as xs:string := xdmp:get-request-field("BUFFERS");
+
+declare variable $HISTORY as xs:string := xdmp:get-request-field("HISTORY");
+
+declare variable $TABS as xs:string := xdmp:get-request-field("TABS");
+
+declare variable $UNQUOTE-OPTS as xs:string* :=
+  ('repair-none', 'format-xml');
+
+declare variable $SESSION-NAMESPACE as xs:string :=
+  namespace-uri(<sess:x/>);
+
+declare variable $new-buffers as element(sess:query-buffers) :=
+  d:debug(("session-update.xqy", $BUFFERS)),
+  xdmp:unquote($BUFFERS, $SESSION-NAMESPACE, $UNQUOTE-OPTS)
+  /sess:query-buffers
+;
+
+declare variable $new-history as element(sess:query-history) :=
+  d:debug(("session-update.xqy", $HISTORY)),
+  xdmp:unquote($HISTORY, $SESSION-NAMESPACE, $UNQUOTE-OPTS)
+  /sess:query-history
+;
+
+declare variable $new-tabs as element(sess:active-tab) :=
+  d:debug(("session-update.xqy", $TABS)),
+  xdmp:unquote($TABS, $SESSION-NAMESPACE, $UNQUOTE-OPTS)
+  /sess:active-tab
+;
 
 d:check-debug()
 ,
-if (string-length($NAME) gt 0) then ()
-else c:error('CQ-EMPTYNAME', 'session name may not be empty')
-,
 (: will return new etag :)
-let $etag := c:rename-session($ID, $NAME, $ETAG)
+let $etag := c:session-update(
+  $ID, $ETAG, ($new-buffers, $new-history, $new-tabs) )
 return (
   if (xdmp:get-response-code()[1] eq 412)
   then $etag
   else (
     xdmp:add-response-header('etag', $etag),
-    (: firefox 3 logs an error if the result is empty,
-     : and Ajax.InPlaceEditor uses this value
-     :)
-    $NAME
+    (: firefox 3 logs an error if the result is empty :)
+    $ID
   )
 )
 
-(: rename-session.xqy :)
+(: session-update.xqy :)

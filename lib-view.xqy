@@ -264,7 +264,15 @@ declare function v:get-html-head($label as xs:string)
   v:get-html-head($label, false())
 };
 
-declare function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
+declare function v:get-html-head(
+  $label as xs:string, $tablekit as xs:boolean)
+ as element(xh:head)
+{
+  v:get-html-head($label, $tablekit, false())
+};
+
+declare function v:get-html-head(
+  $label as xs:string, $tablekit as xs:boolean, $persist as xs:boolean)
  as element(xh:head)
 {
   (: we do not always need the js and css here, but it makes reloads easier :)
@@ -289,7 +297,13 @@ declare function v:get-html-head($label as xs:string, $tablekit as xs:boolean)
   </script>
   {
     if (not($tablekit)) then () else
-    <script language="JavaScript" type="text/javascript" src="js/tablekit.js">
+    <script language="JavaScript" type="text/javascript"
+     src="js/tablekit.js">
+    </script>
+    ,
+    if (not($persist)) then () else
+    <script language="JavaScript" type="text/javascript"
+     src="js/persist-min.js">
     </script>
   }
   <script language="JavaScript" type="text/javascript" src="debug.js">

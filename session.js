@@ -1,4 +1,4 @@
-// Copyright (c) 2003-2009 Mark Logic Corporation. All rights reserved.
+// Copyright (c) 2003-2010 Mark Logic Corporation. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
 var gSessionIdCookie = "/cq:session-id";
+var gLocalStoreSessionsKey = "/cq:sessions";
 
 // GLOBAL VARIABLES
 
@@ -36,10 +37,23 @@ function reportError(resp) {
     debug.setEnabled(old);
 }
 
+// from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
+function createUUID() {
+    // http://www.ietf.org/rfc/rfc4122.txt
+    var s = [];
+    var hexDigits = "0123456789ABCDEF";
+    for (var i = 0; i < 32; i++) {
+        s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+    }
+    s[12] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+    s[16] = hexDigits.substr((s[16] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+    return s.join("");
+}
+
 // SessionList class
 function SessionList() {
-    this.cloneUrl = 'clone-session.xqy';
-    this.deleteUrl = 'delete-session.xqy';
+    this.cloneUrl = 'session-clone.xqy';
+    this.deleteUrl = 'session-delete.xqy';
     this.currentSession = null;
 
     this.setCurrentSession = function(s) {
@@ -138,106 +152,186 @@ function SessionClass(tabs, id) {
     this.tabs = tabs;
     this.restoreId = id;
     this.sessionId = null;
+
+    // only for local sessions
+    this.sessionName = null;
+    this.localSessionList = null;
+
+    // only for remote sessions
     this.etag = null;
-    this.buffers = this.tabs.getBuffers();
+
+    this.buffers = this.tabs ? this.tabs.getBuffers() : null;
     debug.print("SessionClass: buffers = " + this.buffers);
-    this.history = this.tabs.getHistory();
+    this.history = this.tabs ? this.tabs.getHistory() : null;
     debug.print("SessionClass: history = " + this.history);
     this.lastSync = null;
 
     // enable sync if and only if we see a session id
     this.syncDisabled = true;
-
+    // handle for scheduled save task
     this.autosave = null;
 
-    this.renameUrl = 'rename-session.xqy';
-    this.updateSessionUrl = "update-session.xqy";
-    this.updateSessionLockUrl = "update-session-lock.xqy";
+    this.renameUrl = 'session-rename.xqy';
+    this.updateSessionUrl = "session-update.xqy";
+    this.updateSessionLockUrl = "session-lock-update.xqy";
+
+    this.isSyncEnabled = function() { return ! this.syncDisabled };
 
     this.getId = function() { return this.sessionId }
+
+    this.rename = function(name) {
+        // used for local session rename
+        this.sessionName = name;
+        this.sync();
+    };
 
     this.restore = function() {
         var restore = $(this.restoreId);
         var label = "SessionClass.restore: ";
-        debug.print(label + restore + " " + restore.hasChildNodes());
 
         if (null == restore) {
             debug.print(label + "null restore");
             this.syncDisabled = true;
-            this.tabs.refresh();
+            if (this.tabs) {
+                this.tabs.refresh();
+            }
             return;
         }
 
+        debug.print(label + restore + " " + restore.hasChildNodes());
+
         // handle session id cookie
         this.sessionId = restore.getAttribute('session-id');
-        // sessionId may be null, or empty string - this disables sync
+        // sessionId may be null, or empty string:
+        // either disables sync unless local storage is available
         if (this.sessionId) {
             this.syncDisabled = false;
             setCookie(gSessionIdCookie, this.sessionId);
             debug.print(label + "set session id cookie = " + this.sessionId);
         } else {
-            debug.print(label + "missing session id! disabling sync");
+            debug.print(label + "missing session id!");
             this.syncDisabled = true;
-            // not fatal - keep restoring
+            // not fatal - keep restoring whatever the server gave us
         }
+        debug.print(label + "syncDisabled = " + this.syncDisabled);
+
+        this.restoreFromXML(restore);
+    };
+
+    this.restoreFromXML = function(restore) {
+        var label = "SessionClass.restoreFromXML: ";
+
+        var children = restore.childNodes;
+        if (!children) {
+            return;
+        }
+
+        debug.print(label + "children = " + children);
 
         // store the last-updated value
         this.etag = restore.getAttribute('etag');
 
         // handle exposed tab
         var activeTab = restore.getAttribute('active-tab');
-        this.tabs.refresh(activeTab);
 
-        if (restore.hasChildNodes()) {
-            var children = restore.childNodes;
-            debug.print(label + "children = " + children);
+        var queries = null;
+        var query = null;
+        var source = null;
 
-            var queries = null;
-            var query = null;
-            var source = null;
-
-            // first div is the buffers
-            var buffers = children[0];
-            debug.print(label + "buffers = " + buffers);
-            // handle rows and cols (global)
-            this.buffers.setRows(buffers.getAttribute('rows'));
-            this.buffers.setCols(buffers.getAttribute('cols'));
-            queries = buffers.childNodes;
-            debug.print(label + "queries = " + queries);
-            debug.print(label + "restoring buffers " + queries.length);
-            for (var i = 0; i < queries.length; i++) {
-                debug.print(label + "restoring " + i + queries[i]);
-                query = queries[i].hasChildNodes()
-                    ? queries[i].firstChild.nodeValue
-                    : null;
-                //debug.print(label + "restoring " + i + " " + query);
-                // handle content-source (per buffer)
-                source = queries[i].getAttribute('content-source');
-                debug.print(label + "restoring " + i + " source = " + source);
-                this.buffers.add(query, source);
-            }
-            // reactivate active buffer
-            var active = buffers.getAttribute('active');
-            debug.print(label + "buffers active = " + active);
-            this.buffers.activate(active);
-
-            // second div is the history
-            var history = children[1];
-            queries = history.childNodes;
-            debug.print(label + "restoring history " + queries.length);
-            // restore in reverse order
-            for (var i = queries.length; i > 0; i--) {
-                query = queries[ i - 1 ].firstChild.nodeValue;
-                //debug.print(label + "restoring " + i + " " + query);
-                this.history.add(query);
-            }
+        // first div is the buffers
+        var buffers = children[0];
+        debug.print(label + "buffers = " + buffers);
+        // handle rows and cols (global)
+        this.buffers.setRows(buffers.getAttribute('rows'));
+        this.buffers.setCols(buffers.getAttribute('cols'));
+        queries = buffers.childNodes;
+        debug.print(label + "queries = " + queries);
+        debug.print(label + "restoring buffers " + queries.length);
+        for (var i = 0; i < queries.length; i++) {
+            debug.print(label + "restoring " + i + " " + queries[i]);
+            query = queries[i].hasChildNodes()
+                ? queries[i].firstChild.nodeValue
+                : null;
+            // handle content-source (per buffer)
+            source = queries[i].getAttribute('content-source');
+            debug.print(label + "restoring " + i + " source = " + source);
+            this.buffers.add(query, source);
         }
-    }
+        // reactivate active buffer
+        var active = buffers.getAttribute('active');
+        debug.print(label + "buffers active = " + active);
+        this.buffers.activate(active);
+
+        // second div is the history
+        var history = children[1];
+        queries = history.childNodes;
+        debug.print(label + "restoring history " + queries.length);
+        // restore in reverse order
+        for (var i = queries.length; i > 0; i--) {
+            query = queries[ i - 1 ].firstChild.nodeValue;
+            this.history.add(query);
+        }
+
+        // this must happen last
+        this.tabs.refresh(activeTab);
+    };
+
+    this.restoreFromObject = function(restore) {
+        var label = "SessionClass.restoreFromXML: ";
+        debug.print(label + "restoring " + restore);
+        if (!restore.get) {
+            debug.print(label + "restoring " + Object.toJSON(restore));
+        }
+
+        // instead of XML, we restore from a Prototype hash object
+        this.sessionName = restore.get('name');
+        if (!this.sessionName) {
+            this.sessionName = "local";
+        }
+        var activeTab = restore.get('active-tab');
+        var activeBuffer = restore.get('active-buffer');
+        var rows = restore.get('rows');
+        var cols = restore.get('cols');
+        // array of hash
+        var buffers = restore.get('buffers');
+        // array of string
+        var history = restore.get('history');
+
+        // restore tabs, rows, and cols
+        this.buffers.setRows(rows);
+        this.buffers.setCols(cols);
+
+        // restore buffers
+        debug.print(label + "restoring buffers " + buffers.length);
+        this.buffers.clear();
+        var h;
+        for (var i=0; i < buffers.length; i++) {
+            h = $H(buffers[i]);
+            this.buffers.add(h.get('query'), h.get('source'));
+        }
+        this.buffers.activate(activeBuffer);
+
+        debug.print(label + "restoring history " + history.length);
+        // restore in reverse order
+        this.history.clear();
+        var start = history.length - 1;
+        for (var i=start; i >= 0; i--) {
+            this.history.add(history[i]);
+        }
+
+        // this must happen last
+        this.tabs.refresh(activeTab);
+    };
 
     this.sync = function() {
         var label = "SessionClass.sync: ";
-        if (this.syncDisabled || null == this.sessionId) {
+        if (this.syncDisabled) {
             debug.print(label + "disabled");
+            return false;
+        }
+
+        if (null == this.sessionId) {
+            debug.print(label + "no session");
             return false;
         }
 
@@ -260,9 +354,28 @@ function SessionClass(tabs, id) {
         // this seems to work ok, but we skip some syncs under duress
         this.syncDisabled = true;
 
+        if (this.localSessionList) {
+            debug.print(label + "local store");
+            var syncHash = new Hash();
+            syncHash.set('name', this.sessionName);
+            syncHash.set('active-tab', this.tabs.getCurrent());
+            syncHash.set('active-buffer', this.buffers.getActivePosition());
+            syncHash.set('rows', this.buffers.getRows());
+            syncHash.set('cols', this.buffers.getCols());
+            syncHash.set('buffers', this.buffers.toArray());
+            syncHash.set('history', this.history.toArray());
+            this.localSessionList.put(this.sessionId, syncHash);
+            // end of critical section
+            this.syncDisabled = false;
+            this.lastSync = new Date();
+            return true;
+        }
+
+        // ajax technique
         var buffers = this.buffers.toXml();
         var history = this.history.toXml();
         var tabs = this.tabs.toXml();
+
         var params = {
             DEBUG: debug.isEnabled() ? true : false,
             ID: this.sessionId,
@@ -284,8 +397,7 @@ function SessionClass(tabs, id) {
             // re-enable sessions - maybe offline, or server is restarting
             session.syncDisabled = false;
         };
-        var req = new Ajax.Request(this.updateSessionUrl,
-            {
+        var req = new Ajax.Request(this.updateSessionUrl, {
                 method: 'post',
                 parameters: params,
                 requestHeaders: { 'If-Match': this.etag },
@@ -293,33 +405,50 @@ function SessionClass(tabs, id) {
                 encoding: null,
                 onSuccess: successHandler,
                 onFailure: failureHandler
-            }
-                                   );
-        // synchronous, so we should have the response here
-        this.lastSync = new Date();
+            } );
+        // synchronous, so we should have the response now
 
+        this.lastSync = new Date();
         return true;
     }
 
     this.updateEtag = function(resp) {
-        debug.print("successHandler: old = " + this.etag);
-        debug.print("successHandler: resp etag = "
-                    + resp.getResponseHeader("etag"));
-        var newTag = resp.getResponseHeader("etag");
-        if (!newTag) {
-            // this might have been an error - server is down?
-            // don't overwrite the old etag!
-            reportError(resp);
+        var label = "updateEtag: ";
+
+        if (this.localSessionList) {
+            debug.print(label + "using local store");
             return;
         }
-        this.etag = newTag;
-        debug.print("successHandler: new = " + this.etag);
+
+        debug.print(label + "old = " + this.etag);
+        // no resp means the update was cancelled by the user
+        if (resp) {
+            debug.print(label + "resp etag = "
+                        + resp.getResponseHeader("etag"));
+            var newTag = resp.getResponseHeader("etag");
+            if (!newTag) {
+                // this might have been an error - server is down?
+                // don't overwrite the old etag!
+                reportError(resp);
+                return;
+            }
+            this.etag = newTag;
+            debug.print(label + "new = " + this.etag);
+        } else {
+            debug.print(label + "empty response");
+        }
     }
 
     this.updateLock = function() {
         var label = "SessionClass.updateLock: ";
+
         if (this.syncDisabled || null == this.sessionId) {
             debug.print(label + "disabled");
+            return false;
+        }
+
+        if (this.localSessionList) {
+            debug.print(label + "using local store");
             return false;
         }
 
@@ -352,8 +481,283 @@ function SessionClass(tabs, id) {
         this.autosave = new PeriodicalExecuter(this.sync
                                                .bindAsEventListener(this),
                                                sec);
-    }
+    };
+
+    this.useLocal = function (sessionList) {
+        var label = "SessionClass.useLocal: ";
+        if (! sessionList) {
+            debug.print(label + "null sessionList");
+            return;
+        }
+
+        // is there a local session to restore? do we want it?
+        var key = sessionList.length() ? sessionList.keyAt(0) : null;
+        var isNewLocal = (key == "NEW");
+        this.localSessionList = sessionList;
+        debug.print(label + "count = " + this.localSessionList.length()
+                    + ", " + isNewLocal);
+
+        if (isNewLocal || 1 > this.localSessionList.length()) {
+            debug.print(label + "creating new local session");
+            // no session, or the session is explicitly "NEW"
+            // keep the already-restored server session,
+            // but ensure that we have a session id for sync
+            if (isNewLocal) {
+                this.localSessionList.remove("NEW");
+            }
+            this.sessionId = createUUID();
+            this.sessionName = "new local session "
+                + (1 + this.localSessionList.length());
+        } else {
+            debug.print(label + "restoring from local session " + key);
+            this.sessionId = key;
+            this.restoreFromObject($H(this.localSessionList.get(key)));
+        }
+
+        // activate sessions
+        this.syncDisabled = false;
+
+        if (isNewLocal || this.localSessionList.length() < 1) {
+            debug.print(label + "saving new session " + this.sessionId);
+            this.sync();
+        }
+    };
 
 } // SessionClass
+
+// SessionListLocal class
+function SessionListLocal() {
+
+    // prohibit cookie store since it will be too small (4-kB limit)
+    Persist.remove('cookie');
+
+    this.store = new Persist.Store("MarkLogic cq");
+    this.sessionsList = new Array();
+    this.label = "SessionListLocal.init: ";
+
+    // for event callback access
+    var that = this;
+    this.store.get(gLocalStoreSessionsKey,
+                   function(ok, val) {
+                       if (ok) {
+                           try {
+                               that.sessionsList = ("" + val).evalJSON(true);
+                           } catch (ex) {
+                               debug.print(ex.message);
+                               alert(label + ex.message);
+                           }
+                           if (null == that.sessionsList) {
+                               that.sessionsList = new Array();
+                           }
+                           debug.print(that.label
+                                       + "setting sessions = "
+                                       + that.sessionsList.length);
+                       }
+                   });
+
+    debug.print(this.label + "sessions = " + this.sessionsList.length);
+
+    // private
+    this.key = function(id) {
+        return gLocalStoreSessionsKey + "/" + id;
+    };
+
+    this.first = function() {
+        return this.get(this.keyAt[0]);
+    };
+
+    this.keys = function() {
+        return this.sessionsList;
+    };
+
+    this.keyAt = function(i) {
+        return this.sessionsList[i];
+    };
+
+    this.length = function() {
+        return this.sessionsList.length;
+    };
+
+    this.get = function(id) {
+        var label = "SessionListLocal.get: ";
+        var result = null;
+        this.store.get(this.key(id),
+                       function(ok, val) {
+                           if (ok) {
+                               try {
+                                   result = ("" + val).evalJSON(true);
+                               } catch (ex) {
+                                   debug.print(ex.message);
+                                   alert(label + ex.message);
+                               }
+                           }
+                       });
+        return result;
+    };
+
+    this.put = function(id, value) {
+        var label = "SessionListLocal.put: ";
+        var jValue = Object.toJSON(value);
+        debug.print(label + id);
+
+        this.queue(id);
+        this.store.set(this.key(id), jValue);
+    };
+
+    this.queue = function(id) {
+        var label = "SessionListLocal.queue: ";
+        // re-order the sessions by most recent use
+        var newArray = new Array();
+        newArray[0] = id;
+        for (var i=0; i<this.sessionsList.length; i++) {
+            if (id != this.sessionsList[i]) {
+                newArray[newArray.length] = this.sessionsList[i];
+            }
+        }
+        debug.print(label + newArray.length + " = " + newArray[0]);
+        this.sessionsList = newArray;
+        this.store.set(gLocalStoreSessionsKey,
+                       Object.toJSON(this.sessionsList));
+
+    };
+
+    this.remove = function(id) {
+        var label = "SessionListLocal.remove: ";
+        // re-order the sessions by most recent use
+        var newArray = new Array();
+        for (var i=0; i<this.sessionsList.length; i++) {
+            if (id != this.sessionsList[i]) {
+                newArray[newArray.length] = this.sessionsList[i];
+            }
+        }
+        debug.print(label + newArray.length + " = " + newArray[0]);
+        this.sessionsList = newArray;
+        this.store.set(gLocalStoreSessionsKey,
+                       Object.toJSON(this.sessionsList));
+
+        this.store.remove(id);
+    };
+
+    this.clone = function(id) {
+        var session = $H(this.get(id));
+        session.set('name', "copy of " + session.get('name'));
+        this.put(createUUID(), session);
+    };
+
+    this.refresh = function() {
+        if (debug.isEnabled()) {
+            alert("DEBUG: will refresh now");
+            window.location.replace( ".?debug=1");
+        } else {
+            window.location.replace( "." );
+        }
+    };
+
+}
+
+function sessionsOnLoad() {
+    var session = new SessionListLocal();
+    if (session.length() < 0) {
+        return;
+    }
+
+    var out = $("sessions-local");
+    var tableNode = new Element("table");
+
+    if (session.length() < 1) {
+        tableNode.appendChild(new Element('tr')
+                              .appendChild(new Element('td', {
+                                          class: "instruction"
+                                              })
+                                  .update("No sessions found")));
+    } else {
+        for (var i=0; i<session.length(); i++) {
+            var key = session.keyAt(i);
+            var value = $H(session.get(key));
+            var row = document.createElement('tr');
+
+            row.appendChild(new Element('td').update(value.get('name')));
+
+            var cell = new Element('td');
+            var button;
+
+            // resume local session
+            button = new Element('input', {
+                    type: 'button',
+                    value: 'Resume' + (debug.isEnabled() ? (' ' + key) : ''),
+                    title: 'resume this session ' + key});
+            // extra function to create proper scope
+            button.observe('click', function(k) {
+                    return function() {
+                        session.queue(k);
+                        // setting the session id to "LOCAL" signals
+                        // query.xqy and lib-controller.xqy
+                        // to use the local information.
+                        setCookie(gSessionIdCookie, "LOCAL");
+                        session.refresh();
+                    }
+                }(key));
+            cell.appendChild(button);
+
+            // clone local session
+            button = new Element('input', {
+                    type: 'button',
+                    value: 'Clone' + (debug.isEnabled() ? (' ' + key) : ''),
+                    title: 'clone this session ' + key});
+            // extra function to create proper scope
+            button.observe('click', function(k) {
+                    return function() {
+                        session.clone(k);
+                        window.location.reload();
+                    }
+                }(key));
+            cell.appendChild(button);
+
+            // delete local session
+            button = new Element('input', {
+                    type: 'button',
+                    value: 'Delete' + (debug.isEnabled() ? (' ' + key) : ''),
+                    title: 'permanently delete this session ' + key});
+            // extra function to create proper scope
+            button.observe('click', function(k) {
+                    return function() {
+                        if (!confirm("Are you sure you want to remove"
+                                     + " this session?"
+                                     + " This cannot be undone!")) {
+                            return;
+                        }
+                        session.remove(k);
+                        window.location.reload();
+                    }
+                }(key));
+            cell.appendChild(button);
+            row.appendChild(cell);
+
+            tableNode.appendChild(row);
+        }
+    }
+
+    out.appendChild(tableNode);
+
+    // button for new local session
+    button = new Element('input', {
+            type: 'button',
+            value: 'New Local Session'});
+    button.observe('click', function() {
+        // setting the session id to the string "LOCAL" signals
+        // query.xqy and lib-controller.xqy to use the local information.
+        setCookie(gSessionIdCookie, "LOCAL");
+        // signal that we want a new local session on refresh
+        session.queue("NEW");
+        session.refresh();
+        });
+    out.appendChild(button);
+    out.appendChild(new Element('p'));
+    out.appendChild(new Element('hr'));
+
+    // activate display
+    out.className = "";
+    Element.show(out);
+}
 
 // session.js

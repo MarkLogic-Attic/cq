@@ -1,8 +1,8 @@
 xquery version "1.0-ml";
 (:
- : Client Query Application
+ : cq: session-lock-update.xqy
  :
- : Copyright (c) 2002-2010 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2008-2010 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -18,18 +18,26 @@ xquery version "1.0-ml";
  :
  : The use of the Apache License does not indicate that this project is
  : affiliated with the Apache Software Foundation.
+ :
  :)
 
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy";
 
+import module namespace d = "com.marklogic.developer.cq.debug"
+ at "lib-debug.xqy";
+
+declare namespace sess = "com.marklogic.developer.cq.session";
+
 declare option xdmp:mapping "false";
 
 declare variable $ID as xs:string := xdmp:get-request-field("ID");
 
-c:delete-session($ID)
+d:check-debug()
+,
+c:lock-acquire($ID)
 ,
 (: firefox 3 logs an error if the result is empty :)
 $ID
 
-(: delete-session.xqy :)
+(: session-lock-update.xqy :)

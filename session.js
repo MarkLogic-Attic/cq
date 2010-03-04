@@ -92,6 +92,11 @@ function SessionList() {
           + (debug.isEnabled() ? '&DEBUG=1' : '')
     }
 
+    this.exportServerSession = function(id, context) {
+        var path = "session-export.xqy?id=" + id;
+        window.location.href = path;
+    };
+
     this.cloneSession = function(id, context) {
         // clone the session
         var name = prompt("Name of cloned session:", "new session");
@@ -191,7 +196,7 @@ function SessionClass(tabs, id) {
         var label = "SessionClass.restore: ";
 
         if (null == restore) {
-            debug.print(label + "null restore");
+            debug.print(label + "null restore from " + this.restoreId);
             this.syncDisabled = true;
             if (this.tabs) {
                 this.tabs.refresh();
@@ -558,6 +563,8 @@ function SessionListLocal() {
 
     // for event callback access
     var that = this;
+
+    // populate the session list
     this.store.get(gLocalStoreSessionsKey,
                    function(ok, val) {
                        if (ok) {
@@ -744,6 +751,8 @@ function sessionsOnLoad() {
                 }(key));
             cell.appendChild(button);
 
+            // TODO export local session to xml file
+
             // delete local session
             button = new Element('input', {
                     type: 'button',
@@ -789,6 +798,35 @@ function sessionsOnLoad() {
     // activate display
     out.className = "";
     Element.show(out);
+}
+
+function sessionImportLocal() {
+    var label = "sessionImportLocal: ";
+    debug.print(label + "begin");
+
+    // set up the UI objects
+    var bufferList = new QueryBufferListClass("query",
+                                              "eval",
+                                              "buffer-list",
+                                              "textarea-status");
+    var history = new QueryHistoryClass("history", bufferList);
+    var bufferTabs = new BufferTabsClass("buffer-tabs",
+                                         "buffer-accesskey-text",
+                                         bufferList,
+                                         history);
+    var session = new SessionClass(bufferTabs, "session-restore");
+
+    // restore from the server-supplied XML, ie from the import file
+    debug.print(label + "restoring");
+    session.restore();
+
+    // signal that we want a new local session
+    var sessionList = new SessionListLocal();
+    sessionList.queue("NEW");
+    session.useLocal(sessionList);
+
+    // redirect to session.xqy
+    window.location.href = "session.xqy";
 }
 
 // session.js

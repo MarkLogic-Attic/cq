@@ -438,7 +438,15 @@ declare function c:uri-from-id($id as xs:string)
   concat($c:SESSION-DIRECTORY, $id, '.xml')
 };
 
-declare function c:session-id($session as element(sess:session))
+declare function c:session-export(
+  $id as xs:string)
+ as element(sess:session)
+{
+  c:session($id, false())
+};
+
+declare function c:session-id(
+  $session as element(sess:session))
  as xs:string?
 {
   (: New sessions will have an id if intended for server session storage,

@@ -27,6 +27,8 @@ declare default function namespace "http://www.w3.org/2005/xpath-functions";
 
 declare namespace xh = "http://www.w3.org/1999/xhtml";
 
+declare namespace sess = "com.marklogic.developer.cq.session";
+
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy";
 
@@ -533,6 +535,54 @@ declare function v:get-pagination-link(
     attribute href { c:pagination-href($start) },
     $text
   }</a>
+};
+
+declare function v:session-restore(
+  $session as element(sess:session)?)
+ as element(xh:div)
+{
+  v:session-restore($session, (), ())
+};
+
+declare function v:session-restore(
+  $session as element(sess:session)?,
+  $session-id as xs:string?,
+  $session-etag as xs:string? )
+ as element(xh:div)
+{
+  <div xmlns="http://www.w3.org/1999/xhtml"
+   class="hidden" xml:space="preserve"
+   id="session-restore" name="session-restore">
+  {
+    if (empty($session) or empty($session-id)) then ()
+    else if (empty($session-etag)) then c:error('CQ-UNEXPECTED')
+    else (
+      attribute session-id { $session-id },
+      attribute etag { $session-etag }
+    ),
+
+    let $active := data($session/sess:active-tab)
+    where $active
+    return attribute active-tab { $active },
+
+    (: Initial session state as hidden divs.
+     : Be careful to preserve all whitespace.
+     : For IE6, this means we must use pre elements.
+     :)
+    element div {
+      attribute id { "restore-session-buffers" },
+      $session/sess:query-buffers/@*,
+      for $i in $session/sess:query-buffers/sess:query
+      return element pre { $i/@*, $i/node() }
+    },
+    element div {
+      attribute id { "restore-session-history" },
+      $session/sess:query-history/@*,
+      for $i in $session/sess:query-history/sess:query
+      return element pre { $i/@*, $i/node() }
+    }
+  }
+  </div>
 };
 
 (: lib-view.xqy :)

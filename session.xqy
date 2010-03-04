@@ -73,7 +73,13 @@ c:set-content-type(),
       attribute class { "hidden" },
       element h1 { "Local Sessions" },
       element p {
-        'These sessions use storage provided by your browser.' }
+        'These sessions use storage provided by your browser.',
+        'You can also ',
+        element a {
+          attribute href { 'session-import-local.xqy' },
+          'import' },
+        ' sessions from local XML files.'
+      }
     },
     element h1 { 'Server Sessions' },
         (: force session initialization :)
@@ -208,14 +214,21 @@ c:set-content-type(),
                 }[ not($conflicting) ],
                 $x:NBSP,
                 (: clone button :)
-              (: TODO - provide "clone to local" button :)
                 element input {
                   attribute type { "button" },
                   attribute title { "clone this session" },
                   attribute onclick {
-                    concat("list.cloneSession('", $id, "', this)")
-                  },
+                    concat("list.cloneSession('", $id, "', this)") },
                   attribute value { "Clone", (' ', $id)[ $d:DEBUG ] }
+                },
+                $x:NBSP,
+                (: export button :)
+                element input {
+                  attribute type { "button" },
+                  attribute title { "export this session" },
+                  attribute onclick {
+                    concat("list.exportServerSession('", $id, "', this)") },
+                  attribute value { "Export", (' ', $id)[ $d:DEBUG ] }
                 },
                 $x:NBSP,
                 (: only show delete button if there are no conflicting locks :)
@@ -223,8 +236,7 @@ c:set-content-type(),
                   attribute type { "button" },
                   attribute title { "permanently delete this session" },
                   attribute onclick {
-                    concat("list.deleteSession('", $id, "', this)")
-                  },
+                    concat("list.deleteSession('", $id, "', this)") },
                   attribute value { "Delete", (' ', $id)[ $d:DEBUG ] }
                 }[ not($conflicting) ]
               }

@@ -35,14 +35,6 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 
 declare option xdmp:mapping "false";
 
-declare variable $QUERY-BUFFERS as element(sess:query)* :=
-  $c:SESSION/sess:query-buffers/sess:query
-;
-
-declare variable $QUERY-HISTORY as element(sess:query)* :=
-  $c:SESSION/sess:query-history/sess:query
-;
-
 d:check-debug(),
 c:set-content-type(),
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -58,9 +50,7 @@ c:set-content-type(),
               <tr>
                 <td nowrap="1" id="title">Current XQuery</td>
                 <td nowrap="1" id="version" class="version">
-                cq v{
-                  $c:VERSION
-                }</td>
+                cq v{ $c:VERSION }</td>
               </tr>
             </table>
 
@@ -143,37 +133,13 @@ c:set-content-type(),
              id="policy-accent-color"/>
             <input type="hidden" class="hidden" value="{$d:DEBUG}"
              id="{$d:DEBUG-FIELD}"  name="{$d:DEBUG-FIELD}"/>
-            <div class="hidden" xml:space="preserve"
-            id="session-restore" name="session-restore">{
-
-        (: ignore the server session if the user wants a local session :)
-        if ($c:SESSION-EXCEPTION or 'LOCAL' eq $c:SESSION-ID) then ()
-        else (
-          attribute session-id { $c:SESSION-ID },
-          attribute etag { $c:SESSION-ETAG }
-        ),
-
-        let $active := data($c:SESSION/sess:active-tab)
-        where $active
-        return attribute active-tab { $active },
-
-        (: Initial session state as hidden divs, for the onload method.
-         : Be careful to preserve all whitespace.
-         : For IE6, this means we must use pre elements.
-         :)
-        element div {
-          attribute id { "session-restore-buffers" },
-          $c:SESSION/sess:query-buffers/@*,
-          for $i in $QUERY-BUFFERS return element pre {
-            $i/@*, $i/node() }
-        },
-        element div {
-          attribute id { "session-restore-history" },
-          $c:SESSION/sess:query-history/@*,
-          for $i in $QUERY-HISTORY return element pre {
-            $i/@*, $i/node() }
-        }
-      }</div>
+{
+  v:session-restore(
+    if ($c:SESSION-EXCEPTION) then () else $c:SESSION,
+    if ('LOCAL' eq $c:SESSION-ID) then () else $c:SESSION-ID,
+    if ('LOCAL' eq $c:SESSION-ID) then () else $c:SESSION-ETAG
+  )
+}
                 </td>
                 <td id="textarea-status" nowrap="1" class="status"
                 title="Current position of the caret, as LINE,COLUMN."></td>

@@ -20,30 +20,20 @@ xquery version "1.0-ml";
  : affiliated with the Apache Software Foundation.
  :)
 
-import module namespace c = "com.marklogic.developer.cq.controller"
- at "lib-controller.xqy";
-
 import module namespace d = "com.marklogic.developer.cq.debug"
  at "lib-debug.xqy";
-
-import module namespace v = "com.marklogic.developer.cq.view"
- at "lib-view.xqy";
 
 declare option xdmp:mapping "false";
 
 d:check-debug()
 ,
-c:set-content-type(),
-<html xmlns="http://www.w3.org/1999/xhtml">
-  { v:get-html-head('Import Local Session') }
-  <body>
-    <h1>Import Local Session from File</h1>
-    <form action="session-import-local-do.xqy"
-          method="post" enctype="multipart/form-data">
-      <input type="file" name="import" accept="text/xml"/>
-      <input type="submit" value="import"/>
-    </form>
-  </body>
-</html>
+(: add file-disposition to prompt a save dialog - TODO must happen after onLoad! :)
+xdmp:set-response-content-type('text/xml'),
+xdmp:add-response-header(
+  'Content-disposition',
+  concat(
+    'attachment; filename=', xdmp:get-request-field('id'), '.xml') )
+,
+xdmp:get-request-field("xml")
 
-(: session-import-local.xqy :)
+(: session-export.xqy :)

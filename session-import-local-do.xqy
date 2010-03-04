@@ -47,14 +47,11 @@ c:set-content-type(),
   (: stubs for a query page :)
   for $id in (
     "query", "eval", "buffer-list", "textarea-status",
-    "history", "buffer-tabs", "buffer-accesskey-text")
+    "history",
+    "buffer-tabs", "buffer-tabs-0", "buffer-tabs-1",
+    "buffer-accesskey-text")
   return element div {
     attribute id { $id }
-  }
-  ,
-  for $i in 0 to 1
-  return element div {
-    attribute id { concat('buffer-tabs-', $i) }
   }
   ,
   v:session-restore(

@@ -683,6 +683,81 @@ function SessionListLocal() {
         }
     };
 
+    this.export = function(id) {
+        var label = "SessionListLocal.export: ";
+        debug.print(label + "begin");
+
+        // This is all quite painful,
+        // but seems to be the best technique available.
+        // We marshall the desired session into a form,
+        // then submit the form to the server,
+        // which does nothing but twiddle some headers.
+
+        // fetch the right local session
+        var restore = $H(this.get(id));
+
+        // set up a form
+        var formId = 'SessionListLocal.export';
+        var form = $(formId);
+        if (!form) {
+            form = new Element('form', {
+                    id: formId,
+                    'class': 'hidden',
+                    method: 'post',
+                    action: "session-export-local.xqy"});
+            document.body.appendChild(form);
+        }
+        form.update();
+
+        // set up the UI placeholders
+        var ids = ['query', 'eval', 'buffer-list', 'textarea-status',
+                   'history',
+                   'buffer-tabs', 'buffer-tabs-0', 'buffer-tabs-1',
+                   'buffer-tabs-accesskey-text',
+                   'session-restore'];
+        ids.each(function(id) {
+                form.appendChild(new Element('div', {id: id})); });
+
+        // set up the UI objects
+        var bufferList = new QueryBufferListClass("query",
+                                                  "eval",
+                                                  "buffer-list",
+                                                  "textarea-status");
+        var history = new QueryHistoryClass("history", bufferList);
+        var bufferTabs = new BufferTabsClass("buffer-tabs",
+                                             "buffer-accesskey-text",
+                                             bufferList,
+                                             history);
+        var session = new SessionClass(bufferTabs, "session-restore");
+
+        // fake the session
+        var sessionList = new SessionListLocal();
+        session.restoreFromObject(restore);
+
+        // build the XML
+        var xml = ("<session xmlns=\"com.marklogic.developer.cq.session\">\n"
+                   + bufferList.toXml()
+                   + history.toXml()
+                   + bufferTabs.toXml()
+                   + "</session>\n");
+        debug.print(label + xml);
+
+        // parameterize the form
+        var xmlInput = new Element('textarea', {
+                name: 'xml',
+                'xml:space': 'preserve'});
+        xmlInput.value = xml;
+        form.appendChild(xmlInput);
+        var idInput = new Element('input', {
+                name: 'id',
+                type: 'text',
+                value: id});
+        form.appendChild(idInput);
+
+        // submit the form
+        form.submit();
+    };
+
 }
 
 function sessionsOnLoad() {
@@ -723,7 +798,7 @@ function sessionsOnLoad() {
             button = new Element('input', {
                     type: 'button',
                     value: 'Resume' + (debug.isEnabled() ? (' ' + key) : ''),
-                    title: 'resume this session ' + key});
+                    title: 'resume this session'});
             // extra function to create proper scope
             button.observe('click', function(k) {
                     return function() {
@@ -741,7 +816,7 @@ function sessionsOnLoad() {
             button = new Element('input', {
                     type: 'button',
                     value: 'Clone' + (debug.isEnabled() ? (' ' + key) : ''),
-                    title: 'clone this session ' + key});
+                    title: 'clone this session'});
             // extra function to create proper scope
             button.observe('click', function(k) {
                     return function() {
@@ -751,13 +826,22 @@ function sessionsOnLoad() {
                 }(key));
             cell.appendChild(button);
 
-            // TODO export local session to xml file
+            // export local session
+            button = new Element('input', {
+                    type: 'button',
+                    value: 'Export' + (debug.isEnabled() ? (' ' + key) : ''),
+                    title: 'export this session'});
+            // extra function to create proper scope
+            button.observe('click', function(k) {
+                    return function() { sessionList.export(k); }
+                }(key));
+            cell.appendChild(button);
 
             // delete local session
             button = new Element('input', {
                     type: 'button',
                     value: 'Delete' + (debug.isEnabled() ? (' ' + key) : ''),
-                    title: 'permanently delete this session ' + key});
+                    title: 'permanently delete this session'});
             // extra function to create proper scope
             button.observe('click', function(k) {
                     return function() {

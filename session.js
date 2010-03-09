@@ -310,10 +310,13 @@ function SessionClass(tabs, id) {
         // restore buffers
         debug.print(label + "restoring buffers " + buffers.length);
         this.buffers.clear();
-        var h;
+        var h, query, source;
         for (var i=0; i < buffers.length; i++) {
             h = $H(buffers[i]);
-            this.buffers.add(h.get('query'), h.get('source'));
+            query = h.get('query');
+            source = h.get('source');
+            debug.print(label + "restoring " + i + " source = " + source);
+            this.buffers.add(query, source);
         }
         this.buffers.activate(activeBuffer);
 

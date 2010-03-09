@@ -684,6 +684,7 @@ function QueryBufferClass(query, selectionStart, contentSource) {
     }
 
     this.toHash = function() {
+        var label = "QueryBufferClass.toHash: ";
         var h = new Hash();
         if (null != this.contentSource) {
             h.set('source', this.contentSource);
@@ -831,6 +832,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
     this.updateActive = function() {
         this.setLabel(this.pos, true);
+        this.getBuffer(this.pos).setContentSource(this.getContentSource());
     };
 
     this.setLabel = function(n, active) {
@@ -1086,14 +1088,6 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             return;
         }
 
-        // IE7 has some weird behavior around the select-list
-        // if nothing is selected, it shows an empty content-source.
-        // we remedy that by copying the last content-source.
-        var lastContentSource = buf.getContentSource();
-        if (null == lastContentSource) {
-            lastContentSource = TODO;
-        }
-
         // deactivate the current buffer
         this.setLabel(this.pos, false);
 
@@ -1104,8 +1098,11 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         this.input.value = buf.getQuery();
         var contentSource = buf.getContentSource();
         // if no source is selected, keep the last one
-        this.setContentSource(null != contentSource
-                              ? contentSource : lastContentSource);
+        // IE7 has some weird behavior around the select-list
+        // if nothing is selected, it shows an empty content-source
+        if (contentSource) {
+            this.setContentSource(contentSource);
+        }
         this.setLabel(this.pos, true);
 
         setPosition(this.input, buf.getSelectionStart(),
@@ -1572,7 +1569,10 @@ function handleKeyPress(e) {
 } // handleKeyPress
 
 function submitForm(theForm, query, theMimeType, saveHistory) {
-    debug.print("submitForm: " + query);
+    var label = "submitForm: ";
+    debug.print(label
+                + $('eval').value + " "
+                + query + " as " + theMimeType + ", " + saveHistory);
 
     if (! theForm) {
         alert("null form in submitForm!");
@@ -1588,7 +1588,7 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
 
     // set the mime type
     if (null != theMimeType) {
-        debug.print("submitForm: mimeType = " + theMimeType);
+        debug.print(label + "mimeType = " + theMimeType);
         $(kQueryMimeType).value = theMimeType;
     }
 
@@ -1625,7 +1625,8 @@ function submitProfile(theForm) {
 }
 
 function submitFormWrapper(theForm, mimeType) {
-    debug.print("submitFormWrapper: " + theForm + " as " + mimeType);
+    var label = "submitFormWrapper: ";
+    debug.print(label + theForm + " as " + mimeType);
     if (!theForm) {
         return;
     }

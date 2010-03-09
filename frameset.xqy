@@ -31,8 +31,8 @@ import module namespace v = "com.marklogic.developer.cq.view"
 
 declare option xdmp:mapping "false";
 
-d:check-debug()
-,
+d:check-debug(),
+c:set-content-type(),
 <html xmlns="http://www.w3.org/1999/xhtml">
 {
   v:get-html-head(),
@@ -47,15 +47,18 @@ d:check-debug()
           return string-join(($f, xdmp:get-request-field($f)), '=')
             , '&amp;') )
       },
-      attribute id { "queryFrame" }
+      attribute id { "queryFrame" },
+      attribute name { "queryFrame" }
     }
   }
   <frame src="result.html" id="resultFrame" name="resultFrame"/>
   <noframes>
-    <p>
-    Your browser does not seem to support frames.
-    We are sorry, but cq will not work without support for frames.
-    </p>
+    <body>
+      <p>
+  Your browser does not seem to support frames.
+  We are sorry, but cq will not work without support for frames.
+      </p>
+    </body>
   </noframes>
   </frameset>
 }

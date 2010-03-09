@@ -1422,7 +1422,9 @@ function cqOnLoad() {
     }
 
     // enable in-place session rename
-    enableSessionRename(gSession.getId());
+    if (gSession.isSyncEnabled()) {
+        enableSessionRename(gSession.getId());
+    }
 
     resizeFrameset();
 
@@ -1550,7 +1552,7 @@ function handleKeyPress(e) {
         return false;
     }
 
-    // NB apparently we cannot capture KEY_RETURN on IE
+    // NB apparently we cannot capture KEY_RETURN on IE (or Chromium)
     if (theCode == Event.KEY_RETURN) {
         var theForm = $(kQueryFormId);
         if (altKey && ctrlKey && shiftKey) {

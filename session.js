@@ -420,7 +420,7 @@ function SessionClass(tabs, id) {
             // re-enable session sync
             session.syncDisabled = false;
 
-            // schedule the next attempt immediately
+            // rename, which will also sync the new local session
             setTimeout(function() { session.rename("new local session");
                 }.bindAsEventListener(this),
                 1000 / 32);
@@ -511,7 +511,7 @@ function SessionClass(tabs, id) {
 
     this.useLocal = function (sessionList) {
         var label = "SessionClass.useLocal: ";
-        if (! sessionList) {
+        if (! sessionList || ! sessionList.store) {
             debug.print(label + "null sessionList");
             return;
         }
@@ -554,36 +554,47 @@ function SessionClass(tabs, id) {
 // SessionListLocal class
 function SessionListLocal() {
 
-    // prohibit cookie store since it will be too small (4-kB limit)
-    Persist.remove('cookie');
-
-    this.store = new Persist.Store("MarkLogic cq");
-    this.sessionsList = new Array();
     this.label = "SessionListLocal.init: ";
+
+    this.store = null;
+
+    try {
+        // prohibit cookie store since it will be too small (4-kB limit)
+        Persist.remove('cookie');
+        this.store = new Persist.Store("MarkLogic cq");
+    } catch (ex) {
+        debug.print(this.label + ex.message);
+        debug.print(this.label + "local sessions disabled!");
+    }
+    this.sessionsList = null;
 
     // for event callback access
     var that = this;
 
     // populate the session list
-    this.store.get(gLocalStoreSessionsKey,
-                   function(ok, val) {
-                       if (ok) {
-                           try {
-                               that.sessionsList = ("" + val).evalJSON(true);
-                           } catch (ex) {
-                               debug.print(label + ex.message);
-                               alert(label + ex.message);
+    if (this.store) {
+        this.store.get(gLocalStoreSessionsKey,
+                       function(ok, val) {
+                           if (ok) {
+                               try {
+                                   that.sessionsList = ("" + val)
+                                       .evalJSON(true);
+                               } catch (ex) {
+                                   debug.print(label + ex.message);
+                                   alert(label + ex.message);
+                               }
+                               if (null == that.sessionsList) {
+                                   that.sessionsList = new Array();
+                               }
+                               debug.print(that.label
+                                           + "setting sessions = "
+                                           + that.sessionsList.length);
                            }
-                           if (null == that.sessionsList) {
-                               that.sessionsList = new Array();
-                           }
-                           debug.print(that.label
-                                       + "setting sessions = "
-                                       + that.sessionsList.length);
-                       }
-                   });
+                       });
+    }
 
-    debug.print(this.label + "sessions = " + this.sessionsList.length);
+    debug.print(this.label + "sessions = "
+                + (this.sessionsList ? this.sessionsList.length : "null"));
 
     // private
     this.key = function(id) {
@@ -593,6 +604,9 @@ function SessionListLocal() {
     };
 
     this.first = function() {
+        if (!this.sessionsList) {
+            return null;
+        }
         return this.get(this.keyAt[0]);
     };
 
@@ -601,14 +615,23 @@ function SessionListLocal() {
     };
 
     this.keyAt = function(i) {
+        if (!this.sessionsList) {
+            return null;
+        }
         return this.sessionsList[i];
     };
 
     this.length = function() {
+        if (!this.sessionsList) {
+            return null;
+        }
         return this.sessionsList.length;
     };
 
     this.get = function(id) {
+        if (!this.store) {
+            return null;
+        }
         var label = "SessionListLocal.get: ";
         var result = null;
         this.store.get(this.key(id),
@@ -626,6 +649,9 @@ function SessionListLocal() {
     };
 
     this.put = function(id, value) {
+        if (!this.store) {
+            return null;
+        }
         var label = "SessionListLocal.put: ";
         var jValue = Object.toJSON(value);
         debug.print(label + id);
@@ -635,6 +661,9 @@ function SessionListLocal() {
     };
 
     this.queue = function(id) {
+        if (!this.store) {
+            return null;
+        }
         var label = "SessionListLocal.queue: ";
         // re-order the sessions by most recent use
         var newArray = new Array();
@@ -652,6 +681,9 @@ function SessionListLocal() {
     };
 
     this.remove = function(id) {
+        if (!this.store) {
+            return null;
+        }
         var label = "SessionListLocal.remove: ";
         // re-order the sessions by most recent use
         var newArray = new Array();
@@ -669,6 +701,9 @@ function SessionListLocal() {
     };
 
     this.clone = function(id) {
+        if (!this.store) {
+            return null;
+        }
         var session = $H(this.get(id));
         session.set('name', "copy of " + session.get('name'));
         this.put(createUUID(), session);
@@ -684,6 +719,9 @@ function SessionListLocal() {
     };
 
     this.export = function(id) {
+        if (!this.store) {
+            return null;
+        }
         var label = "SessionListLocal.export: ";
         debug.print(label + "begin");
 

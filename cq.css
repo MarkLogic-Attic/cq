@@ -141,7 +141,6 @@ input[type = "button"]
   white-space: pre; /* CSS2 */
   white-space: -moz-pre-wrap; /* Mozilla */
   white-space: -o-pre-wrap; /* Opera 7 */
-  white-space: -pre-wrap; /* Opera 4-6 */
   white-space: pre-wrap; /* CSS 2.1 */
   white-space: pre-line; /* CSS 3 and 2.1 */
 
@@ -152,7 +151,7 @@ input[type = "button"]
   font-size: smaller;
 }
 
-/* IE6 hack: '* html' makes this invisible to non-IE browsers. */
+/* IE6 hack: '* html' makes this invisible to gecko, but not opera */
 * html .bufferlabel
 {
   word-break: break-all !important;
@@ -259,7 +258,6 @@ input[type = "button"]
 
 .pagination-area
 {
-  align: center;
   width: 95%;
   text-align: center;
 }

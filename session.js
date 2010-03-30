@@ -721,11 +721,12 @@ function SessionListLocal() {
         }
     };
 
-    this.export = function(id) {
+    // NB - webkit does not like functions named 'export'
+    this.exportLocalSession = function(id) {
         if (!this.store) {
             return null;
         }
-        var label = "SessionListLocal.export: ";
+        var label = "SessionListLocal.exportLocalSession: ";
         debug.print(label + "begin");
 
         // This is all quite painful,
@@ -738,7 +739,7 @@ function SessionListLocal() {
         var restore = $H(this.get(id));
 
         // set up a form
-        var formId = 'SessionListLocal.export';
+        var formId = 'SessionListLocal.exportLocalSession';
         var form = $(formId);
         if (!form) {
             form = new Element('form', {
@@ -874,7 +875,7 @@ function sessionsOnLoad() {
                     title: 'export this session'});
             // extra function to create proper scope
             button.observe('click', function(k) {
-                    return function() { sessionList.export(k); }
+                    return function() { sessionList.exportLocalSession(k); }
                 }(key));
             cell.appendChild(button);
 

@@ -410,13 +410,13 @@ declare function v:format-profiler-report($report as element(prof:report))
       }
     },
     let $size := 255
+    (: NB - prof:value omits line and expr-source children :)
     let $max-line-length := string-length(string(max(
-      $report/prof:histogram/prof:expression/prof:line)))
+          (0, $report/prof:histogram/prof:expression/prof:line) )))
     (: NB - all elements should have line and expr-source,
      : but 3.2-1 sometimes produces different output.
      :)
     for $i in $report/prof:histogram/prof:expression
-      [ prof:line ][ prof:expr-source ]
     order by $i/prof:shallow-time descending, $i/prof:deep-time descending
     return v:format-profiler-row($elapsed, $i, $size, $max-line-length)
   }</table>
@@ -429,8 +429,9 @@ declare function v:format-profiler-row(
   let $shallow := data($i/prof:shallow-time)
   let $deep := data($i/prof:deep-time)
   let $uri := text {
-    if (not(string($i/prof:uri)))
-    then '.main'
+    (: NB - prof:value omits line and expr-source children :)
+    if (empty($i/prof:line)) then '.value'
+    else if (not(string($i/prof:uri))) then '.main'
     else if (starts-with($i/prof:uri, '/'))
     then substring-after($i/prof:uri, '/')
     else $i/prof:uri
@@ -447,14 +448,17 @@ declare function v:format-profiler-row(
           attribute xml:space { "preserve" },
           x:lead-space(string($i/prof:line), $max-line-length) } } },
     element td {
-        attribute class { "profiler-report expression" },
-        element code {
+      attribute class { "profiler-report expression" },
+      element code {
+        (: NB - prof:value omits line and expr-source children :)
+        if (empty($i/prof:expr-source)) then '(n/a)' else (
           let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
           return
             if (string-length($expr) gt $size)
             then concat($expr, $v:ELLIPSIS)
             else $expr
-        }
+        )
+      }
     },
     element td {
       attribute class { "profiler-report numeric" }, $i/prof:count },

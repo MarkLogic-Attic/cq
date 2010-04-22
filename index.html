@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CQ Home Page</title>
+  </head>
+  <body>
+<h1>CQ Home Page</h1>
+<h2>Overview</h2>
+<p>
+CQ is a web-based XQuery environment.
+It uses HTML and JavaScript to enable development of ad-hoc queries
+without using .xqy files.
+CQ has JavaScript hooks that make it practically an IDE.
+You can view the results as XHTML, XML, or plain-text output.
+CQ also supports the MarkLogic Server profiler API.
+</p>
+<p>
+CQ is designed for use with a MarkLogic Server HTTPServer instance
+and a modern web browser with JavaScript support and XML display.
+</p>
+<img src="cq-profiler.png"/>
+<h2>Installation</h2>
+<p>
+The current release of CQ requires MarkLogic Server 4.1-1 or later,
+and is distributed with the server as a sample application.
+To install CQ, simply
+create a new HTTP server with root <code>Samples/cq</code>.
+This server can listen on any available port,
+and can default to any database you choose.
+</p>
+<p>
+If you wish to install a development version of CQ,
+simply <code>git clone git://github.com/marklogic/cq.git</code>
+to a filesystem location that is accessible by your MarkLogic Server instance.
+Then create a new HTTP server that uses the same location as its root.
+The CQ directory can also be a subdirectory of an existing server.
+For example, if you place the files under the
+<code>C:\Program Files\MarkLogic\Docs\cq</code> directory,
+CQ becomes available at <code>http://localhost:8000/cq/</code>.
+</p>
+<p>If you wish to run CQ from a modules database, simply
+  copy the CQ folder into the desired database. Make certain that the
+  HTTP server module location matches the desired database,
+  and that the HTTP server root matches the URI prefix of the CQ files.
+</p>
+<h2>Security</h2>
+<p>
+Please be very careful in exposing CQ on a
+production site, as it allows queries to be written by remote clients.
+</p>
+<p>
+CQ uses the MarkLogic Server security model. To set up CQ for a non-admin
+user, start by visiting CQ's install-roles.xqy as the admin user.
+For example, if CQ is installed on port 8000, visit
+http://localhost:8000/cq/install-roles.xqy with a web browser,
+and log in as the admin user. This will create four roles:
+</p>
+<ul>
+  <li>cq-basic, able to evaluate queries in the current database.</li>
+  <li>cq-sessions, able to save sessions in the current module location.</li>
+  <li>cq-databases, able to evaluate queries using any database.</li>
+  <li>cq-all, which inherits all the above roles.</li>
+</ul>
+<p>
+The cq-sessions and cq-databases roles also inherit the cq-basic role.
+You may grant any combination of these roles to a user, or simply grant
+the cq-all role to enable all of CQ's features.
+</p>
+<h2>Compatibility</h2>
+<p>
+CQ is developed using Mozilla Firefox 3.6, and periodically tested
+using MS Internet Explorer 7. Other browsers are not tested, and may not work,
+but patches are welcome.
+</p>
+<h2>License and Development</h2>
+<p>
+The CQ source code is included in the download, licensed under the open source
+Apache 2.0 license. The development source code is available at
+<a href="http://github.com/marklogic/cq">http://github.com/marklogic/cq</a>.
+If you make improvements to CQ, please contribute them back to the project.
+</p>
+<p>
+This application uses code from Prototype.js and script.aculo.us.
+See
+<a href="http://github.com/marklogic/cq/js/prototype.js">js/prototype.js</a>,
+<a href="http://github.com/marklogic/cq/js/effects.js">js/effects.js</a>,
+and <a href="http://github.com/marklogic/cq/js/controls.js">js/controls.js</a>
+for copyright and license information.
+</p>
+<p>
+This application uses code, styles, and images from the TableKit demo.
+See
+<a href="http://github.com/marklogic/cq/js/tablekit.js">js/tablekit.js</a>
+for copyright and license information.
+</p>
+<p>
+This application uses a modified version of Kazuki Ohta's resizable.js.
+See
+<a href="http://github.com/marklogic/cq/js/resizable.js">js/resizable.js</a>
+for copyright and license information.
+</p>
+<p>
+This application uses a modified version of Paul Duncan's PersistJS.
+See
+<a href="http://github.com/marklogic/cq/js/COPYING-PersistJS">js/COPYING-PersistJS</a>
+for copyright and license information.
+</p>
+<p>
+Enjoy!
+  </body>
+</html>

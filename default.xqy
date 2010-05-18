@@ -81,6 +81,24 @@ return
   }
 }
 </html>
+else if (not(xdmp:license-accepted())) then
+let $code := xdmp:set-response-code(403, "License not Accepted Yet")
+return
+<html xmlns="http://www.w3.org/1999/xhtml">
+{
+  v:get-html-head(),
+  element body {
+    <h1>License Agreement Not Accepted Yet</h1>,
+    <p>An administrator must accept the license agreement 
+    before users can load cq. Please use the
+    <a href="http://{
+      substring-before(xdmp:get-request-header('host'), ':')
+    }:8001" target="_new">admin server</a>
+    to resolve this.
+    </p>
+  }
+}
+</html>
 else xdmp:invoke("frameset.xqy")
 
 (: default.xqy :)

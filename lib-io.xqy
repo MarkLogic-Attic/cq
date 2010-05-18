@@ -245,8 +245,11 @@ declare function io:list-fs($path as xs:string)
         element format { 'xml' } }</options>
       ) }
   catch ($ex) {
-    if ($ex/error:code eq 'XDMP-DOCROOTTEXT') then ()
-    else xdmp:rethrow()
+    if ($ex/error:code ne 'XDMP-DOCROOTTEXT') then xdmp:rethrow()
+    else xdmp:log(
+      text {
+        'file is not XML:', $p, normalize-space(xdmp:quote($ex)) },
+      'debug')
   }
 };
 

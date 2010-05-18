@@ -308,28 +308,40 @@ function SessionClass(tabs, id) {
         this.buffers.setCols(cols);
 
         // restore buffers
-        debug.print(label + "restoring buffers " + buffers.length);
-        this.buffers.clear();
-        var h, query, source;
-        for (var i=0; i < buffers.length; i++) {
-            h = $H(buffers[i]);
-            query = h.get('query');
-            source = h.get('source');
-            debug.print(label + "restoring " + i + " source = " + source);
-            this.buffers.add(query, source);
+        if (! buffers) {
+            debug.print(label + "null buffers!");
+        } else {
+            debug.print(label + "restoring buffers " + buffers.length);
+            this.buffers.clear();
+            var h, query, source;
+            for (var i=0; i < buffers.length; i++) {
+                h = $H(buffers[i]);
+                query = h.get('query');
+                source = h.get('source');
+                debug.print(label + "restoring " + i + " source = " + source);
+                this.buffers.add(query, source);
+            }
+            this.buffers.activate(activeBuffer);
         }
-        this.buffers.activate(activeBuffer);
 
-        debug.print(label + "restoring history " + history.length);
-        // restore in reverse order
-        this.history.clear();
-        var start = history.length - 1;
-        for (var i=start; i >= 0; i--) {
-            this.history.add(history[i]);
+        if (! history) {
+            debug.print(label + "null history!");
+        } else {
+            debug.print(label + "restoring history " + history.length);
+            // restore in reverse order
+            this.history.clear();
+            var start = history.length - 1;
+            for (var i=start; i >= 0; i--) {
+                this.history.add(history[i]);
+            }
         }
 
         // this must happen last
-        this.tabs.refresh(activeTab);
+        if (! activeTab) {
+            debug.print(label + "null activeTab!");
+        } else {
+            this.tabs.refresh(activeTab);
+        }
     };
 
     this.sync = function() {
@@ -561,6 +573,8 @@ function SessionListLocal() {
 
     this.store = null;
 
+    // TODO what happens when the session exceeds the storage limit?
+    // can we prevent data loss?
     try {
         // prohibit cookie store since it will be too small (4-kB limit)
         Persist.remove('cookie');
@@ -643,12 +657,33 @@ function SessionListLocal() {
                                try {
                                    result = ("" + val).evalJSON(true);
                                } catch (ex) {
-                                   debug.print(label + ex.message);
-                                   alert(label + ex.message);
+                                   var old = debug.isEnabled();
+                                   debug.setEnabled(true);
+                                   debug.print(label + " size=" + val.length
+                                               + " " + ex.message);
+                                   debug.setEnabled(old);
+                                   alert(label + ex.message.substring(0, 256));
                                }
                            }
                        });
         return result;
+    };
+
+    this.storeSet = function(key, value) {
+        var label = "SessionListLocal.storeSet: ";
+        // the largest danger here is that we may hit the storage limit
+        // TODO - try to reduce by dropping the history?
+        // TODO - break up session into metadata, queries, history?
+        // for the moment we abort the set, which leaves the old state alone
+        try {
+            this.store.set(key, value);
+        } catch (ex) {
+            var old = debug.isEnabled();
+            debug.setEnabled(true);
+            debug.print(label + ex.message);
+            debug.setEnabled(old);
+            alert(label + ex.message.substring(0, 256));
+        }
     };
 
     this.put = function(id, value) {
@@ -660,7 +695,7 @@ function SessionListLocal() {
         debug.print(label + id);
 
         this.queue(id);
-        this.store.set(this.key(id), jValue);
+        this.storeSet(this.key(id), jValue);
     };
 
     this.queue = function(id) {
@@ -678,9 +713,8 @@ function SessionListLocal() {
         }
         debug.print(label + newArray.length + " = " + newArray[0]);
         this.sessionsList = newArray;
-        this.store.set(gLocalStoreSessionsKey,
-                       Object.toJSON(this.sessionsList));
-
+        this.storeSet(gLocalStoreSessionsKey,
+                      Object.toJSON(this.sessionsList));
     };
 
     this.remove = function(id) {
@@ -697,8 +731,8 @@ function SessionListLocal() {
         }
         debug.print(label + newArray.length + " = " + newArray[0]);
         this.sessionsList = newArray;
-        this.store.set(gLocalStoreSessionsKey,
-                       Object.toJSON(this.sessionsList));
+        this.storeSet(gLocalStoreSessionsKey,
+                      Object.toJSON(this.sessionsList));
 
         this.store.remove(id);
     };

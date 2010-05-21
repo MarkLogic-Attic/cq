@@ -638,8 +638,10 @@ declare function c:app-server-info()
       admin:group-get-httpserver-ids($c:ADMIN-CONFIG, $group-id),
       admin:group-get-xdbcserver-ids($c:ADMIN-CONFIG, $group-id)
     )
-    let $database-id := admin:appserver-get-database(
-      $ADMIN-CONFIG, $server-id )
+    let $database-id as xs:unsignedLong? := try {
+      admin:appserver-get-database($ADMIN-CONFIG, $server-id) } catch ($ex) {
+      d:exception-log($ex, ('c:app-server-info', $server-id))
+    }
     where $database-id
     return element c:app-server-info {
       element c:server-id { $server-id },

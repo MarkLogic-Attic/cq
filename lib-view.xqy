@@ -357,10 +357,16 @@ declare function v:get-eval-selector() as element(xh:select)
     for $s in $c:APP-SERVER-INFO
     let $database-id as xs:unsignedLong := $s/c:database-id
     let $server-name as xs:string := $s/c:server-name
-    let $label :=
-      v:get-eval-label($database-id, (), (), $server-name)
+    (: if the database-id does not exist, ignore the entry :)
+    let $label as xs:string? := try {
+      v:get-eval-label($database-id, (), (), $server-name) } catch ($ex) {
+      if ($ex/error:code eq 'XDMP-NOSUCHDB') then d:exception-log(
+        $ex, ('v:get-eval-selector', $database-id) )
+      else xdmp:rethrow()
+    }
     let $value := string-join(
       ('as', string($s/c:server-id), string($s/c:host-id)), ":")
+    where exists($label)
     (: sort current app-server to the top, for bootstrap selection :)
     order by ($s/c:server-id eq $c:SERVER-ID) descending, $label
     return element xh:option {

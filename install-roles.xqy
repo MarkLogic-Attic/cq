@@ -32,6 +32,7 @@ declare variable $CONFIG :=
     <exec-privilege>xdmp:add-response-header</exec-privilege>
     <exec-privilege>xdmp:eval</exec-privilege>
     <exec-privilege>xdmp:invoke</exec-privilege>
+    <exec-privilege>xdmp:license-accepted</exec-privilege>
   </role>
   <role name="cq-sessions">
     <role name="cq-basic"/>

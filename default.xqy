@@ -43,7 +43,8 @@ let $priv-errors :=
     (: basic privileges :)
     "http://marklogic.com/xdmp/privileges/xdmp-add-response-header",
     "http://marklogic.com/xdmp/privileges/xdmp-eval",
-    "http://marklogic.com/xdmp/privileges/xdmp-invoke"
+    "http://marklogic.com/xdmp/privileges/xdmp-invoke",
+    "http://marklogic.com/xdmp/privileges/xdmp-license-accepted"
   )
   return try {
     xdmp:security-assert($priv, "execute") }
@@ -89,7 +90,7 @@ return
   v:get-html-head(),
   element body {
     <h1>License Agreement Not Accepted Yet</h1>,
-    <p>An administrator must accept the license agreement 
+    <p>An administrator must accept the license agreement
     before users can load cq. Please use the
     <a href="http://{
       substring-before(xdmp:get-request-header('host'), ':')

@@ -77,6 +77,10 @@ declare variable $MIMETYPE as xs:string :=
   xdmp:get-request-field("mime-type", "text/plain")
 ;
 
+declare variable $USE-XSL as xs:boolean := xs:boolean(
+  xdmp:get-request-field("xsl", "false")
+);
+
 declare variable $PROFILING as xs:boolean :=
   $MIMETYPE eq 'application/x-com.marklogic.developer.cq.profiling'
 ;
@@ -154,7 +158,7 @@ try {
     (: does this fix the IE6 text/plain helper-app issue? cf Q239750 :)
     xdmp:add-response-header('Content-Disposition', 'inline; filename=cq.txt')
   return
-    if ($mimetype eq "text/xml") then v:get-xml($x)
+    if ($mimetype eq "text/xml") then v:get-xml($x, $USE-XSL)
     else if ($mimetype eq "text/html") then v:get-html($x)
     else v:get-text($x)
 } catch ($ex) {

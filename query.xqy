@@ -127,6 +127,8 @@ c:set-content-type(),
                 }</input>
             <input type="hidden" class="hidden" value="text/xml"
              id="mime-type" name="mime-type"/>
+            <input type="hidden" class="hidden" value="false"
+             id="xsl" name="xsl"/>
             <input type="hidden" class="hidden"  value="{$c:POLICY-TITLE}"
              id="policy-title"/>
             <input type="hidden" class="hidden" value="{$c:POLICY-ACCENT-COLOR}"

@@ -28,63 +28,66 @@
       doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN"
       />
 
+  <!-- text -->
+  <xsl:template match="text()">
+    <xt><xsl:value-of select="."/></xt>
+  </xsl:template>
+
   <!-- comments -->
   <xsl:template match="comment()">
-    <xc>&lt;-- <xsl:value-of select="."/> --&gt;</xc>
+    <xc><xsl:value-of select="."/></xc>
   </xsl:template>
 
   <!-- attributes -->
   <xsl:template match="@*">
     <xa><xsl:text> </xsl:text><xsl:value-of
-    select="name()"/><xav><xsl:value-of select="."/></xav></xa>
+    select="name()"/><xv><xsl:value-of select="."/></xv></xa>
   </xsl:template>
 
   <xsl:template match="processing-instruction()">
     <!-- omit any PI for this xsl -->
     <xsl:if test="name(.) != 'xml-stylesheet'
                   or not(contains(., 'href=&quot;xml-tree.xsl'))">
-    <xpi>&lt;?<xsl:value-of
-    select="name()"/><xsl:text> </xsl:text><xsl:value-of
-    select="."/>?&gt;</xpi>
+    <xp>&lt;?<xsl:value-of select="name()"/><xsl:text> </xsl:text><xsl:value-of
+    select="."/>?&gt;</xp>
     </xsl:if>
   </xsl:template>
 
-  <xsl:template match="text()"><xsl:copy-of select="."/></xsl:template>
-
   <xsl:template match="*">
-    <!-- start tag, attribute nodes, and namespaces -->
-    <xe>&lt;<xsl:value-of
-    select="name()"/><xsl:apply-templates
-    select="@*"/><xsl:variable name="ns"
-    select="namespace::*"/><xsl:variable name="pns"
-    select="../namespace::*"/><xsl:if test="$ns"><xsl:for-each
-    select="$ns[not(. = $pns)]"><xsl:variable name="prefix"
-    select="local-name(.)"/> xmlns<xsl:if test="$prefix">:<xsl:value-of
-    select="$prefix"/></xsl:if>="<xsl:value-of
-    select="string()"/>"</xsl:for-each></xsl:if></xe><xsl:variable
-    name="node-count"
-    select="count(node())"/>
-    <xsl:choose>
+      <!-- NB - careful with whitespace in here! -->
+      <!-- start tag, attribute nodes, and namespaces -->
+      <xsl:variable name="node-count" select="count(node())"/>
+      <xsl:variable name="is-tree" select="$node-count > 1"/>
+      <xsl:choose><xsl:when test="$is-tree"><xw>—</xw></xsl:when><xsl:when test="not(parent::*)">&#160;</xsl:when><xsl:otherwise></xsl:otherwise></xsl:choose>
+      <xe>&lt;<xsl:value-of
+      select="name()"/><xsl:apply-templates
+      select="@*"/><xsl:variable name="ns"
+      select="namespace::*"/><xsl:variable name="pns"
+      select="../namespace::*"/><xsl:if test="$ns"><xsl:for-each
+      select="$ns[not(. = $pns)]"><xsl:variable name="prefix"
+      select="local-name(.)"/><xsl:text> </xsl:text><xn>xmlns<xsl:if
+      test="$prefix">:<xsl:value-of
+      select="$prefix"/></xsl:if></xn><xv><xsl:value-of
+      select="string()"/></xv></xsl:for-each></xsl:if>
       <!-- empty? -->
-      <xsl:when test="0 = $node-count">/&gt;</xsl:when>
-      <xsl:otherwise>
-        <xe>/&gt;</xe>
-        <xsl:variable name="text-count" select="count(text())"/>
-        <!-- any text child nodes? -->
-        <xsl:choose>
-          <!-- if found, add tree widget, intially expanded -->
-          <xsl:when test="$node-count != $text-count">
-            <xw>—</xw>
-            <ul><xsl:for-each select="node()">
-              <li><xsl:apply-templates select="."/></li>
-            </xsl:for-each></ul>
-          </xsl:when>
-          <xsl:otherwise><xsl:apply-templates/></xsl:otherwise>
-        </xsl:choose>
-        <!-- end tag -->
-        <xe>&lt;/<xsl:value-of select="name()"/>&gt;</xe>
-      </xsl:otherwise>
-    </xsl:choose>
+      <xsl:choose>
+        <xsl:when
+            test="0 = $node-count">/&gt;</xsl:when>
+        <!-- close start tag and proceed -->
+        <xsl:otherwise>&gt;<xsl:choose>
+        <!-- any children? -->
+        <xsl:when test="$is-tree">
+          <ul>
+            <xsl:for-each select="node()">
+              <xsl:if test="not(self::text()) or normalize-space(.)">
+                <li><xsl:if test="count(node()) &lt; 2">&#160;</xsl:if><xsl:apply-templates select="."/></li>
+              </xsl:if>
+            </xsl:for-each>
+          </ul>
+        </xsl:when>
+        <xsl:otherwise><xsl:apply-templates/></xsl:otherwise>
+        </xsl:choose><xsl:if test="$is-tree">&#160;</xsl:if>&lt;/<xsl:value-of select="name()"/>&gt;</xsl:otherwise>
+      </xsl:choose></xe>
   </xsl:template>
 
   <xsl:template match="/">
@@ -92,11 +95,19 @@
       <head>
         <title>XML Tree View</title>
         <link rel="stylesheet" type="text/css" href="xml-tree.css"/>
+        <script language="JavaScript" type="text/javascript"
+                src="js/prototype.js">
+        </script>
+        <script language="JavaScript" type="text/javascript"
+                src="xml-tree.js">
+        </script>
       </head>
-      <body>
-        <div class="DEBUG"><xsl:value-of
-        select="system-property('xsl:version')"/></div>
-        <div class="DEBUG"><xsl:value-of select="generate-id(.)"/></div>
+      <body onload="xmlTreeInit()">
+        <xsl:if test="0">
+          <div class="DEBUG"><xsl:value-of
+          select="system-property('xsl:version')"/></div>
+          <div class="DEBUG"><xsl:value-of select="generate-id(.)"/></div>
+        </xsl:if>
         <div id="tree">
           <xsl:for-each select="node()">
             <div><xsl:apply-templates select="."/></div>

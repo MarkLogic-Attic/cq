@@ -25,6 +25,7 @@ var kResultFrameId = "resultFrame";
 var kQueryFormId = "form";
 var kQueryInput = "query";
 var kQueryMimeType = "mime-type";
+var kQueryXsl = "xsl";
 
 // I would prefer something like \u2715, but many systems don't display it.
 var kDeleteWidget = " (x) ";
@@ -215,6 +216,12 @@ function BrowserIsClass() {
                   && (agt.indexOf('gecko') != -1));
 
     this.ie   = (agt.indexOf("msie") != -1);
+
+    this.opera = agt.indexOf('opera') != -1;
+
+    this.safari = agt.indexOf('safari') != -1;
+
+    this.chrome = agt.indexOf('chrome') != -1;
 
     // don't use these unless we must
     this.x11 = (agt.indexOf("x11") != -1);
@@ -1589,12 +1596,18 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
     // sync the session, if it has changed
     gSession.sync();
 
-    // TODO pass a param to say whether or not the browser does xml tree views
-
     // set the mime type
     if (null != theMimeType) {
         debug.print(label + "mimeType = " + theMimeType);
         $(kQueryMimeType).value = theMimeType;
+    }
+
+    // TODO pass a param to say whether or not the browser does xml tree views
+    if ("text/xml" == theMimeType
+        && (gBrowserIs.chrome
+            || gBrowserIs.safari
+            || gBrowserIs.opera)) {
+        $(kQueryXsl).value = true;
     }
 
     // TODO it would be nice to grey out the target frame, if possible

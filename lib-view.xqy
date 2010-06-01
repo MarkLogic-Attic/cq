@@ -78,22 +78,24 @@ declare variable $v:PROFILER-COLUMNS as element(columns) :=
   }
 ;
 
-declare function v:get-xml($x as item()+)
- as node()*
+declare function v:get-xml(
+  $x as item()+,
+  $use-xsl as xs:boolean )
+as node()*
 {
   text {
     concat(
       '<?xml version="1.0" encoding="',
       xdmp:get-response-encoding(), '"?>' ) },
-  (: TODO conditionally include stylesheet, on browser request :)
-  if (true()) then ()
+  (: conditionally include stylesheet, on browser request :)
+  if (not($use-xsl)) then ()
   else <?xml-stylesheet type="text/xsl" href="xml-tree.xsl"?>
   ,
   let $count := count($x)
   return
     if ($count eq 1 and $x instance of element()) then $x
     else if ($count eq 1 and $x instance of document-node() and $x/element())
-    then v:get-xml($x/node())
+    then v:get-xml($x/node(), $use-xsl)
     else element v:results {
       attribute v:warning {
         if ($count eq 1) then "non-element item"

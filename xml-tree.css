@@ -13,8 +13,14 @@
  * limitations under the License.
  *
  * The use of the Apache License does not indicate that this project is
- * affiliated with the Apache Software Foundation. 
+ * affiliated with the Apache Software Foundation.
  */
+
+body
+{
+  font-family: monospace, -moz-fixed !important;
+  font-size: 0.8em;
+}
 
 /* compact display */
 ul
@@ -31,33 +37,56 @@ li
     padding: 0;
 }
 
-/* attribute */
-xa
-{
-    color: black;
-}
-
-/* attribute value */
-xav
-{
-    color: blue;
-}
-
 .DEBUG:before
 {
     content: "DEBUG: "
 }
 
-xav:before
+/* element start, end */
+xe
+{
+    color: purple;
+    font-weight: normal;
+}
+
+/* namespace */
+xn
+{
+    color: maroon;
+    font-weight: normal;
+}
+
+/* attribute */
+xa
+{
+    color: black;
+    font-weight: normal;
+}
+
+/* attribute value */
+xv
+{
+    color: blue;
+    font-weight: normal;
+}
+
+xv:before
 {
     color: black;
     content: "=\""
 }
 
-xav:after
+xv:after
 {
     color: black;
     content: "\""
+}
+
+/* text */
+xt
+{
+    color: black;
+    font-weight: normal;
 }
 
 /* comment */
@@ -65,13 +94,17 @@ xc
 {
     color: green;
     font-style: italic;
+    font-weight: normal;
 }
 
-/* element start, end */
-xe
+xc:before
 {
-    color: purple;
-    font-weight: bold;
+    content: "<!--"
+}
+
+xc:after
+{
+    content: "-->"
 }
 
 /* toggle widget
@@ -87,10 +120,11 @@ xw
 }
 
 /* processing-instruction */
-xpi
+xp
 {
     color: purple;
     font-style: italic;
+    font-weight: normal;
 }
 
 /* xml-tree.css */

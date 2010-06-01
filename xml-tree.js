@@ -29,6 +29,8 @@ function toggleXmlTree(e)
     n.toggle();
     // change the glyph as needed
     this.update(n.visible() ? "—" : "+");
+    // TODO also toggle the following xe?
+    //this.next('xe', 1).toggle();
 }
 
 // onload handler

@@ -20,6 +20,7 @@ chmod a+rwx cq/sessions
 # NB non-recursive add of sessions dir
 FILES=`echo cq/[a-su-z]*.xqy \
   cq/*.xml \
+  cq/*.xsl \
   cq/*.js \
   cq/js/*.js \
   cq/js/COPYING-PersistJS \

@@ -1521,6 +1521,7 @@ function handleKeys(e) {
     }
 
     // firefox uses alt 0-9 for tabs on linux, ctrl on win32, meta on macos.
+    // chrome accepts both alt-N and ctrl-N, but ctrl-shift-N works fine.
     // So we accept either ctrl or alt, by platform.
     var modKey = gBrowserIs.x11 ? ctrlKey : altKey;
 

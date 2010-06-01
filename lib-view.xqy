@@ -79,8 +79,16 @@ declare variable $v:PROFILER-COLUMNS as element(columns) :=
 ;
 
 declare function v:get-xml($x as item()+)
- as element()
+ as node()*
 {
+  text {
+    concat(
+      '<?xml version="1.0" encoding="',
+      xdmp:get-response-encoding(), '"?>' ) },
+  (: TODO conditionally include stylesheet, on browser request :)
+  if (true()) then ()
+  else <?xml-stylesheet type="text/xsl" href="xml-tree.xsl"?>
+  ,
   let $count := count($x)
   return
     if ($count eq 1 and $x instance of element()) then $x
@@ -280,15 +288,12 @@ declare function v:get-html-head(
   (: we do not always need the js and css here, but it makes reloads easier :)
   <head xmlns="http://www.w3.org/1999/xhtml">
     <title>{ $label, $c:TITLE-TEXT }</title>
-    <link rel="stylesheet" type="text/css" href="cq.css">
-    </link>
+    <link rel="stylesheet" type="text/css" href="cq.css" />
   {
     if (not($tablekit)) then () else
-    <link rel="stylesheet" type="text/css" href="tablekit.css">
-    </link>
+    <link rel="stylesheet" type="text/css" href="tablekit.css" />
   }
-  <link rel="Shortcut Icon" href="favicon.ico" type="image/x-icon">
-  </link>
+  <link rel="Shortcut Icon" href="favicon.ico" type="image/x-icon" />
   <script language="JavaScript" type="text/javascript" src="js/prototype.js">
   </script>
   <script language="JavaScript" type="text/javascript" src="js/resizable.js">

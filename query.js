@@ -1387,7 +1387,9 @@ function cqOnLoad() {
     }
 
     // register for key-presses
-    Event.observe(this, "keypress", handleKeyPress);
+    // "keypress" works with gecko
+    // "keyup" works with gecko and Chrome
+    Event.observe(this, "keyup", handleKeys);
 
     // set up the UI objects
     gBuffers = new QueryBufferListClass("query",
@@ -1493,7 +1495,7 @@ function resizeFrameset(rows) {
 //   MOD-0 to MOD-9 exposes the corresponding buffer (48-57)
 //   previous buffer: MOD-, (44) (think '<')
 //   next buffer: MOD-. (46) (think '>')
-function handleKeyPress(e) {
+function handleKeys(e) {
     var theCode = e.keyCode;
     // see http://www.mozilla.org/editor/key-event-spec.html
     // for weird gecko behavior
@@ -1516,13 +1518,14 @@ function handleKeyPress(e) {
     var modKey = gBrowserIs.x11 ? ctrlKey : altKey;
 
     if (debug.isEnabled()) {
-        var keyInfo = "win=" + gBrowserIs.win
-            + " x11=" + gBrowserIs.x11
-            + " mac=" + gBrowserIs.mac + ", "
-            + (modKey ? "mod " : "")
-            + (ctrlKey ? "ctrl " : "") + (shiftKey ? "shift " : "")
-            + (altKey ? "alt " : "") + theCode;
-        debug.print("handleKeyPress: " + keyInfo);
+        debug.print("handleKeys: "
+                    + "win=" + gBrowserIs.win
+                    + " x11=" + gBrowserIs.x11
+                    + " mac=" + gBrowserIs.mac + ", "
+                    + (modKey ? "mod " : "")
+                    + (ctrlKey ? "ctrl " : "") + (shiftKey ? "shift " : "")
+                    + (altKey ? "alt " : "") + theCode
+                    + " which=" + e.which);
     }
 
     if ( modKey && (47 < theCode) && (58 > theCode) ) {
@@ -1549,7 +1552,7 @@ function handleKeyPress(e) {
         return false;
     }
 
-    // NB apparently we cannot capture KEY_RETURN on IE (or Chromium)
+    // NB apparently we cannot capture KEY_RETURN on IE?
     if (theCode == Event.KEY_RETURN) {
         var theForm = $(kQueryFormId);
         if (altKey && ctrlKey && shiftKey) {
@@ -1566,7 +1569,7 @@ function handleKeyPress(e) {
 
     // ignore other keys
     return true;
-} // handleKeyPress
+} // handleKeys
 
 function submitForm(theForm, query, theMimeType, saveHistory) {
     var label = "submitForm: ";
@@ -1585,6 +1588,8 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
 
     // sync the session, if it has changed
     gSession.sync();
+
+    // TODO pass a param to say whether or not the browser does xml tree views
 
     // set the mime type
     if (null != theMimeType) {
@@ -1640,16 +1645,17 @@ function submitFormWrapper(theForm, mimeType) {
 function cqListDocuments() {
     var source = gBuffers.getContentSource();
     debug.print("listDocuments: source = " + source);
-    // TODO ie6 may be caching this page despite the query string
-    // cannot reproduce in ie7
+    // ie6 may be caching this page despite the query string,
+    // so bust the cache with a new random value every time.
     var src = "explore.xqy?"
-        + "debug=" + (debug.isEnabled() ? 1 : 0)
+        + "cache-buster=" + Math.random()
+        + "&debug=" + (debug.isEnabled() ? 1 : 0)
         + (source ? ("&eval=" + source) : "");
     debug.print("listDocuments: src = " + src);
-    parent.parentListDocuments(src);
+    parent.parentSetResultsFrame(src);
 }
 
-function parentListDocuments(src) {
+function parentSetResultsFrame(src) {
     var resultFrame = $(kResultFrameId);
     if (null == resultFrame) {
         alert("listDocuments: null result frame");

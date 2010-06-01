@@ -280,7 +280,7 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
             Element.hide(this.instructionNode.parentNode);
             return;
         }
-        // we only need to worry about X11 (see the comment in handleKeyPress)
+        // we only need to worry about X11 (see the comment in handleKey)
         var theText = gBrowserIs.x11 ? "ctrl" : "alt";
         debug.print("setInstructionText: " + theText);
         // clear any old text
@@ -1515,7 +1515,7 @@ function handleKeys(e) {
     var ctrlKey = e['ctrlKey'];
     var shiftKey = e['shiftKey'];
 
-    // short-circuit if we obviously don't care about this keypress
+    // short-circuit if we obviously don't care about this event
     if (! (ctrlKey || altKey) ) {
         return true;
     }
@@ -1535,30 +1535,6 @@ function handleKeys(e) {
                     + " which=" + e.which);
     }
 
-    if ( modKey && (47 < theCode) && (58 > theCode) ) {
-        // expose the corresponding buffer: 0-9
-        gBuffers.activate((theCode == 48) ? 9 : (theCode - 49));
-        return false;
-    }
-
-    // next buffer: MOD-> (46)
-    if (modKey && 46 == theCode) {
-        gBuffers.nextBuffer();
-        return false;
-    }
-
-    // previous buffer: MOD-< (44)
-    if (modKey && 44 == theCode) {
-        gBuffers.previousBuffer();
-        return false;
-    }
-
-    // toggle tab: MOD-` (96)
-    if (modKey && 96 == theCode) {
-        gBufferTabs.toggle();
-        return false;
-    }
-
     // NB apparently we cannot capture KEY_RETURN on IE?
     if (theCode == Event.KEY_RETURN) {
         var theForm = $(kQueryFormId);
@@ -1574,7 +1550,31 @@ function handleKeys(e) {
         return false;
     }
 
-    // ignore other keys
+    if ( modKey && (47 < theCode) && (58 > theCode) ) {
+        // expose the corresponding buffer: 0-9
+        gBuffers.activate((theCode == 48) ? 9 : (theCode - 49));
+        return false;
+    }
+
+    // previous buffer: MOD-lt
+    if (modKey && 188 == theCode) {
+        gBuffers.previousBuffer();
+        return false;
+    }
+
+    // next buffer: MOD-gt
+    if (modKey && 190 == theCode) {
+        gBuffers.nextBuffer();
+        return false;
+    }
+
+    // toggle tab: MOD-backquote
+    if (modKey && 192 == theCode) {
+        gBufferTabs.toggle();
+        return false;
+    }
+
+    // let the browser handle other keys
     return true;
 } // handleKeys
 

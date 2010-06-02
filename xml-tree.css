@@ -43,11 +43,6 @@ li
     padding: 0;
 }
 
-.DEBUG:before
-{
-    content: "DEBUG: "
-}
-
 /* element start, end */
 xe
 {
@@ -76,19 +71,6 @@ xv
     font-weight: normal;
 }
 
-/* TODO - before and after aren't copyable text! */
-xv:before
-{
-    color: black;
-    content: "=\""
-}
-
-xv:after
-{
-    color: black;
-    content: "\""
-}
-
 /* text */
 xt
 {
@@ -104,20 +86,7 @@ xc
     font-weight: normal;
 }
 
-xc:before
-{
-    content: "<!--"
-}
-
-xc:after
-{
-    content: "-->"
-}
-
-/* toggle widget
- * it might be interesting to try a content property on .e-s:before,
- * if only JavaScript could see it in the DOM (and IE6 might work).
- */
+/* toggle widget */
 xw
 {
     color: black;

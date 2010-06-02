@@ -35,13 +35,13 @@
 
   <!-- comments -->
   <xsl:template match="comment()">
-    <xc><xsl:value-of select="."/></xc>
+    <xc>&lt;!--<xsl:value-of select="."/>--&gt;</xc>
   </xsl:template>
 
   <!-- attributes -->
   <xsl:template match="@*">
     <xa><xsl:text> </xsl:text><xsl:value-of
-    select="name()"/><xv><xsl:value-of select="."/></xv></xa>
+    select="name()"/>="<xv><xsl:value-of select="."/></xv>"</xa>
   </xsl:template>
 
   <xsl:template match="processing-instruction()">
@@ -67,8 +67,8 @@
       select="$ns[not(. = $pns)]"><xsl:variable name="prefix"
       select="local-name(.)"/><xsl:text> </xsl:text><xn>xmlns<xsl:if
       test="$prefix">:<xsl:value-of
-      select="$prefix"/></xsl:if></xn><xv><xsl:value-of
-      select="string()"/></xv></xsl:for-each></xsl:if>
+      select="$prefix"/></xsl:if></xn>="<xv><xsl:value-of
+      select="string()"/></xv>"</xsl:for-each></xsl:if>
       <!-- empty? -->
       <xsl:choose>
         <xsl:when

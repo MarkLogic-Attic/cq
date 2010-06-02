@@ -16,6 +16,12 @@
  * affiliated with the Apache Software Foundation.
  */
 
+/* hack for Chrome FlashBlock */
+html > style
+{
+  display: none;
+}
+
 body
 {
   font-family: monospace, -moz-fixed !important;
@@ -70,6 +76,7 @@ xv
     font-weight: normal;
 }
 
+/* TODO - before and after aren't copyable text! */
 xv:before
 {
     color: black;

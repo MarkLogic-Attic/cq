@@ -83,7 +83,9 @@ declare function v:get-xml(
   $use-xsl as xs:boolean )
 as node()*
 {
-  text {
+  (: 4.2 will emit its own xml declaration for document nodes :)
+  if ($x instance of document-node()) then ()
+  else text {
     concat(
       '<?xml version="1.0" encoding="',
       xdmp:get-response-encoding(), '"?>' ) },

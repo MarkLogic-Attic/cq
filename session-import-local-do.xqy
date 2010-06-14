@@ -44,19 +44,49 @@ c:set-content-type(),
   <body onload="sessionImportLocal()">
     <h1>Import Local Session from File</h1>
 {
-  (: stubs for a query page :)
-  for $id in (
-    "query", "eval", "buffer-list", "textarea-status",
-    "history",
-    "buffer-tabs", "buffer-tabs-0", "buffer-tabs-1",
-    "buffer-accesskey-text")
-  return element div {
-    attribute id { $id }
+  try {
+    (: stubs for a query page :)
+    for $id in (
+      "query", "eval", "buffer-list", "textarea-status",
+      "history",
+      "buffer-tabs", "buffer-tabs-0", "buffer-tabs-1",
+      "buffer-accesskey-text")
+    return element div {
+      attribute id { $id }
+    }
+    ,
+    v:session-restore(
+      xdmp:unquote(
+        xdmp:get-request-field("import") )/sess:session
+      treat as element(sess:session) )
+  } catch ($ex) {
+    element div {
+      element h2 {
+        'Error: the import failed.' },
+      <p>
+      Perhaps the file you selected does not contain
+      a valid cq session export?</p>,
+      element p {
+        element a {
+          attribute href { 'session-import-local.xqy' },
+          'Try again' } },
+      element p {
+        element a {
+          attribute href { 'session.xqy' },
+          'Return to the cq session manager' } },
+      <p>
+      The full error message follows.
+      If you believe that your selected file does contain
+      a valid cq session export, please visit
+      the <a href="http://github.com/marklogic/cq/issues">issues</a>
+      page for cq on github.
+      There you can create a new issue for this problem.
+      Be sure to attach a copy of this error message,
+      and a copy of the session file that caused the error.
+      </p>,
+      element pre { xdmp:quote($ex) }
+    }
   }
-  ,
-  v:session-restore(
-    xdmp:unquote(
-      xdmp:get-request-field("import") )/sess:session )
 }
   </body>
 </html>

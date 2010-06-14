@@ -63,9 +63,9 @@ function SessionList() {
     this.refresh = function() {
         if (debug.isEnabled()) {
             alert("DEBUG: will refresh now");
-            window.location.replace( ".?debug=1");
+            window.location.assign( ".?debug=1");
         } else {
-            window.location.replace( "." );
+            window.location.assign( "." );
         }
     }
 
@@ -94,7 +94,7 @@ function SessionList() {
 
     this.exportServerSession = function(id, context) {
         var path = "session-export.xqy?id=" + id;
-        window.location.href = path;
+        window.location.assign(path);
     };
 
     this.cloneSession = function(id, context) {
@@ -749,9 +749,9 @@ function SessionListLocal() {
     this.refresh = function() {
         if (debug.isEnabled()) {
             alert("DEBUG: will refresh now");
-            window.location.replace( ".?debug=1");
+            window.location.assign( ".?debug=1");
         } else {
-            window.location.replace( "." );
+            window.location.assign( "." );
         }
     };
 
@@ -986,7 +986,7 @@ function sessionImportLocal() {
     session.useLocal(sessionList);
 
     // redirect to session.xqy
-    window.location.href = "session.xqy";
+    window.location.assign("session.xqy");
 }
 
 // session.js

@@ -84,31 +84,38 @@ declare function v:get-xml(
 as node()*
 {
   (: 4.2 will emit its own xml declaration for document nodes :)
-  if ($x instance of document-node()) then ()
-  else text {
-    concat(
-      '<?xml version="1.0" encoding="',
-      xdmp:get-response-encoding(), '"?>' ) },
-  (: conditionally include stylesheet, on browser request :)
-  if (not($use-xsl)) then ()
-  else <?xml-stylesheet type="text/xsl" href="xml-tree.xsl"?>
-  ,
-  let $count := count($x)
-  return
-    if ($count eq 1 and $x instance of element()) then $x
-    else if ($count eq 1 and $x instance of document-node() and $x/element())
-    then v:get-xml($x/node(), $use-xsl)
-    else element v:results {
-      attribute v:warning {
-        if ($count eq 1) then "non-element item"
-        else "more than one node"
-      },
-      for $i in $x return typeswitch($i)
+  if ($x instance of document-node()) then v:get-xml($x/node(), $use-xsl)
+  else (
+    text {
+      concat(
+        '<?xml version="1.0" encoding="',
+        xdmp:get-response-encoding(), '"?>' ) },
+    (: conditionally include stylesheet, on browser request :)
+    (: this must follow any xml decl, so rewrite documents where needed :)
+    if (not($use-xsl)) then ()
+    else <?xml-stylesheet type="text/xsl" href="xml-tree.xsl"?>
+    ,
+    let $is-unit := count($x) eq 1
+    let $is-node := $is-unit and $x instance of node()
+    let $is-root := $is-node and not($x instance of attribute())
+    return (
+      if ($is-root) then $x
+      else element v:results {
+        attribute v:warning {
+          if ($is-node) then "attribute node"
+          else if ($is-unit) then "atomic item"
+          else "more than one root item"
+        },
         (: handle corner-case where (1, $i/@id) throws XQTY0024 :)
-        case attribute() return text { $i }
+        for $i in $x return typeswitch($i)
+        case attribute() return element v:warning {
+          attribute v:warning { 'attributes cannot be root nodes' },
+          $i }
         case document-node() return $i/node()
         default return $i
-    }
+      }
+    )
+  )
 };
 
 declare function v:get-html($x as item()*)

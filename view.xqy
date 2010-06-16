@@ -26,6 +26,9 @@ xquery version "1.0-ml";
 import module namespace c = "com.marklogic.developer.cq.controller"
  at "lib-controller.xqy";
 
+import module namespace v = "com.marklogic.developer.cq.view"
+ at "lib-view.xqy";
+
 declare option xdmp:mapping "false";
 
 declare variable $PROPERTIES as xs:boolean :=
@@ -36,25 +39,39 @@ declare variable $URI as xs:string :=
   xdmp:get-request-field('uri')
 ;
 
-let $options :=
+declare variable $USE-XSL as xs:boolean := xs:boolean(
+  xdmp:get-request-field('xsl', '0')
+);
+
+declare variable $RESULT := xdmp:invoke(
+  'view-invokable.xqy',
+  (xs:QName('URI'), $URI, xs:QName('PROPERTIES'), $PROPERTIES),
   <options xmlns="xdmp:eval">{
     element database { $c:FORM-EVAL-DATABASE-ID },
     element root { $c:SERVER-APPLICATION-PATH },
     element modules { $c:SERVER-ROOT-DB }
   }</options>
-let $vars := (xs:QName('URI'), $URI, xs:QName('PROPERTIES'), $PROPERTIES)
-let $result := xdmp:invoke('view-invokable.xqy', $vars, $options)
+)/node()
+;
+
 (: Allow the browser to handle binary documents.
  : It would be nice to use the same mechanism as eval.xqy,
  : but eval.xqy must handle much more complex result sequences.
  : Here, the result is always a document, so the code is simpler.
  :)
-let $mimetype :=
-  if ($result/node() instance of binary()) then ()
-  else if ($result/node() instance of text()) then 'text/plain'
-  else 'text/xml'
-let $set :=
-  if ($mimetype) then xdmp:set-response-content-type($mimetype) else ()
-return $result
+declare variable $MIMETYPE := (
+  typeswitch ($RESULT)
+  case binary() return ()
+  case text() return 'text/plain'
+  default return 'text/xml'
+);
+
+if ($MIMETYPE) then xdmp:set-response-content-type($MIMETYPE)
+else ()
+,
+if ($USE-XSL and $MIMETYPE eq 'text/xml') then $v:XML-TREE-PI
+else ()
+,
+$RESULT
 
 (: view.xqy :)

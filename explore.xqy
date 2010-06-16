@@ -31,17 +31,25 @@ import module namespace d = "com.marklogic.developer.cq.debug"
 
 declare option xdmp:mapping "false";
 
-declare variable $FILTER as xs:string* :=
-  xdmp:get-request-field('filter');
+declare variable $FILTER as xs:string* := xdmp:get-request-field(
+  'filter'
+);
 
-declare variable $FILTER-TEXT as xs:string? :=
-  xdmp:get-request-field('filter-text', '');
+declare variable $FILTER-TEXT as xs:string? := xdmp:get-request-field(
+  'filter-text', ''
+);
 
-declare variable $START as xs:integer :=
-  xs:integer(xdmp:get-request-field('start', '1'));
+declare variable $START as xs:integer := xs:integer(
+  xdmp:get-request-field('start', '1')
+);
 
-declare variable $SIZE as xs:integer :=
-  xs:integer(xdmp:get-request-field('size', '20'));
+declare variable $SIZE as xs:integer := xs:integer(
+  xdmp:get-request-field('size', '20')
+);
+
+declare variable $USE-XSL as xs:boolean := xs:boolean(
+  xdmp:get-request-field('xsl', '0')
+);
 
 d:check-debug(),
 let $options :=
@@ -60,11 +68,12 @@ let $filter as cts:query? :=
   else if (count($filter) eq 1) then $filter
   else cts:and-query($filter)
 return xdmp:invoke(
-  'explore-invokable.xqy',
-  (xs:QName('START'), $START, xs:QName('SIZE'), $SIZE,
-   xs:QName('FILTER-TEXT'), $FILTER-TEXT,
-   xs:QName('FILTER'),
-   if (empty($filter)) then '' else xdmp:quote(document { $filter })
+  'explore-invokable.xqy', (
+    xs:QName('START'), $START, xs:QName('SIZE'), $SIZE,
+    xs:QName('FILTER-TEXT'), $FILTER-TEXT,
+    xs:QName('FILTER'),
+    if (empty($filter)) then '' else xdmp:quote(document { $filter }),
+    xs:QName('USE-XSL'), $USE-XSL
   ),
   $options
 )

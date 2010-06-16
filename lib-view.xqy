@@ -78,6 +78,10 @@ declare variable $v:PROFILER-COLUMNS as element(columns) :=
   }
 ;
 
+declare variable $v:XML-TREE-PI :=
+<?xml-stylesheet type="text/xsl" href="xml-tree.xsl"?>
+;
+
 declare function v:get-xml(
   $x as item()+,
   $use-xsl as xs:boolean )
@@ -93,7 +97,7 @@ as node()*
     (: conditionally include stylesheet, on browser request :)
     (: this must follow any xml decl, so rewrite documents where needed :)
     if (not($use-xsl)) then ()
-    else <?xml-stylesheet type="text/xsl" href="xml-tree.xsl"?>
+    else $v:XML-TREE-PI
     ,
     let $is-unit := count($x) eq 1
     let $is-node := $is-unit and $x instance of node()

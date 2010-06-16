@@ -50,6 +50,8 @@ declare variable $SIZE as xs:integer external;
 
 declare variable $START as xs:integer external;
 
+declare variable $USE-XSL as xs:boolean external;
+
 declare variable $FILTER-QUERY as cts:query? :=
   let $d := d:debug(('explore-invokable: FILTER =', $FILTER))
   let $filter as cts:query? :=
@@ -119,7 +121,11 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
     order by $uri
     return (
       element a {
-        attribute href { c:build-form-eval-query('view.xqy', 'uri', $uri) },
+        attribute href {
+          c:build-form-eval-query(
+            'view.xqy',
+            ('uri', 'xsl'),
+            ($uri, $USE-XSL)) },
         $uri
       },
       <span>&#160;&ndash;&#160;</span>,
@@ -131,7 +137,9 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
         else element a {
           attribute href {
             c:build-form-eval-query(
-              'view.xqy', ('uri', 'properties'), ($uri, 1)
+              'view.xqy',
+              ('uri', 'properties', 'xsl'),
+              ($uri, 1, $USE-XSL)
             )
           },
           '(properties)'
@@ -147,8 +155,7 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
             let $count := count($collections)
             let $filters :=
               if (empty($query)) then ()
-              else if ($query instance of cts:collection-query)
-              then $query
+              else if ($query instance of cts:collection-query) then $query
               else cts:and-query-queries($query)
                 [. instance of cts:collection-query]
             let $filters :=

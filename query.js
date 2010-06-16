@@ -227,6 +227,10 @@ function BrowserIsClass() {
     this.x11 = (agt.indexOf("x11") != -1);
     this.mac = (agt.indexOf("macintosh") != -1);
     this.win = (agt.indexOf("windows") != -1);
+
+    this.useXsl = (this.chrome
+                   || this.safari
+                   || this.opera);
 }
 
 function BufferTabsClass(nodeId, instructionId, buffers, history) {
@@ -1603,11 +1607,9 @@ function submitForm(theForm, query, theMimeType, saveHistory) {
         $(kQueryMimeType).value = theMimeType;
     }
 
-    // TODO pass a param to say whether or not the browser does xml tree views
+    // pass a param to say whether or not the browser does xml tree views
     if ("text/xml" == theMimeType
-        && (gBrowserIs.chrome
-            || gBrowserIs.safari
-            || gBrowserIs.opera)) {
+        && gBrowserIs.useXsl) {
         $(kQueryXsl).value = true;
     }
 
@@ -1664,7 +1666,8 @@ function cqListDocuments() {
     var src = "explore.xqy?"
         + "cache-buster=" + Math.random()
         + "&debug=" + (debug.isEnabled() ? 1 : 0)
-        + (source ? ("&eval=" + source) : "");
+        + (source ? ("&eval=" + source) : "")
+        + "&xsl=" + gBrowserIs.useXsl;
     debug.print("listDocuments: src = " + src);
     parent.parentSetResultsFrame(src);
 }

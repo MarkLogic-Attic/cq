@@ -1,5 +1,5 @@
 <!--
- : Copyright (c)2002-2009 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c)2002-2010 Mark Logic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -22,10 +22,10 @@
 
     To make this file active, copy it to 'policy.xml'
     in the installed cq directory.
-    
+
     You may change the value of the title element
     to be any valid xs:string.
-    
+
     You may change the value of the accent-color element
     to be any valid XHTML color.
 

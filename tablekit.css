@@ -5,7 +5,7 @@
  * Copyright (c) 2007 Andrew Tetlaw & Millstream Web Software
  * http://www.millstream.com.au/view/code/tablekit/
  * Version: 1.2.1 2007-03-11
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -13,10 +13,10 @@
  * modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -29,32 +29,32 @@
  */
 
 tr.rowodd {
-	background-color: #FFFFFF;
+    background-color: #FFFFFF;
 }
 
 tr.roweven {
-	background-color: #EEEEEE;
+    background-color: #EEEEEE;
 }
 
 .sortcol {
-	cursor: pointer;
-	padding-right: 20px;
-	background-repeat: no-repeat;
-	background-position: right center;
+    cursor: pointer;
+    padding-right: 20px;
+    background-repeat: no-repeat;
+    background-position: right center;
 }
 
 .sortasc {
-	background-color: #FFCC33;
-	background-image: url(up.gif);
+    background-color: #FFCC33;
+    background-image: url(up.gif);
 }
 
 .sortdesc {
-	background-color: #FFCC33;
-	background-image: url(down.gif);
+    background-color: #FFCC33;
+    background-image: url(down.gif);
 }
 
 .nosort {
-	cursor: default;
+    cursor: default;
 }
 
 /* tablekit.css */

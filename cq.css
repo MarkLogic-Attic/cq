@@ -40,6 +40,8 @@ textarea
 {
   /* weird gecko hack */
   font-family: monospace, -moz-fixed !important;
+  /* turn off chrome's resizing */
+  resize: none;
 }
 
 ol

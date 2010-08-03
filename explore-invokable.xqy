@@ -131,7 +131,7 @@ return <html xmlns="http://www.w3.org/1999/xhtml">{
       <span>&#160;&ndash;&#160;</span>,
       <i>{ if ($n) then xdmp:node-kind($n) else '(empty document)' }</i>,
       (: why not node-name? because this is a human-readable context :)
-      <code>&#160;{ name($n) }&#160;</code>,
+      <code class="qname">&#160;{ name($n) }&#160;</code>,
       element span {
         if (not($i/property::node())) then element i { '(no properties)' }
         else element a {

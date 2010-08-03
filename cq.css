@@ -285,4 +285,11 @@ input[type = "button"]
   margin: 0.4em;
 }
 
+/* for explorer QNames */
+.qname
+{
+  font-family: monospace, -moz-fixed !important;
+  font-size: 1em;
+}
+
 /* end cq.css */

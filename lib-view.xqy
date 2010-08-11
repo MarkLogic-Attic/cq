@@ -361,14 +361,13 @@ declare function v:get-eval-label(
 
 declare function v:get-eval-selector() as element(xh:select)
 {
-  (: first, list all the app-server labels
+  (: html select-list for current database
+   :
+   : first, list all the app-server labels
    : next, list all databases that aren't part of an app-server.
    : TODO provide a mechanism to update the list, to pull admin changes.
    :)
 
-  (: html select-list for current database
-   : NOTE: requires MarkLogic Server 3.1 or later.
-   :)
   element xh:select {
     attribute name { "eval" },
     attribute id { "eval" },
@@ -440,7 +439,7 @@ declare function v:format-profiler-report($report as element(prof:report))
     let $max-line-length := string-length(string(max(
           (0, $report/prof:histogram/prof:expression/prof:line) )))
     (: NB - all elements should have line and expr-source,
-     : but 3.2-1 sometimes produces different output.
+     : but older versions sometime produce different output.
      :)
     for $i in $report/prof:histogram/prof:expression
     order by $i/prof:shallow-time descending, $i/prof:deep-time descending

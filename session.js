@@ -575,6 +575,7 @@ function SessionListLocal() {
 
     // TODO what happens when the session exceeds the storage limit?
     // can we prevent data loss?
+    // TODO consider http://github.com/marcuswestin/store.js instead?
     try {
         // prohibit cookie store since it will be too small (4-kB limit)
         Persist.remove('cookie');

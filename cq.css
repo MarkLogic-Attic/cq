@@ -208,6 +208,12 @@ input[type = "button"]
   width: 80%
 }
 
+.expression-dynamic
+{
+  font-style: italic !important;
+  font-size: 0.75em;
+}
+
 .hidden
 {
   overflow: hidden !important;
@@ -218,7 +224,6 @@ input[type = "button"]
 .instruction
 {
   font-weight: normal;
-
   font-style: italic;
   margin-right: .5em;
 }

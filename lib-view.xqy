@@ -453,9 +453,13 @@ declare function v:format-profiler-row(
  as element(xh:tr) {
   let $shallow := data($i/prof:shallow-time)
   let $deep := data($i/prof:deep-time)
+  (: NB - line and expr-source are missing for prof:value
+   : and for xdmp:apply when the xdmp:function constructor
+   : specified a library module path.
+   :)
+  let $is-dynamic := empty($i/prof:line) or empty($i/prof:expr-source)
   let $uri := text {
-    (: NB - prof:value omits line and expr-source children :)
-    if (empty($i/prof:line)) then '.value'
+    if ($is-dynamic) then '(n/a)'
     else if (not(string($i/prof:uri))) then '.main'
     else if (starts-with($i/prof:uri, '/'))
     then substring-after($i/prof:uri, '/')
@@ -474,15 +478,16 @@ declare function v:format-profiler-row(
           x:lead-space(string($i/prof:line), $max-line-length) } } },
     element td {
       attribute class { "profiler-report expression" },
-      element code {
-        (: NB - prof:value omits line and expr-source children :)
-        if (empty($i/prof:expr-source)) then '(n/a)' else (
-          let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
-          return
-            if (string-length($expr) gt $size)
-            then concat($expr, $v:ELLIPSIS)
-            else $expr
-        )
+      if ($is-dynamic) then element span {
+        attribute class { "expression-dynamic" },
+        '(expression source is not available when using prof:value,',
+        'or xdmp:apply with parameterized module location)' }
+      else element code {
+        let $expr := substring(string($i/prof:expr-source), 1, 1 + $size)
+        return concat(
+          $expr,
+          if (string-length($expr) gt $size) then $v:ELLIPSIS
+          else '' )
       }
     },
     element td {

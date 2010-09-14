@@ -843,7 +843,9 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
     this.updateActive = function() {
         this.setLabel(this.pos, true);
-        this.getBuffer(this.pos).setContentSource(this.getContentSource());
+        var buf = this.getBuffer(this.pos);
+        if (!buf) return;
+        buf.setContentSource(this.getContentSource());
     };
 
     this.setLabel = function(n, active) {
@@ -1399,7 +1401,7 @@ function cqOnLoad() {
 
     // register for key-presses
     // "keypress" works with gecko
-    // "keyup" works with gecko and Chrome
+    // "keydown", "keyup" work with gecko and Chrome
     Event.observe(this, "keyup", handleKeys);
 
     // set up the UI objects
@@ -1506,11 +1508,14 @@ function resizeFrameset(rows) {
 //   MOD-0 to MOD-9 exposes the corresponding buffer (48-57)
 //   previous buffer: MOD-, (44) (think '<')
 //   next buffer: MOD-. (46) (think '>')
+//   toggle buffers-history tabs: MOD-backquote (192)
 function handleKeys(e) {
-    var theCode = e.keyCode;
     // see http://www.mozilla.org/editor/key-event-spec.html
     // for weird gecko behavior
     // see also: http://www.brainjar.com/dhtml/events/default4.asp
+    // TODO should we use charCode instead? also?
+    // see http://www.quirksmode.org/js/keys.html
+    var theCode = e.keyCode;
     if (e.charCode && e.charCode != 0) {
         theCode = e.charCode;
     }

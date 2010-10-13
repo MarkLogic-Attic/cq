@@ -141,11 +141,14 @@ try {
       and exists((
         $x[ . instance of binary()+ or . instance of document-node()+ ]
         /(self::binary()|child::binary())
-      )) ) then ()
-    else if (($x instance of attribute()+ and count($x) gt 1)
-      or (count($x) eq 1 and $x instance of document-node()+
-        and empty($x/node()))
-    )
+      ))
+    ) then ()
+    (: sequence of attributes :)
+    else if ($x instance of attribute()+ and count($x) gt 1)
+    then "text/plain"
+    (: empty document :)
+    else if (count($x) eq 1 and $x instance of document-node()+
+      and empty($x/node()))
     then "text/plain"
     else $MIMETYPE
   let $set :=

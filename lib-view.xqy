@@ -173,10 +173,14 @@ declare function v:get-error-frame-html(
     then concat("in ", string($f/error:uri))
     else (),
     if (not($f/error:line)) then ()
-    else
+    else (
       let $line-no := xs:integer($f/error:line)
+      let $column-no := $f/error:column/xs:integer(.)
       return (
-        concat("line ", string($line-no), ": "),
+        concat(
+          "at ", string($line-no),
+          if (empty($column-no)) then ''
+          else (":", string($column-no), ": ") ),
         (: display the error lines, if it is in a main module :)
         if ($f/error:uri) then ()
         else <xh:div id="error-lines" class="code">
@@ -186,8 +190,20 @@ declare function v:get-error-frame-html(
           return (
             concat(string($x), ": "),
             element xh:span {
-              if ($x eq $line-no) then attribute class { "error" } else (),
-              $l
+              if ($x ne $line-no) then $l
+              else (
+                attribute class { "error" },
+                if (empty($column-no)) then $l
+                else (
+                  (: Highlight the character at the error column :)
+                  substring($l,1,$column-no),
+                  element xh:span {
+                    attribute class { "errorchar" },
+                    substring($l, $column-no + 1, 1)
+                  },
+                  substring($l, $column-no + 2)
+                )
+              )
             },
             <xh:br/>
           )
@@ -195,7 +211,7 @@ declare function v:get-error-frame-html(
         </xh:div>,
         <xh:br/>
       )
-    ,
+    ),
     text { $f/error:operation },
     <xh:br/>,
     text {
@@ -471,11 +487,23 @@ declare function v:format-profiler-row(
       attribute class { "profiler-report row-title" },
       attribute nowrap { 1 },
       element code {
-        element span { $uri, ': ' },
+        element span { $uri, ':' },
         element span {
           attribute class { "numeric" },
           attribute xml:space { "preserve" },
-          x:lead-space(string($i/prof:line), $max-line-length) } } },
+          x:lead-space(string($i/prof:line), $max-line-length)
+        },
+        if(empty($i/prof:column)) then ()
+        else (
+          element span { ':' },
+          element span {
+            attribute class { "numeric" },
+            attribute xml:space { "preserve" },
+            x:lead-space(string($i/prof:column), $max-line-length)
+          }
+        )
+      }
+    },
     element td {
       attribute class { "profiler-report expression" },
       if ($is-dynamic) then element span {

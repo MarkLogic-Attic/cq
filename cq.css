@@ -183,6 +183,7 @@ input[type = "button"]
 .code
 {
   font-family: monospace, -moz-fixed !important;
+  white-space: pre;
 }
 
 .delete-widget
@@ -201,6 +202,12 @@ input[type = "button"]
 {
   color: red;
   font-weight: bold;
+}
+
+.errorchar
+{
+  background-color: red;
+  color: white;
 }
 
 .expression

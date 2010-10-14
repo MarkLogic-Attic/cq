@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : Client Query Application
  :
- : Copyright (c) 2002-2010 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2010 MarkLogic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ c:set-content-type(),
 
       <h1 class="head1 accent-color">Welcome to cq</h1>
 
-      <p class="instruction">This is Mark Logic cq,
+      <p class="instruction">This is MarkLogic cq,
       a web-based query tool for MarkLogic Server.
       You can find out more about MarkLogic Server and cq
       at <a href="http://developer.marklogic.com/" tabindex="-1"

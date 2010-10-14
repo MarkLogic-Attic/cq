@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : cq/lib-controller.xqy
  :
- : Copyright (c) 2002-2010 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2010 MarkLogic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -737,6 +737,7 @@ declare function c:pagination-href(
  $start as xs:integer, $keys as xs:string*, $values as xs:string*)
 as xs:string
 {
+  (: TODO cache-buster for IE? :)
   concat(
     c:request-string(("submit", "start", "search-button", $keys)),
     "&amp;", xdmp:url-encode("start"), "=", string($start),

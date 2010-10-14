@@ -2,7 +2,7 @@ xquery version "0.9-ml"
 (:
  : cq: lib-xquery.xqy
  :
- : Copyright (c) 2008-2010 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2008-2010 MarkLogic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.

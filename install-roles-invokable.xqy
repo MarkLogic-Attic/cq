@@ -1,8 +1,8 @@
 xquery version "1.0-ml";
 (:
- : Client Query Application
+ : cq
  :
- : Copyright (c) 2002-2010 Mark Logic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2010 MarkLogic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.

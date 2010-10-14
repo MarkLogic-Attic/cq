@@ -180,7 +180,7 @@ declare function v:get-error-frame-html(
         concat(
           "at ", string($line-no),
           if (empty($column-no)) then ''
-          else (":", string($column-no), ": ") ),
+          else concat(":", string($column-no), ": ") ),
         (: display the error lines, if it is in a main module :)
         if ($f/error:uri) then ()
         else <xh:div id="error-lines" class="code">

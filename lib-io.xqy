@@ -238,6 +238,7 @@ declare function io:list-fs($path as xs:string)
   (: ignore any files that are not xml :)
   for $p as xs:string in xdmp:filesystem-directory($path)/dir:entry
     [ dir:type eq "file" ]/dir:pathname
+  where ends-with($p, '.xml')
   return try {
     xdmp:document-get(
       $p,
@@ -245,8 +246,8 @@ declare function io:list-fs($path as xs:string)
         element format { 'xml' } }</options>
       ) }
   catch ($ex) {
-    if ($ex/error:code ne 'XDMP-DOCROOTTEXT') then xdmp:rethrow()
-    else xdmp:log(
+    (: log and ignore :)
+    xdmp:log(
       text {
         'file is not XML:', $p, normalize-space(xdmp:quote($ex)) },
       'debug')

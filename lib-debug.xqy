@@ -67,18 +67,6 @@ declare function d:check-debug()
   else ()
 };
 
-declare function d:whereami()
- as empty-sequence()
-{
-  xdmp:log(text{'whereami:', try {
-     error((), 'DEBUG-WHEREAMI', 'fake error for d:whereami')
-   } catch ($ex) {
-     for $op in $ex/error:stack/error:frame/error:operation
-     return substring-before($op, '(')
-   }
- })
-};
-
 declare function d:exception-log(
   $ex as element(error:error),
   $list as item()* )
@@ -93,6 +81,20 @@ declare function d:exception-log(
       $ex/error:data/error:datum },
     "warning"
   )
+};
+
+declare function d:whereami()
+ as empty-sequence()
+{
+  xdmp:log(text{'whereami:', try {
+     error((), 'DEBUG-WHEREAMI', 'dummy error')
+   } catch ($ex) {
+     for $f in $ex/error:stack/error:frame
+     return concat(
+       '[', ($f/error:uri, '(main)')[1], ':', $f/error:line, '] ',
+       $f/error:operation/substring-before(., '('))
+   }
+ })
 };
 
 (: lib-debug.xqy :)

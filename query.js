@@ -197,7 +197,7 @@ if (null == Element.removeChildren) {
         for (var i = 0; i < nodes.length; i++) {
             e.removeChild(nodes[i]);
         }
-    }
+    };
 }
 
 // classes
@@ -245,34 +245,34 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
 
     this.getCurrent = function() {
         return this.current;
-    }
+    };
 
     this.getBuffers = function() {
         return this.buffers;
-    }
+    };
 
     this.getHistory = function() {
         return this.history;
-    }
+    };
 
     this.getSession = function() {
         return this.session;
-    }
+    };
 
     this.setSession = function(s) {
         this.session = s;
-    }
+    };
 
     this.setSessionName = function() {
         if (!this.session) {
             return;
         }
-        var sessionRename = $("session-rename")
+      var sessionRename = $("session-rename");
         sessionRename.update(this.session.sessionName);
         // element show won't work, because of the existing class
         sessionRename.className = "";
         Element.show(sessionRename);
-    }
+    };
 
     this.setInstructionText = function() {
         if (! (this.instructionNode && this.instructionNode.innerHTML)) {
@@ -290,12 +290,12 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         // clear any old text
         Element.removeChildren(this.instructionNode);
         this.instructionNode.appendChild(document.createTextNode(theText));
-    }
+    };
 
     this.toggle = function() {
         debug.print("BufferTabsClass.toggle: this.current");
         this.refresh((0 == this.current) ? 1 : 0);
-    }
+    };
 
     this.resize = function() {
         var label = "BufferTabsClass.resize: ";
@@ -331,7 +331,7 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         // this works with IE6 and gecko
         historyNode.style.width = bufferWidth + "px";
         debug.print(label + "history width = " + historyNode.clientWidth);
-    }
+    };
 
     this.refresh = function(n) {
         var label = "BufferTabsClass.refresh: ";
@@ -370,7 +370,7 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
         this.historyTitle.className = "buffer-tab-active accent-color";
         Element.hide(buffersNode);
         Element.show(historyNode);
-    }
+    };
 
     this.unload = function(e) {
         //alert("BufferTabsClass: unload "
@@ -382,12 +382,12 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
                 this.session.sync();
             }
         }
-    }
+    };
 
     this.toXml = function() {
         var name = "active-tab";
         return "<" + name + ">" + this.current + "</" + name + ">";
-    }
+    };
 
     this.enableButtons = function() {
         var list = document.getElementsByTagName("input");
@@ -396,7 +396,7 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
                 list[i].disabled = false;
             }
         }
-    }
+    };
 
     this.disableButtons = function() {
         var list = document.getElementsByTagName("input");
@@ -405,7 +405,7 @@ function BufferTabsClass(nodeId, instructionId, buffers, history) {
                 list[i].disabled = true;
             }
         }
-    }
+    };
 
 } // BufferTabsClass
 
@@ -489,11 +489,11 @@ function QueryHistoryClass(id, buffers, limit) {
             debug.print(label + "truncating " + i + " = " + key);
             this.remove(key);
         }
-    }
+    };
 
     this.getKey = function(value) {
         return normalizeSpace(value);
-    }
+    };
 
     this.remove = function(key) {
         // remove this listItem and its corresponding hash entry
@@ -504,11 +504,11 @@ function QueryHistoryClass(id, buffers, limit) {
         }
         this.hash[key] = null;
         this.lastModified = new Date();
-    }
+    };
 
     this.getLastModified = function() {
         return this.lastModified;
-    }
+    };
 
     this.setQuery = function(e) {
         // we don't know which query was clicked,
@@ -519,7 +519,7 @@ function QueryHistoryClass(id, buffers, limit) {
         var query = node.firstChild.nodeValue;
         debug.print("QueryHistoryClass.setQuery: " + query);
         this.buffers.setQuery(query);
-    }
+    };
 
     this.newListItem = function(key, query) {
         var newItem = document.createElement("li");
@@ -553,15 +553,15 @@ function QueryHistoryClass(id, buffers, limit) {
         newItem.appendChild(document.createElement("hr"));
 
         return newItem;
-    }
+    };
 
     this.show = function() {
         Element.show(this.node);
-    }
+    };
 
     this.hide = function() {
         Element.hide(this.node);
-    }
+    };
 
     this.getListItemValue = function(node) {
         // skip over the delete widget
@@ -572,7 +572,7 @@ function QueryHistoryClass(id, buffers, limit) {
             query = query.nextSibling;
         }
         return query.firstChild.nodeValue;
-    }
+    };
 
     this.toXml = function() {
         var parentName = "query-history";
@@ -599,7 +599,7 @@ function QueryHistoryClass(id, buffers, limit) {
         //debug.print("QueryHistory.toXml: " + xml);
 
         return xml;
-    }
+    };
 
     this.toArray = function() {
         var array = new Array();
@@ -639,31 +639,31 @@ function QueryBufferClass(query, selectionStart, contentSource) {
 
     this.getQuery = function() {
         return this.query;
-    }
+    };
 
     this.setQuery = function(query) {
         this.query = query;
-    }
+    };
 
     this.getScrollTop = function() {
         return this.scrollTop;
-    }
+    };
 
     this.setScrollTop = function(v) {
         this.scrollTop = v;
-    }
+    };
 
     this.getScrollLeft = function() {
         return this.scrollLeft;
-    }
+    };
 
     this.setScrollLeft = function(v) {
         this.scrollLeft = v;
-    }
+    };
 
     this.getSelectionStart = function() {
         return this.selectionStart;
-    }
+    };
 
     this.setPosition = function(start, top, left) {
         debug.print("QueryBufferClass.setPosition: "
@@ -671,18 +671,18 @@ function QueryBufferClass(query, selectionStart, contentSource) {
         this.selectionStart = start;
         this.scrollTop = top;
         this.scrollLeft = left;
-    }
+    };
 
     this.getContentSource = function() {
         return this.contentSource;
-    }
+    };
 
     this.setContentSource = function(v) {
         if (null == v) {
             return;
         }
         this.contentSource = v;
-    }
+    };
 
     this.toXml = function() {
         var name = "query";
@@ -692,7 +692,7 @@ function QueryBufferClass(query, selectionStart, contentSource) {
         }
         xml += ">" + escapeXml(this.query) + "</" + name + ">\n";
         return xml;
-    }
+    };
 
     this.toHash = function() {
         var label = "QueryBufferClass.toHash: ";
@@ -702,7 +702,7 @@ function QueryBufferClass(query, selectionStart, contentSource) {
         }
         h.set('query', this.query);
         return h;
-    }
+    };
 
 } // QueryBufferClass
 
@@ -735,7 +735,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
                       this.setLineNumberStatus.bindAsEventListener(this));
         Event.observe(this.input, "keyup",
                       this.setLineNumberStatus.bindAsEventListener(this));
-    }
+    };
 
     this.focus = function() {
         // slight delay to ensure that the DOM is ready to focus
@@ -743,7 +743,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         setTimeout(function() { focusElement.focus();
             }.bindAsEventListener(this),
             1000 / 32);
-    }
+    };
 
     this.getQuery = function(n) {
         //debug.print("QueryBufferListClass.getBufferValue: " + n);
@@ -756,7 +756,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             return buf.getQuery();
         }
         return this.getBuffer(n).getQuery();
-    }
+    };
 
     this.setQuery = function(query) {
         debug.print("QueryBufferListClass.setQuery: pos = " + this.pos);
@@ -781,7 +781,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
 
         // update the label
         this.setLabel(this.pos, true);
-    }
+    };
 
     this.clear = function() {
         // remove all, starting from the bottom of the list
@@ -808,7 +808,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             active = true;
         }
         this.setLabel(n, active);
-    }
+    };
 
     this.remove = function(n) {
         if (this.buffers.length <= n) {
@@ -839,7 +839,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             this.setLabel(i, i == this.pos);
         }
 
-    }
+    };
 
     this.updateActive = function() {
         this.setLabel(this.pos, true);
@@ -885,7 +885,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         label.appendChild(document.createTextNode("\u00a0" + query));
 
         // TODO mouseover for fully formatted text contents as tooltip?
-    }
+    };
 
     this.setLabelNumber = function(n, label, active) {
         var theNum = null;
@@ -914,7 +914,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
         // set tooltip
         label.title = "Click to activate this query buffer.";
         return theNum;
-    }
+    };
 
     this.addLabelDeleteWidget = function(label) {
         // delete widget
@@ -930,7 +930,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
                       );
         deleteLink.title = "Click to delete this query from your list.";
         deleteLink.appendChild(document.createTextNode(kDeleteWidget));
-    }
+    };
 
     this.getLabel = function(n) {
 
@@ -956,7 +956,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             Element.removeChildren(labelNode);
         }
         return labelNode;
-    }
+    };
 
     this.getBuffer = function(n) {
         if (null == n) {
@@ -972,40 +972,40 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             n = this.buffers.length - 1;
         }
 
-        return this.buffers[n]
-    }
+      return this.buffers[n];
+    };
 
     this.resize = function(x, y) {
         debug.print("QueryBufferListClass.resize: " + x + "," + y);
         this.input.cols += x;
         this.input.rows += y;
-    }
+    };
 
     this.getActivePosition = function() {
         return this.pos;
-    }
+    };
 
     this.getRows = function() {
         return this.input.rows;
-    }
+    };
 
     this.getCols = function() {
         return this.input.cols;
-    }
+    };
 
     this.setRows = function(x) {
         if (null == x) {
             return;
         }
         this.input.rows = x;
-    }
+    };
 
     this.setCols = function(y) {
         if (null == y) {
             return;
         }
         this.input.cols = y;
-    }
+    };
 
     this.resizeTo = function(x, y) {
         var label = "QueryBufferListClass.resizeTo: ";
@@ -1025,7 +1025,7 @@ function QueryBufferListClass(inputId, evalId, labelsId, statusId, size) {
             this.setHeight(y);
         }
         debug.print(label + this.input.cols + " x " + this.input.rows);
-    }
+    };
 
     // TODO this does not work, because the resize has already happened
     this.setHeight = function(y) {
@@ -1372,6 +1372,7 @@ function enableSessionRename(sessionId) {
         if (typeof($super) != 'undefined') {
             return $super.onComplete(resp);
         }
+      return null;
     };
     var editorOptions = {
         callback: callbackQuery,
@@ -1402,6 +1403,7 @@ function cqOnLoad() {
     // register for key-presses
     // "keypress" works with gecko
     // "keydown", "keyup" work with gecko and Chrome
+    // TODO keyup means character has been handled - if needed
     Event.observe(this, "keyup", handleKeys);
 
     // set up the UI objects
@@ -1547,17 +1549,24 @@ function handleKeys(e) {
 
     // NB apparently we cannot capture KEY_RETURN on IE?
     if (theCode == Event.KEY_RETURN) {
-        var theForm = $(kQueryFormId);
-        if (altKey && ctrlKey && shiftKey) {
-            submitProfile(theForm);
-        } else if (ctrlKey && shiftKey) {
-            submitText(theForm);
-        } else if (altKey) {
-            submitHTML(theForm);
-        } else {
-            submitXML(theForm);
-        }
-        return false;
+      var theForm = $(kQueryFormId);
+      if (altKey && ctrlKey && shiftKey) {
+        submitProfile(theForm);
+      } else if (ctrlKey && shiftKey) {
+        submitText(theForm);
+      } else if (altKey) {
+        submitHTML(theForm);
+      } else {
+        submitXML(theForm);
+      }
+
+      if (e && e.stopPropagation) {
+        e.stopPropagation();
+      } else {
+        event.cancelBubble = true;
+      }
+
+      return false;
     }
 
     if ( modKey && (47 < theCode) && (58 > theCode) ) {

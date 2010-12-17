@@ -37,7 +37,7 @@ function reportError(resp, from) {
     debug.setEnabled(old);
 }
 
-// from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
+// http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
 function createUUID() {
     // http://www.ietf.org/rfc/rfc4122.txt
     var s = [];
@@ -45,8 +45,10 @@ function createUUID() {
     for (var i = 0; i < 32; i++) {
         s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
     }
-    s[12] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
-    s[16] = hexDigits.substr((s[16] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+    // bits 12-15 of the time_hi_and_version field to 0010
+    s[12] = "4";
+    // bits 6-7 of the clock_seq_hi_and_reserved to 01
+    s[16] = hexDigits.substr((s[16] & 0x3) | 0x8, 1);
     return s.join("");
 }
 
@@ -58,7 +60,7 @@ function SessionList() {
 
     this.setCurrentSession = function(s) {
         this.currentSession = s;
-    }
+    };
 
     this.refresh = function() {
         if (debug.isEnabled()) {
@@ -67,7 +69,7 @@ function SessionList() {
         } else {
             window.location.assign( "." );
         }
-    }
+    };
 
     this.newSession = function() {
         // start a new session and set the user cookie appropriately
@@ -77,7 +79,7 @@ function SessionList() {
         setCookie(gSessionIdCookie, "NEW");
         // refresh should show the query view
         this.refresh();
-    }
+    };
 
     this.resumeSession = function(sessionId) {
         debug.print("resumeSession: " + sessionId);
@@ -85,12 +87,12 @@ function SessionList() {
         setCookie(gSessionIdCookie, sessionId);
         // refresh should show the query view
         this.refresh();
-    }
+    };
 
     this.buildNamedQueryString = function(id, name) {
-        return 'ID=' + id + '&NAME=' + escape(name)
-          + (debug.isEnabled() ? '&DEBUG=1' : '')
-    }
+        return 'ID=' + id + '&NAME=' + escape(name) + (
+          debug.isEnabled() ? '&DEBUG=1' : '');
+    };
 
     this.exportServerSession = function(id, context) {
         var path = "session-export.xqy?id=" + id;
@@ -123,7 +125,7 @@ function SessionList() {
         // synchronous, so we should have the response here
         debug.print("cloneSession: newId = " + newId);
         closure.resumeSession(newId);
-    }
+    };
 
     this.deleteSession = function(id, context) {
         // delete the session
@@ -148,7 +150,7 @@ function SessionList() {
         if (null != row) {
             Element.remove(row);
         }
-    }
+    };
 
 } // SessionListClass
 
@@ -180,9 +182,9 @@ function SessionClass(tabs, id) {
     this.updateSessionUrl = "session-update.xqy";
     this.updateSessionLockUrl = "session-lock-update.xqy";
 
-    this.isSyncEnabled = function() { return ! this.syncDisabled };
+  this.isSyncEnabled = function() { return ! this.syncDisabled; };
 
-    this.getId = function() { return this.sessionId }
+  this.getId = function() { return this.sessionId; };
 
     this.rename = function(name) {
         // used for local session rename
@@ -446,7 +448,7 @@ function SessionClass(tabs, id) {
             // no resp means the update was canceled by the user
             if (!resp) {
                 debug.print(label + "empty response");
-                return;
+                return null;
             }
 
             if (resp.status == 0) {
@@ -464,6 +466,7 @@ function SessionClass(tabs, id) {
 
             // re-enable sync
             session.syncDisabled = false;
+          return null;
         };
         var req = new Ajax.Request(this.updateSessionUrl, {
                 method: 'post',
@@ -478,7 +481,7 @@ function SessionClass(tabs, id) {
 
         this.lastSync = new Date();
         return true;
-    }
+    };
 
     this.updateLock = function() {
         var label = "SessionClass.updateLock: ";
@@ -508,6 +511,7 @@ function SessionClass(tabs, id) {
                 encoding: null,
                 onFailure: reportError
             } );
+      return true;
     };
 
     this.setAutoSave = function(sec) {
@@ -516,7 +520,7 @@ function SessionClass(tabs, id) {
           return;
         }
 
-        sec = Number(sec)
+      sec = Number(sec);
         sec = (null == sec || isNaN(sec)) ? 60 : sec;
 
         this.autosave = new PeriodicalExecuter(this.sync
@@ -689,7 +693,7 @@ function SessionListLocal() {
 
     this.put = function(id, value) {
         if (!this.store) {
-            return null;
+            return;
         }
         var label = "SessionListLocal.put: ";
         var jValue = Object.toJSON(value);
@@ -701,7 +705,7 @@ function SessionListLocal() {
 
     this.queue = function(id) {
         if (!this.store) {
-            return null;
+            return;
         }
         var label = "SessionListLocal.queue: ";
         // re-order the sessions by most recent use
@@ -720,7 +724,7 @@ function SessionListLocal() {
 
     this.remove = function(id) {
         if (!this.store) {
-            return null;
+            return;
         }
         var label = "SessionListLocal.remove: ";
         // re-order the sessions by most recent use
@@ -740,7 +744,7 @@ function SessionListLocal() {
 
     this.clone = function(id) {
         if (!this.store) {
-            return null;
+            return;
         }
         var session = $H(this.get(id));
         session.set('name', "copy of " + session.get('name'));
@@ -759,7 +763,7 @@ function SessionListLocal() {
     // NB - webkit does not like functions named 'export'
     this.exportLocalSession = function(id) {
         if (!this.store) {
-            return null;
+            return;
         }
         var label = "SessionListLocal.exportLocalSession: ";
         debug.print(label + "begin");
@@ -885,7 +889,7 @@ function sessionsOnLoad() {
                         // to use the local information.
                         setCookie(gSessionIdCookie, "LOCAL");
                         sessionList.refresh();
-                    }
+                    };
                 }(key));
             cell.appendChild(button);
 
@@ -899,7 +903,7 @@ function sessionsOnLoad() {
                     return function() {
                         sessionList.clone(k);
                         window.location.reload();
-                    }
+                    };
                 }(key));
             cell.appendChild(button);
 
@@ -910,7 +914,8 @@ function sessionsOnLoad() {
                     title: 'export this session'});
             // extra function to create proper scope
             button.observe('click', function(k) {
-                    return function() { sessionList.exportLocalSession(k); }
+                             return function() {
+                               sessionList.exportLocalSession(k); };
                 }(key));
             cell.appendChild(button);
 
@@ -929,7 +934,7 @@ function sessionsOnLoad() {
                         }
                         sessionList.remove(k);
                         window.location.reload();
-                    }
+                    };
                 }(key));
             cell.appendChild(button);
             row.appendChild(cell);

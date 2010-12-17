@@ -99,7 +99,7 @@ function DebugClass(flag) {
 
         // primitives
         return "===>" + item + "<===(" + typeof(item) + ")";
-    }
+    };
 
 }
 

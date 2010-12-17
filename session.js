@@ -708,6 +708,10 @@ function SessionListLocal() {
             return;
         }
         var label = "SessionListLocal.queue: ";
+      if (!this.sessionsList) {
+        debug.print(label + "null sessionsList");
+        return;
+      }
         // re-order the sessions by most recent use
         var newArray = new Array();
         newArray[0] = id;

@@ -20,7 +20,7 @@
 // NOTE: to defeat IE6 caching, always use method=POST
 
 // GLOBAL CONSTANTS: but IE6 doesn't support "const"
-var gSessionIdCookie = "/cq:session-id";
+var gSessionIdCookie = "com.marklogic.cq.session-id";
 var gLocalStoreSessionsKey = "com.marklogic.cq.sessions";
 
 // GLOBAL VARIABLES

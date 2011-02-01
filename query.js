@@ -1549,7 +1549,7 @@ function handleKeys(e) {
 
     // NB apparently we cannot capture KEY_RETURN on IE?
     if (theCode == Event.KEY_RETURN) {
-        Event.stop();
+        Event.stop(e);
 
         var theForm = $(kQueryFormId);
         if (altKey && ctrlKey && shiftKey) {

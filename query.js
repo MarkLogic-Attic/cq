@@ -1404,7 +1404,7 @@ function cqOnLoad() {
     // "keypress" works with gecko
     // "keydown", "keyup" work with gecko and Chrome
     // TODO keyup means character has been handled - if needed
-    Event.observe(this, "keyup", handleKeys);
+    Event.observe(this, "keydown", handleKeys);
 
     // set up the UI objects
     gBuffers = new QueryBufferListClass("query",
@@ -1549,27 +1549,24 @@ function handleKeys(e) {
 
     // NB apparently we cannot capture KEY_RETURN on IE?
     if (theCode == Event.KEY_RETURN) {
-      var theForm = $(kQueryFormId);
-      if (altKey && ctrlKey && shiftKey) {
-        submitProfile(theForm);
-      } else if (ctrlKey && shiftKey) {
-        submitText(theForm);
-      } else if (altKey) {
-        submitHTML(theForm);
-      } else {
-        submitXML(theForm);
-      }
+        Event.stop();
 
-      if (e && e.stopPropagation) {
-        e.stopPropagation();
-      } else {
-        event.cancelBubble = true;
-      }
+        var theForm = $(kQueryFormId);
+        if (altKey && ctrlKey && shiftKey) {
+            submitProfile(theForm);
+        } else if (ctrlKey && shiftKey) {
+            submitText(theForm);
+        } else if (altKey) {
+            submitHTML(theForm);
+        } else {
+            submitXML(theForm);
+        }
 
-      return false;
+        return false;
     }
 
     if ( modKey && (47 < theCode) && (58 > theCode) ) {
+        Event.stop();
         // expose the corresponding buffer: 0-9
         gBuffers.activate((theCode == 48) ? 9 : (theCode - 49));
         return false;
@@ -1577,18 +1574,21 @@ function handleKeys(e) {
 
     // previous buffer: MOD-lt
     if (modKey && 188 == theCode) {
+        Event.stop();
         gBuffers.previousBuffer();
         return false;
     }
 
     // next buffer: MOD-gt
     if (modKey && 190 == theCode) {
+        Event.stop();
         gBuffers.nextBuffer();
         return false;
     }
 
     // toggle tab: MOD-backquote
     if (modKey && 192 == theCode) {
+        Event.stop();
         gBufferTabs.toggle();
         return false;
     }

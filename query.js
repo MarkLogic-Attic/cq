@@ -1566,29 +1566,39 @@ function handleKeys(e) {
     }
 
     if ( modKey && (47 < theCode) && (58 > theCode) ) {
-        Event.stop();
         // expose the corresponding buffer: 0-9
         gBuffers.activate((theCode == 48) ? 9 : (theCode - 49));
+        Event.stop(e);
         return false;
     }
 
     // previous buffer: MOD-lt
     if (modKey && 188 == theCode) {
-        Event.stop();
+        if (debug.isEnabled()) {
+            debug.print("handleKeys: previous buffer");
+        }
+        Event.stop(e);
         gBuffers.previousBuffer();
         return false;
     }
 
     // next buffer: MOD-gt
     if (modKey && 190 == theCode) {
-        Event.stop();
+        if (debug.isEnabled()) {
+            debug.print("handleKeys: next buffer");
+        }
+        Event.stop(e);
         gBuffers.nextBuffer();
         return false;
     }
 
     // toggle tab: MOD-backquote
+    // NB - on OS X this is shift-alt-backquote
     if (modKey && 192 == theCode) {
-        Event.stop();
+        if (debug.isEnabled()) {
+            debug.print("handleKeys: toggle tab");
+        }
+        Event.stop(e);
         gBufferTabs.toggle();
         return false;
     }

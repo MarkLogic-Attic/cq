@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : Client Query Application
  :
- : Copyright (c) 2002-2010 MarkLogic Corporation. All Rights Reserved.
+ : Copyright 2002-2011 MarkLogic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -165,7 +165,7 @@ c:set-content-type(),
           you will not be able to resume it.
           </p>
           <script>
-          var list = new SessionList();
+          var serverSessionList = new SessionList();
           </script>
 {
   let $sessions := c:sessions()
@@ -208,7 +208,7 @@ c:set-content-type(),
                   attribute title {
                     data($i/sess:query-buffers/sess:query[1]) },
                   attribute onclick {
-                    concat("list.resumeSession('", $id, "')") },
+                    concat("serverSessionList.resumeSession('", $id, "')") },
                   attribute value {
                     "Resume", (' ', $id)[ $d:DEBUG ] }
                 }[ not($conflicting) ],
@@ -218,7 +218,7 @@ c:set-content-type(),
                   attribute type { "button" },
                   attribute title { "clone this session" },
                   attribute onclick {
-                    concat("list.cloneSession('", $id, "', this)") },
+                    concat("serverSessionList.cloneSession('", $id, "', this)") },
                   attribute value { "Clone", (' ', $id)[ $d:DEBUG ] }
                 },
                 $x:NBSP,
@@ -227,7 +227,7 @@ c:set-content-type(),
                   attribute type { "button" },
                   attribute title { "export this session" },
                   attribute onclick {
-                    concat("list.exportServerSession('", $id, "', this)") },
+                    concat("serverSessionList.exportServerSession('", $id, "', this)") },
                   attribute value { "Export", (' ', $id)[ $d:DEBUG ] }
                 },
                 $x:NBSP,
@@ -236,7 +236,7 @@ c:set-content-type(),
                   attribute type { "button" },
                   attribute title { "permanently delete this session" },
                   attribute onclick {
-                    concat("list.deleteSession('", $id, "', this)") },
+                    concat("serverSessionList.deleteSession('", $id, "', this)") },
                   attribute value { "Delete", (' ', $id)[ $d:DEBUG ] }
                 }[ not($conflicting) ]
               }
@@ -248,7 +248,7 @@ c:set-content-type(),
     </p>
 }
           <input type="button" value="New Server Session"
-          id="newSession2" name="newSession2" onclick="list.newSession()"/>
+          id="newSession2" name="newSession2" onclick="serverSessionList.newSession()"/>
         </div>
       }
     </form>

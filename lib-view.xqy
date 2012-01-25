@@ -163,8 +163,44 @@ declare function v:get-text($x as item()+)
   $x
 };
 
+declare function v:get-error-frame-top-eval-html(
+  $query as xs:string,
+  $line-no as xs:integer,
+  $column-no as xs:integer)
+ as element(xh:div)*
+{
+  <xh:div id="error-lines" class="code">
+  {
+    for $l at $x in tokenize($query, "\r\n|\r|\n", "m")
+    where $x gt ($line-no - 3) and $x lt (3 + $line-no)
+    return (
+      concat(string($x), ": "),
+      element xh:span {
+        if ($x ne $line-no) then $l
+        else (
+          attribute class { "error" },
+          if (empty($column-no)) then $l
+          else (
+            (: Highlight the character at the error column :)
+            substring($l,1,$column-no),
+            element xh:span {
+              attribute class { "errorchar" },
+              substring($l, $column-no + 1, 1)
+            },
+            substring($l, $column-no + 2)
+          )
+        )
+      },
+      <xh:br/>
+    )
+  }
+  </xh:div>
+};
+
 declare function v:get-error-frame-html(
-  $f as element(error:frame), $query as xs:string)
+  $f as element(error:frame),
+  $is-top-eval as xs:boolean,
+  $query as xs:string)
  as element()*
 {
   d:debug(('v:get-error-frame-html:', $f)),
@@ -183,32 +219,11 @@ declare function v:get-error-frame-html(
           else concat(":", string($column-no), ": ") ),
         (: display the error lines, if it is in a main module :)
         if ($f/error:uri) then ()
-        else <xh:div id="error-lines" class="code">
-        {
-          for $l at $x in tokenize($query, "\r\n|\r|\n", "m")
-          where $x gt ($line-no - 3) and $x lt (3 + $line-no)
-          return (
-            concat(string($x), ": "),
-            element xh:span {
-              if ($x ne $line-no) then $l
-              else (
-                attribute class { "error" },
-                if (empty($column-no)) then $l
-                else (
-                  (: Highlight the character at the error column :)
-                  substring($l,1,$column-no),
-                  element xh:span {
-                    attribute class { "errorchar" },
-                    substring($l, $column-no + 1, 1)
-                  },
-                  substring($l, $column-no + 2)
-                )
-              )
-            },
-            <xh:br/>
-          )
-        }
-        </xh:div>,
+        else if (not($is-top-eval)) then <xh:div class="code error">
+          Error at line { $line-no } column { $column-no }
+          in nested xdmp:eval or xdmp:value or xdmp:unpath.
+        </xh:div>
+        else v:get-error-frame-top-eval-html($query, $line-no, $column-no),
         <xh:br/>
       )
     ),
@@ -285,8 +300,11 @@ declare function v:get-error-html(
       },
       <p><b><i>Stack trace:</i></b></p>,
       element p {
-        for $f in $ex/error:stack/error:frame
-        return v:get-error-frame-html($f, $query)
+        let $frames := $ex/error:stack/error:frame
+        let $frame-count := count($frames)
+        let $top-eval-frame := $frame-count - 1
+        for $f at $x in $frames
+        return v:get-error-frame-html($f, $x eq $top-eval-frame, $query)
       }
     }
   }</body>

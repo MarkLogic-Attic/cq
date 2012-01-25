@@ -219,18 +219,19 @@ function BrowserIsClass() {
 
     this.opera = agt.indexOf('opera') != -1;
 
-    this.safari = agt.indexOf('safari') != -1;
-
     this.chrome = agt.indexOf('chrome') != -1;
+
+    this.safari = !chrome && agt.indexOf('safari') != -1;
 
     // don't use these unless we must
     this.x11 = (agt.indexOf("x11") != -1);
     this.mac = (agt.indexOf("macintosh") != -1);
     this.win = (agt.indexOf("windows") != -1);
 
-    this.useXsl = (this.chrome
-                   || this.safari
-                   || this.opera);
+    // chrome has a tree display, but not inside framesets
+    this.useXsl = (this.safari
+                   || this.opera
+                   || this.chrome);
 }
 
 function BufferTabsClass(nodeId, instructionId, buffers, history) {

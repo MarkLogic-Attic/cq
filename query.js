@@ -221,7 +221,7 @@ function BrowserIsClass() {
 
     this.chrome = agt.indexOf('chrome') != -1;
 
-    this.safari = !chrome && agt.indexOf('safari') != -1;
+    this.safari = !this.chrome && agt.indexOf('safari') != -1;
 
     // don't use these unless we must
     this.x11 = (agt.indexOf("x11") != -1);

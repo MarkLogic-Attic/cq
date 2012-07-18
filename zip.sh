@@ -32,13 +32,13 @@ FILES=`echo cq/[a-su-z]*.xqy \
   cq/sessions`
 zip -9 $ZIP $FILES
 
-rsync -vazP $ZIP ssh.marklogic.com:public_html/
+#rsync -vazP $ZIP ssh.marklogic.com:public_html/
 
-URL=http://corp1/~michael/`basename $ZIP`
+#URL=http://corp1/~michael/`basename $ZIP`
 
-ssh ssh.marklogic.com HEAD $URL
+#ssh ssh.marklogic.com HEAD $URL
 
-echo $URL ok
-echo
+#echo $URL ok
+#echo
 
 # end

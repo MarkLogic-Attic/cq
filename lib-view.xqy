@@ -166,7 +166,7 @@ declare function v:get-text($x as item()+)
 declare function v:get-error-frame-top-eval-html(
   $query as xs:string,
   $line-no as xs:integer,
-  $column-no as xs:integer)
+  $column-no as xs:integer?)
  as element(xh:div)*
 {
   <xh:div id="error-lines" class="code">

@@ -1,4 +1,4 @@
-/* Copyright (c) 2004-2011 MarkLogic Corporation. All Rights Reserved.
+/* Copyright (c) 2004-2013 MarkLogic Corporation. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,13 +60,32 @@ input[type = "button"]
 {
   font-family: sans-serif;
   margin-left: 0.5em;
-  margin-left: 0.5em;
+}
+
+#buffer-list
+{
+    margin-top: 1.25%;
+    margin-left: 1.25%;
+    width: 98%;
+}
+
+#buffer-tabs-table
+{
+}
+
+#buffer-tabs
+{
 }
 
 #cq-textarea-status
 {
   font-weight: normal;
   font-size: smaller;
+}
+
+#rightbar
+{
+    width: 100%;
 }
 
 .resizable-e,.resizable-s,.resizable-w,.resizable-n

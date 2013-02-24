@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : cq
  :
- : Copyright (c) 2002-2011 MarkLogic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2013 MarkLogic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -149,8 +149,8 @@ c:set-content-type(),
             </table>
             </div>
           </td>
-          <td>
-            <table>
+          <td id="rightbar">
+            <table id="buffer-tabs-table">
             <tr id="buffer-tabs">
               <td class="buffer-tab" id="buffer-tabs-0"
               title="Select any query buffer. Shortcut: ctrl-0 to 9, or alt-0 to 9."

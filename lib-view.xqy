@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 (:
  : cq: lib-view.xqy
  :
- : Copyright (c) 2002-2011 MarkLogic Corporation. All Rights Reserved.
+ : Copyright (c) 2002-2013 MarkLogic Corporation. All Rights Reserved.
  :
  : Licensed under the Apache License, Version 2.0 (the "License");
  : you may not use this file except in compliance with the License.
@@ -342,7 +342,7 @@ declare function v:get-html-head(
     if (not($tablekit)) then () else
     <link rel="stylesheet" type="text/css" href="tablekit.css" />
   }
-  <link rel="Shortcut Icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico"/>
   <script language="JavaScript" type="text/javascript" src="js/prototype.js">
   </script>
   <script language="JavaScript" type="text/javascript" src="js/resizable.js">
